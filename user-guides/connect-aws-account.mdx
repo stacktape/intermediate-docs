@@ -1,0 +1,65 @@
+---
+title: "Connect AWS Account"
+order: 0
+---
+
+# Introduction
+
+To deploy with Stacktape, your organization must have an AWS account connected. This tutorial will guide you through the
+process of connecting your AWS account with Stacktape.
+
+# Prerequisites
+
+You must have an AWS account to complete this tutorial. If you do not have an AWS account, you can
+[create one here](https://portal.aws.amazon.com/billing/signup).
+
+# Step 1
+
+After singing in to the [stacktape console](https://console.stacktape.com/), navigate to the
+[AWS accounts page](https://console.stacktape.com/aws-accounts).
+
+![Navigate to AWS accounts page](../static/connect-aws-account/docsaws1.1.png)
+
+# Step 2 - Initiate Connection
+
+**Step 2.1**
+
+Click `Connect your AWS account` button
+
+![Connect your AWS account - step 1](../static/connect-aws-account/docsaws2.png)
+
+**Step 2.2**
+
+1. Fill in `Account name`. This will identify your AWS account within your Stacktape organization.
+
+2. Continue by clicking `Connect Account in AWS Console` button. This will redirect you to your AWS console.
+
+![Connect your AWS account - step 2](../static/connect-aws-account/docsaws3.png)
+
+# Step 3 - Create Connection Stack
+
+In the AWS console, you now need to create the connection stack. Connection stack is a set of resources that are
+necessary for connecting your AWS account to Stacktape.
+
+`Connection stack and its resources are free and do not incur any noticeable costs.` The stack includes an S3 bucket for
+collecting cost reports (required for Stacktape cost analysis) and an IAM role that allows Stacktape access to your AWS
+account.
+
+<Warning>
+
+If you delete the connection stack in the AWS console, you will no longer be able to use Stacktape.
+
+</Warning>
+
+![Confirm connection stack creation](../static/connect-aws-account/docsaws4.png)
+
+After you confirm the stack creation, you will see the stack being created. Stack creation generally takes around 1
+minute.
+
+![Connection stack creation in progress](../static/connect-aws-account/docsaws5.png)
+
+After the connection stack is successfully created, your AWS account is connected to Stacktape. You should see the
+connected `AWS Account` marked `ACTIVE` in the
+[stacktape console AWS accounts page](https://console.stacktape.com/aws-accounts)
+
+![Console after successful creation](../static/connect-aws-account/docsaws6.png)

@@ -1,0 +1,74 @@
+---
+title: "Development mode"
+order: 1
+---
+
+# Introduction
+
+Stacktape allows you to easily develop your application in a **"development"** mode.
+
+<br />
+
+Different compute resource types have different ways to develop them.
+
+<br />
+
+The development mode is designed to be:
+
+- Practical (fast feedback loop).
+- Correct (as close to the production compute resource as possible).
+- Intuitive and easy to use.
+- Enjoyable (all the information you need in one place, pretty-printed logs, etc.)
+
+# Developing application code of container workloads
+
+<br />
+
+The recommended way to develop a container workload is to use the [dev command](/cli/commands/dev/).
+
+For example, to develop and debug container `api-container` within container workload named `apiServer`, you can use
+
+```bash
+stacktape dev --region eu-west-1 --stage <<your-previously-deployed-stage>> --resourceName apiServer
+```
+
+This will run the container locally, map all of the `containerPort`-s specified in the `events` section to the host
+machine, and continuously pretty-print logs produced by the container.
+
+<br />
+
+Stacktape emulates the compute resource as closely to the deployed version as possible:
+
+- Container's `environment` variables referenced by `$ResourceParam` and `$Secret` directives are automatically
+  downloaded and injected to the compute resource.
+- Temporary credentials of the container's
+  [assumed role](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html) are injected to the compute
+  resource. This means that your locally running container will have the exact same IAM permissions as the deployed
+  version.
+
+<br />
+
+The container is rebuilt and restarted, when you either:
+
+- type `rs + enter` to the terminal
+- use the `--watch` option and one of your source code files changes
+
+# Developing application code of lambda functions
+
+The recommended way to develop a container compute resource is to use the [dev command](/cli/commands/dev/).
+
+```bash
+stacktape dev --region eu-west-1 --stage <<your-previously-deployed-stage>> --resourceName getPosts
+```
+
+This will quickly build and deploy your function code, continuously watch for its logs, and pretty-print them to the
+terminal.
+
+The function is rebuilt and redeployed, when you either:
+
+- type `rs + enter` to the terminal
+- use the `--watch` option and one of your source code files changes
+
+# Developing application code of batch job
+
+Local development mode for batch job is currently under development.

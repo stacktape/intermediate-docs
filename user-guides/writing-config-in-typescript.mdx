@@ -1,0 +1,91 @@
+---
+title: "Writing config in Typescript"
+order: 2
+---
+
+# Introduction
+
+- Besides YAML, you can write your configuration in Javascript and Typescript.
+- This is useful, if have a lot of dynamic behavior in your configuration.
+- Please note that you can also add dynamic behavior to your templates using [directives](/configuration/directives).
+
+# Usage
+
+Writing your configuration in javascript or typescript is straightforward.
+
+```javascript
+export default {
+  // your configuration
+};
+```
+
+When using the CLI, Stacktape will automatically pick up the configuration, if you name it `stacktape.js`. Stacktape
+picks up the configuration files in the following order:
+
+- YAML
+- JSON
+- Typescript
+- Javascript
+
+# Using Stacktape Typescript types
+
+To improve your development experience, you can use typescript types provided by the `@stacktape/sdk` package. To
+install it, run
+
+```bash
+npm install @stacktape/sdk
+```
+
+or
+
+```bash
+yarn add @stacktape/sdk
+```
+
+For javascript files, you can use it in the following way:
+
+```javascript
+/** @type {import('@stacktape/sdk').StacktapeConfig} */
+const config = {
+  // your config
+};
+
+export default config;
+```
+
+For typescript files:
+
+```typescript
+import { StacktapeConfig } from "@stacktape/sdk";
+
+const config: StacktapeConfig = {
+  // your config
+};
+
+export default config;
+```
+
+# Using getConfig Function
+
+If your typescript file exports `getConfig` function, Stacktape executes this function to generate your config. An
+object containing information is passed as an argument to the function, which can be used to parametrize returned
+config.
+
+```typescript
+import { StacktapeConfig, StacktapeArgs } from "@stacktape/sdk";
+
+export const getConfig = (infoObject: {
+  projectName: string;
+  stage: string;
+  region: string;
+  command: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  cliArgs: StacktapeArgs;
+}): StacktapeConfig => {
+  // create your config and return it
+};
+```

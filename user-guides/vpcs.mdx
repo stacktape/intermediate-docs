@@ -1,0 +1,47 @@
+---
+title: "Virtual private cloud (VPC)"
+order: 5
+---
+
+# Overview
+
+- VPC (Virtual Private Cloud) is a logically isolated virtual network. This virtual network resembles a traditional
+  network in an on-premise data center.
+
+- VPC allows you to control the access to resources connected to it. You can create subnets, IP address range, route
+  tables and network gateways. Configuring VPCs manually is usually complicated, time-consuming and error-prone.
+
+- Stacktape handles VPC configuration and management for you. In most cases, it doesn't require you to worry about VPCs
+  at all while maintaining a high levels of security.
+
+## Default VPC
+
+- Certain AWS resources need to be connected to the VPC in order to work (this is enforced by AWS).
+
+- For stacks that require these resources, Stacktape automatically creates a default VPC and connects the VPC-requiring
+  resources to it.
+
+## Communication with outer internet
+
+- Resources inside a VPC by default can't communicate with the internet (make outbound requests).
+
+- Resources that need to communicate with the internet can do that using 2 different approaches:
+
+### Being connected to a public subnet
+
+- Container workloads and batch jobs are connected to the public subnet by default. This means you can communicate with
+  the internet without any extra effort.
+- However, [lambda functions](/compute-resources/lambda-functions) can't be connected to the public subnet.
+
+### Using a NAT Gateway
+
+- A NAT gateway is a Network Address Translation (NAT) service. You can use a NAT gateway so that instances in a private
+  subnet can connect to services outside your VPC but external services cannot initiate a connection with those
+  instances.
+- NAT Gateway are costly (you pay hourly charges, minimum 33$/month) and also data-processing and data-transfer charges.
+- Stacktape currently doesn't use a NAT Gateway for any of its resources.
+- To learn more about NAT Gateways, refer to
+  [AWS docs](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html).
+
+<br />
+<br />

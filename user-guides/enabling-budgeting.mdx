@@ -1,0 +1,97 @@
+---
+title: "Enabling budgeting"
+order: 4
+---
+
+# Introduction
+
+<br />
+
+- To use [budget control](/configuration/budget-control/), you need to:
+
+  1. **Enable cost explorer** in your account (if you have not used cost explorer previously) - **using root account**.
+  2. Activate **Stacktape cost allocation tags** in the AWS console - **using root account**.
+
+- This guide will walk you through both of these.
+
+<Warning>
+
+To complete this tutorial, you need to be logged in as AWS **root user (root account)**.
+
+</Warning>
+
+# 1. Enabling Cost Explorer
+
+## 1.1. Go to Billing -> Cost Explorer page
+
+Login to AWS console as a **root user** and visit
+[cost explorer page](https://console.aws.amazon.com/billing/home#/costexplorer) in the billing section.
+
+![Cost explorer](../static/enable-budgeting/cost-explorer.png)
+
+## 1.2. Launch the cost explorer
+
+Launch the Cost Explorer using the button `Launch Cost Explorer`.
+
+![Launch cost explorer](../static/enable-budgeting/launch-cost-explorer.png)
+
+If this is your first time launching Cost Explorer you should receive the following message.
+
+![Cost explorer message](../static/enable-budgeting/cost-explorer-message.png)
+
+<Warning>
+
+It can take up to 24 hours for Cost Explorer to be activated. This is an AWS limitation.
+
+</Warning>
+
+# 2. Activate cost allocation tags
+
+- Activating cost allocation tags allows Stacktape to correctly aggregate costs of resources in your stacks.
+
+- Stacktape automatically tags resources in your stacks with **custom tags**. Based on these tags, Cost Explorer can
+  determine which resources are part of the stack and associate costs of these resources to the stack.
+
+- For these **custom tags** to be usable by Cost Explorer, you need to activate them as **cost allocation tags**.
+
+## 2.1. Go to Billing -> Cost allocation tags page
+
+Login to AWS console and visit [cost allocation tags tab](https://console.aws.amazon.com/billing/home#/tags) in the
+billing section.
+
+![Billing - tags](../static/enable-budgeting/tags-unselected-modified-inactive.png)
+
+## 2.2. Activate required cost allocation tags
+
+The list will show all tags that have been previously used to tag a resource in this account.
+
+If you have already deployed a stack using Stacktape, all the required tags should be listed here.
+
+The following tags are required:
+
+- `stp:globally-unique-stack-hash`
+- `stp:service-name`
+- `stp:stack-name`
+- `stp:stage`
+
+<Warning>
+
+It can take up to 24 hours for these tags to appear in the console after being used. This is an AWS limitation.
+
+</Warning>
+
+Select all the required tags and activate them by clicking on `Activate` button in the top right corner.
+
+![Activating tags](../static/enable-budgeting/selected-tags-2-modified.png)
+
+After the activation, tags should be marked as `Active`.
+
+<Warning>
+
+It can take up to 24 hours after activating the tags before you can start using them in
+
+<Link href="/configuration/budget-control">budget control</Link>. This is an AWS limitation.
+
+</Warning>
+
+![Active tags](../static/enable-budgeting/tags-unselected-modified.png)

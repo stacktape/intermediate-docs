@@ -1,0 +1,130 @@
+---
+title: "Configure AWS profile"
+order: 7
+---
+
+# Introduction
+
+<br />
+
+- To access your AWS account from your own machine (using CLI, SDK or REST API), you need to configure AWS credentials
+  (**AWS Access Key Id** and **AWS Secret Access Key**). Stacktape uses these credentials to interact with your AWS
+  account.
+
+- This guide walks you through creating these credentials and configuring your system to use them.
+
+# Create AWS credentials
+
+## 1. Log in to your AWS account
+
+Login to your AWS user account using
+[this link](https://console.aws.amazon.com/console/home?nc2=h_ct&src=header-signin).
+
+<Info>If you already have an IAM user account, login as an IAM user. Otherwise, login as a root user.</Info>
+
+## 2. Navigate to My Security Credentials
+
+In the upper navigation panel, click on your username and navigate to _My security credentials_ page.
+
+![Console home page](../static/create-access-key/my-security-credentials.png)
+
+Depending on if you are logged in as a **Root user** or an **IAM user**, you will see different screens and will need to
+perform different actions. If you've just created your AWS account, you're logged in as a **Root user**.
+
+<Divider />
+
+## 3a (As a root user) Create an IAM user with credentials
+
+If you are logged in as a **Root user** and on the **My security credentials** page, you will see the following screen:
+![Root user - My Security Credentials](../static/create-access-key/root-sec-cred-clean.png)
+
+Using a root user to interact with your account is not recommended. You should create an IAM user instead.
+
+To do that, navigate to the users page by clicking on the link in the leftmost navigation panel.
+
+![Root user - My Security Credentials](../static/create-access-key/root-sec-cred.png)
+
+Click on the `Add Users` button in the right corner of your screen.
+
+The following section will navigate you through the setup process of an IAM user.
+
+![Add IAM user](../static/create-access-key/add-iam-user.png)
+
+- In the **STEP-1** specify:
+
+1. **User name** - uniquely identifies the user in your account
+2. **AWS Credential type** - it is necessary to select `Access key - Programmatic access`. If you also wish to use IAM
+   user for logging into console (which is what
+   [AWS recommends](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_root-user.html)), select the
+   `Password - AWS Management Console` as well.
+3. **Password** - if you've chosen the `Password - AWS Management Console` credentials type, type in your password.
+4. Navigate to the next step.
+
+![Setup IAM user - step 1](../static/create-access-key/user-setup-screen-1.png)
+
+In the **STEP-2** set permissions for you IAM user.
+
+1. Select `Attach Existing Policies Directly`
+2. Check the `AdministratorAccess` box
+3. Navigate to the next step.
+
+![Setup IAM user - step 2](../static/create-access-key/user-setup-screen-2.png)
+
+In the **STEP-3**, you don't need to select any tags and can continue to the next step.
+
+![Setup IAM user - step 3](../static/create-access-key/user-setup-screen-3.png)
+
+In the **STEP-4**, you can review the user and confirm the creation.
+
+![Setup IAM user - step 4](../static/create-access-key/user-setup-screen-4.png)
+
+In the **STEP-5**, copy the credentials manually or download them using the `Download .csv` button.
+
+<br />
+
+Save the credentials. You will need them to configure the AWS profile on your machine.
+
+<br />
+
+Additionally, if you've created an IAM user with the password console access enabled, you can logout as a root user, and
+log back in as a newly created IAM user.
+
+![Setup IAM user - step 5](../static/create-access-key/user-setup-screen-5.png)
+
+<Divider />
+
+## 3b (As an IAM user) Create credentials for an existing IAM user
+
+If you are logged in as an **IAM user** and on the **My security credentials** page, you will see the following screen:
+
+![IAM user - My Security Credentials](../static/create-access-key/iam-security-credentials.png)
+
+Click on the `Create access key` button.
+
+![Create access key](../static/create-access-key/iam-security-credentials.png)
+
+Copy the credentials manually or download them using the `Download .csv` button.
+
+<br />
+
+Save the credentials. You will need them to configure the AWS profile on your machine.
+
+![Download access key](../static/create-access-key/iam-created-credentials.png)
+
+# Configure the AWS profile for your system
+
+To create the AWS profile on your system, you can use the following command:
+
+```bash
+stacktape aws-profile:create
+```
+
+By default, Stacktape uses the **"default"** profile.
+
+<br />
+
+The credentials are saved at `~/. aws/credentials` on Linux and macOS, and at `C:\Users\<USERNAME>\.aws\credentials` on
+Windows
+
+<br />
+<br />
