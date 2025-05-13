@@ -1,0 +1,48 @@
+---
+title: ""
+order: 7
+---
+
+# Outputs
+
+- Outputs are parameters of your stack that can be reused later. For example, database endpoints of your database or an
+  ARN (Amazon resource name) of your SQS queue.
+- Outputs can also be used to pass information from one stack to another. Refer to
+  [CfStackOutput directive](/configuration/directives#cf-stack-output) to learn more about referencing outputs between
+  stacks.
+- Stacktape automatically adds potentially helpful outputs. These outputs include database URLs, domain names, URLs of
+  API Gateways/Load balancers, etc.
+
+```yml
+# {start-highlight}
+stackConfig:
+  outputs:
+    - name: BUCKET_URL
+      value: $ResourceParam('myBucket', 'url')
+# {stop-highlight}
+
+resources:
+  myBucket:
+    type: bucket
+```
+
+> The URL of the bucket is saved as an output.
+
+<PropertiesTable definitionName="StackOutput" searchForReferencesInDefinition="StackConfig" />
+
+# Tags
+
+- These tags are propagated to all AWS resources created in this stack.\n- Tags can help you to identify and categorize resources.\n- Not every AWS resource supports tags.\n- A maximum number of 45 tags can be specified.\n
+
+<PropertiesTable definitionName="CloudformationTag" searchForReferencesInDefinition="StackConfig" />
+
+# Stack information preservation
+
+- Stacktape automatically saves some information about the deployed stack after each deployment.
+- Stack information includes data about the deployed resources, outputs, and metadata.
+- By default, the information is saved to `.stack-info/<<stack-name>>.json`.
+- You can disable this behavior or change the output directory.
+
+# API Reference
+
+<PropertiesTable definitionName="StackConfig" />

@@ -1,0 +1,153 @@
+---
+title: "Referencing parameters"
+order: 3
+---
+
+# Introduction
+
+- When using a cloud architecture composed of multiple infrastructure resources, these resources usually need to
+  communicate with each other.
+- To do that, they usually need some kind of identifier or address - for example a database endpoint, API Gateway URL
+  or an ARN (Amazon Resource Name). These identifiers are assigned dynamically, and they can't be known ahead of time
+  (before the stack is deployed).
+- Stacktape allows you to easily create dynamic references to these resources using
+  [$ResourceParam()](/configuration/directives/#resource-param) and
+  [$CfResourceParam()](/configuration/directives/#cf-resource-param) directives.
+
+# Parameters of Stacktape resources
+
+- Stacktape allows you to reference most commonly needed parameters of the resources it creates.
+- These include database endpoints, database connection strings, URLs of API Gateways and Load Balancers, etc.
+- These parameters can be referenced using a [$ResourceParam() directive](/configuration/directives/#resource-param).
+- `$ResourceParam()` directive returns the specified parameter of the specified **Stacktape resource**.
+- Arguments:
+
+  - **1. stacktape resource name** - name of the referenced Stacktape resource as specified in the configuration.
+  - **2. parameter name** - parameter to reference. You can find a list of all referenceable parameters for every
+    resource in its docs:
+    - [relational-databases](/resources/relational-databases/#referenceable-parameters)
+    - [dynamo-db-tables](/resources/dynamo-db-tables/#referenceable-parameters)
+    - [mongo-db-atlas-clusters](/resources/mongo-db-atlas-clusters/#referenceable-parameters)
+    - [redis-clusters](/resources/redis-clusters/#referenceable-parameters)
+    - [http-api-gateways](/resources/http-api-gateways/#referenceable-parameters)
+    - [buckets](/resources/buckets/#referenceable-parameters)
+    - [application-load-balancers](/resources/application-load-balancers/#referenceable-parameters)
+    - [event-buses](/resources/event-buses/#referenceable-parameters)
+    - [functions](/compute-resources/lambda-functions/#referenceable-parameters)
+    - [multi-container-workloads](/compute-resources/multi-container-workloads/#referenceable-parameters)
+    - [batch-jobs](/compute-resources/batch-jobs/#referenceable-parameters)
+
+```yml
+resources:
+  myDatabase:
+    type: relational-database
+    properties: ...database properties...
+
+  myFunction:
+    type: function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: path/to/my/lambda-requiring-db.ts
+      environment:
+        # {start-highlight}
+        - name: DB_CONNECTION_STRING
+          value: $ResourceParam('myDatabase', 'connectionString')
+          # {stop-highlight}
+```
+
+> Example usage of $ResourceParam() directive.
+
+# Parameters of Cloudformation resources
+
+- To reference parameters of native Cloudformation resources or parameters that aren't supported by `$ResourceParam()`
+  directive, you can use the [$CfResourceParam() directive](/configuration/directives/#cf-resource-param).
+- Arguments:
+  - **1. cloudformation logical name** - name of the AWS Cloudformation resource.
+    - If you want to reference a resource defined in `cloudformationResources` section, just use its name.
+    - If you want to reference a child resources of a Stacktape resource, you can get a list of child resource using the
+      [stack-info command](/cli/commands/stack-info)
+  - **2. parameter name** - parameter of the AWS Cloudformation resource to reference. To see a list of all
+    referenceable cloudformation parameters for resources in your stack, refer to
+    [Listing child resources](#listing-child-resources).
+
+## Listing child resources
+
+Let's say we want to get parameter of the AWS Lambda resource (cloudformation type `AWS::Lambda::Function`) that is a
+child resource of `myFunction` stacktape resource.
+
+```yml
+resources:
+  myFunction:
+    type: function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: path/to/my/lambda.ts
+```
+
+<br />
+
+We can use [stack-info command](/cli/commands/stack-info) to get a detailed list of all resources and their child
+resources.
+
+```bash
+stacktape stack-info --detailed --stage my-stage --region eu-west-1
+```
+
+<br />
+
+The (truncated) output will look like this. The logical name of the `AWS::Lambda::Function` resource is highlighted.
+
+```yml
+resources:
+  myFunction:
+    resourceType: function
+    cloudformationChildResources:
+      # {start-highlight}
+      MyFunctionFunction:
+        # {stop-highlight}
+        cloudformationResourceType: AWS::Lambda::Function
+        status: DEPLOYED
+        referenceableParams:
+          - Name
+          - Arn
+      LogGroup:
+        cloudformationResourceType: AWS::Logs::LogGroup
+        status: DEPLOYED
+        referenceableParams:
+          - Name
+          - Arn
+        logicalName: DeletePostLambdaLogGroup
+```
+
+<br />
+
+Now we can use the lambda function's logical name to get its parameter.
+
+```yml
+cloudformationResources:
+  MySnsTopic:
+    type: AWS::SNS::Topic
+
+resources:
+  myBucket:
+    type: bucket
+
+  processData:
+    type: function
+    properties:
+      packageConfig:
+        filePath: path/to/my/lambda.ts
+      destinations:
+        # {start-highlight}
+        onFailure: $CfResourceParam('MySnsTopic', 'Arn')
+        # {stop-highlight}
+      environment:
+        name: BUCKET_NAME
+        # {start-highlight}
+        value: $CfResourceParam('MyBucketBucket', 'Name')
+        # {stop-highlight}
+```

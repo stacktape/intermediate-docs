@@ -1,0 +1,82 @@
+---
+title: "AWS CloudFormation resources"
+order: 1
+---
+
+# Overview
+
+AWS Cloudformation configuration is AWS's native way to manage infrastructure as a code.
+
+In Stacktape, you can use the `cloudformationResources` section to extend your Stacktape template with AWS
+Cloudformation resources. This enables you to easily configure, manage and interconnect Cloudformation resources with
+other resources of your stack. As a result, you are able to leverage **full power of AWS in a single unit
+configuration**.
+
+<Divider />
+
+# Usage
+
+## Example
+
+The following example shows a Stacktape template with CloudFormation SNS topic resource (SNS is AWS managed messaging
+service).
+
+Infrastructure includes:
+
+- **MySnsTopic** - SNS topic - used as communicator between functions (Cloudformation resource)
+- **processData** - function - processing function. If failure occurs, message is sent into MySnsTopic
+- **analyzeError** - function - is invoked once **MySnsTopic** receives failure message from **processData** and
+  analyzes the failure.
+- **slackNotify** - function - is invoked once **MySnsTopic** receives failure message from **processData** and sends
+  notification about the failure.
+
+```yml
+# {start-highlight}
+cloudformationResources:
+  MySnsTopic:
+    Type: AWS::SNS::Topic
+# {stop-highlight}
+
+resources:
+  processData:
+    type: 'function'
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: lambdas/process.ts
+      # {start-highlight}
+      destinations:
+        onFailure: $CfResourceParam('MySnsTopic', 'Arn')
+      # {stop-highlight}
+
+  analyzeError:
+    type: 'function'
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: lambdas/analysis.ts
+      # {start-highlight}
+      events:
+        - type: sns
+          properties:
+            topicArn: $CfResourceParam('MySnsTopic', 'Arn')
+      # {stop-highlight}
+
+  slackNotify:
+    type: 'function'
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: lambdas/notify.ts
+      # {start-highlight}
+      events:
+        - type: sns
+          properties:
+            topicArn: $CfResourceParam('MySnsTopic', 'Arn')
+      # {stop-highlight}
+```
+
+<Divider />

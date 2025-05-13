@@ -1,0 +1,391 @@
+---
+title: "Upstash Kafka Topics"
+order: 280
+---
+
+# Overview
+
+- Kafka is event streaming platform used for high-performance data pipelines, streaming analytics and any other types of
+  messaging.
+
+- [Upstash provides Kafka](https://upstash.com/) as a serverless service. This enables users to leverage Kafka without
+  the need for paying and managing their own servers and cluster.
+
+- Upstash uses **Per-Request pricing** so you do NOT need to pay for the servers/instances and you only pay for request
+  you make.
+
+- Upstash provides out of the box **REST API** for communicating with your Kafka topics. In combination with
+  pay-per-request pricing makes Upstash a perfect choice for Serverless world.
+
+# When to use
+
+<NegativeMargin />
+
+## Advantages
+
+- **REST API** - access your Kafka topic using [simple REST API](https://docs.upstash.com/kafka/rest)
+- **Secure** - SSL out of the box
+- **High availability** - with option to enable multi-zone replication
+- **Pay-per-request** - pay only for what you use. Refer to [Upstash pricing](https://docs.upstash.com/kafka/pricing)
+- **Scalable**
+
+## Disadvantages
+
+- **Separate billing** - Even though Stacktape seamlessly integrates Upstash Kafka to your stacks, you still need to
+  manage your billing separately.
+
+# Provider configuration
+
+- You must have an Upstash account. To create one, head over to
+  [Upstash registration page](https://console.upstash.com/login).
+
+- You need following to configure the provider:
+
+  - Email address of your Upstash account (`accountEmail`).
+  - API Key associated with the account (`apiKey`).
+
+- You can obtain API Key in [Upstash account management console](https://console.upstash.com/account/api).
+- The recommended way to store your credentials is to use [secrets](/resources/secrets/).
+
+```yml
+# {start-highlight}
+providerConfig:
+  upstash:
+    accountEmail: xxxxx.yyyy@example.com
+    apiKey: $Secret('upstash-api-key')
+# {stop-highlight}
+
+resources:
+  myTopic:
+    type: upstash-kafka-topic
+```
+
+<PropertiesTable definitionName="UpstashProviderConfig" />
+
+# Basic usage
+
+```yml
+providerConfig:
+  upstash:
+    accountEmail: xxxxx.yyyy@example.com
+    apiKey: $Secret('upstash-api-key')
+
+resources:
+  # {start-highlight}
+  myTopic:
+    type: upstash-kafka-topic
+  # {stop-highlight}
+
+  # produces messages into kafka topic
+  myProducer:
+    type: function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: producer.ts
+      environment:
+        - name: BROKER
+          value: $ResourceParam('myTopic', 'tcpEndpoint')
+        - name: TOPIC
+          value: $ResourceParam('myTopic', 'topicName')
+        - name: USERNAME
+          value: $ResourceParam('myTopic', 'username')
+        - name: PASSWORD
+          value: $ResourceParam('myTopic', 'password')
+```
+
+```ts
+import { Kafka } from 'kafkajs';
+
+// kafka client
+const kafka = new Kafka({
+  clientId: 'my-lambda',
+  brokers: [process.env.BROKER],
+  sasl: { mechanism: 'scram-sha-256', username: process.env.USERNAME, password: process.env.PASSWORD },
+  ssl: true
+});
+
+// producer
+const producer = kafka.producer();
+
+export default async (event, context) => {
+  // connect producer
+  await producer.connect();
+
+  // send message to kafka topic
+  await producer.send({
+    topic: process.env.TOPIC,
+    messages: [{ value: 'Hello KafkaJS user!' }]
+  });
+
+  // disconnect
+  await producer.disconnect();
+};
+```
+
+> Code of `myProducer` function
+
+<PropertiesTable definitionName="UpstashKafkaTopic" />
+
+# Consumer Integration
+
+Stacktape allows you to easily setup integration which triggers lambda when there are messages (records) in the upstash
+kafka topic.
+
+```yml
+providerConfig:
+  upstash:
+    accountEmail: xxxxx.yyyy@example.com
+    apiKey: $Secret('upstash-api-key')
+
+resources:
+  myTopic:
+    type: upstash-kafka-topic
+
+  # is triggered when there are records in upstash kafka topic
+  myConsumer:
+    type: function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: consumer.ts
+      # {start-highlight}
+      events:
+        - type: kafka-topic
+          properties:
+            upstashKafkaTopic: myTopic
+      # {stop-highlight}
+```
+
+```ts
+import type { MSKHandler as KafkaTriggerHandler } from 'aws-lambda';
+
+const handler: KafkaTriggerHandler = async (event, context) => {
+  const { records } = event;
+
+  // actual records are encapsulated in Object (each key is topicName)
+  // full event example here https://docs.aws.amazon.com/lambda/latest/dg/with-kafka.html
+  const [topicName] = Object.keys(records);
+
+  records[topicName].forEach((record) => {
+    // Each array item contains details of the Kafka topic and Kafka partition identifier,
+    // together with a timestamp and a base64-encoded message.
+
+    // EXAMPLE RECORD
+    // {
+    //     "topic": "upstash-connectivity-myKafkaUpstash",
+    //     "partition": 0,
+    //     "offset": 21,
+    //     "timestamp": 1647415103909,
+    //     "timestampType": "CREATE_TIME",
+    //     "value": "SGVsbG8gS2Fma2FKUyB1c2VyIQ==",
+    //     "headers": []
+    // }
+
+    console.log(record.partition);
+    console.log(Buffer.from(record.value, 'base64').toString('utf8'));
+  });
+};
+
+export default handler;
+```
+
+> Code of `myConsumer` function
+
+# Using REST API
+
+Alongside Kafka clients using TCP connections, Upstash provides a REST API to access Kafka topics over HTTP. REST API is
+essential for more restricted environments (mobile, edge etc) but also significantly lightweight when compared to native
+Kafka clients. With the REST API you don't need to manage Kafka clients and connections yourself.
+
+For more information about REST API refer to [Upstash docs](https://docs.upstash.com/kafka/rest).
+
+```yml
+providerConfig:
+  upstash:
+    accountEmail: xxxxx.yyyy@example.com
+    apiKey: $Secret('upstash-api-key')
+
+resources:
+  myTopic:
+    type: upstash-kafka-topic
+
+  # {start-highlight}
+  # function using Upstash Kafka REST API
+  myRestKafkaTest:
+    type: function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: rest-kafka.ts
+      environment:
+        - name: KAFKA_REST_URL
+          value: $ResourceParam('myTopic', 'restUrl')
+        - name: TOPIC
+          value: $ResourceParam('myTopic', 'topicName')
+        - name: USERNAME
+          value: $ResourceParam('myTopic', 'username')
+        - name: PASSWORD
+          value: $ResourceParam('myTopic', 'password')
+  # {stop-highlight}
+```
+
+```ts
+import fetch from 'node-fetch';
+
+export default async (event, context) => {
+  const message = 'hello from kafka producer';
+
+  // for authorization we will need base64 encoded credentials (<username>:<password>)
+  const base64EncodedCredentials = Buffer.from(`${process.env.USERNAME}:${process.env.PASSWORD}`).toString('base64');
+
+  // send message to kafka topic
+  await fetch(`${process.env.KAFKA_REST_URL}/produce/${process.env.TOPIC}/${message}`, {
+    headers: {
+      Authorization: `Basic ${base64EncodedCredentials}`
+    }
+  });
+
+  // consume message from topic
+  const result = await fetch(
+    `${process.env.KAFKA_REST_URL}/consume/mygroup/myconsumer/${process.env.TOPIC}?timeout=5000`,
+    {
+      headers: {
+        Authorization: `Basic ${base64EncodedCredentials}`
+      }
+    }
+  );
+
+  // result in a form of json
+  const jsonResult = await result.json();
+  console.log(jsonResult);
+};
+```
+
+> Code of `myRestKafkaTest` function
+
+# Specifying Upstash cluster
+
+By default (if you do not specify `clusterId` property) a new Upstash Kafka cluster is created when the topic is created
+(topic cannot exist without a cluster).
+
+Currently, Upstash Kafka cluster can be created only in the following regions:
+
+- us-east-1
+- eu-west-1
+
+If you are deploying your stack in some other region, Stacktape will try to create the cluster in the region
+geographically closest to the region of your stack.
+
+<br />
+
+If you specify `clusterId`, the topic will be created in the specified Upstash Cluster.
+
+```yml
+providerConfig:
+  upstash:
+    accountEmail: xxxxx.yyyy@example.com
+    apiKey: $Secret('upstash-api-key')
+
+resources:
+  myTopic:
+    type: upstash-kafka-topic
+    properties:
+      # {start-highlight}
+      clusterId: 166380a2-3eb0-4574-a22c-c71dc20bfb9c
+      # {stop-highlight}
+```
+
+> Topic with specified clusterId
+
+# Partitions
+
+- Partitions are a way to scale topic throughput.\n- Each topic is divided into 1 or more partitions.\n- If you do not specify a number a single partition is created.\n- To understand topic partitioning, refer to [Kafka docs](https://kafka.apache.org/documentation/#intro_concepts_and_terms).\n<div class="highlight-wrapper">
+  <div style="margin-right: 16px;line-height: 0px;">
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ED8B00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    </path>
+    - </line>
+    - </line>
+  </svg>
+  </div>
+  <div>You cannot change number of partitions once the topic is created.\n\n</div>
+</div>
+
+```yml
+providerConfig:
+  upstash:
+    accountEmail: xxxxx.yyyy@example.com
+    apiKey: $Secret('upstash-api-key')
+
+resources:
+  myTopic:
+    type: upstash-kafka-topic
+    properties:
+      # {start-highlight}
+      partitions: 20
+      # {stop-highlight}
+```
+
+# Retention time
+
+- Records(messages) in topic are by default retained for 1 week (604800000 ms)\n- Retention time can affect your billing. Refer to [Upstash docs](https://docs.upstash.com/kafka/pricing)\n
+
+```yml
+providerConfig:
+  upstash:
+    accountEmail: xxxxx.yyyy@example.com
+    apiKey: $Secret('upstash-api-key')
+
+resources:
+  myTopic:
+    type: upstash-kafka-topic
+    properties:
+      # {start-highlight}
+      retentionTime: 86400000 # 1 day
+      # {stop-highlight}
+```
+
+# Retention size
+
+- By default storage space is set to 1GB (1073741824 bytes)\n- After the storage space is full old records will be cleaned-up according to the cleanup policy\n- Retention size can affect your billing. Refer to [Upstash docs](https://docs.upstash.com/kafka/pricing)\n
+
+```yml
+providerConfig:
+  upstash:
+    accountEmail: xxxxx.yyyy@example.com
+    apiKey: $Secret('upstash-api-key')
+
+resources:
+  myTopic:
+    type: upstash-kafka-topic
+    properties:
+      # {start-highlight}
+      retentionSize: 536870912 # 0,5 GB
+      # {stop-highlight}
+```
+
+# Maximum message size
+
+- By default maximum message size is 1 MB (1048576 bytes)\n
+
+```yml
+providerConfig:
+  upstash:
+    accountEmail: xxxxx.yyyy@example.com
+    apiKey: $Secret('upstash-api-key')
+
+resources:
+  myTopic:
+    type: upstash-kafka-topic
+    properties:
+      # {start-highlight}
+      maxMessageSize: 8388608 # 8 MB
+      # {stop-highlight}
+```
+
+# Referenceable parameters
+
+<ReferenceableParams resource="upstash-kafka-topic" />

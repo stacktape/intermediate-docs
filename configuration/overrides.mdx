@@ -1,0 +1,57 @@
+---
+title: ""
+order: 2
+---
+
+# Introduction
+
+Stacktape uses _Cloudformation_ to deploy your infrastructure into AWS. Each Stacktape resource definition (specified in
+the `resources` section) translates into multiple low-level AWS Cloudformation resource definitions. Overrides allow you
+to set or override the properties of these low-level Cloudformation resource definitions.
+
+<Info>
+  You can see what Cloudformation resources your Stacktape resource translates into in the config editor or on the
+  overview page of your deployed stack (project stage).
+</Info>
+
+# Usage
+
+Let's say we want to override the timeout of the AWS Lambda resource which is part of `myFunction` Stacktape resource in
+the following configuration:
+
+```yml
+resources:
+  myFunction:
+    type: function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: path/to/my/lambda.ts
+```
+
+<br />
+
+In the interactive config editor, you can see the translated Cloudformation template for this config. You can see that
+`myFunction` resource contains 2 Cloudformation resources: **MyFunctionFunction** (_AWS::Lambda::Function_) and
+**MyFunctionLogGroup** (_AWS::Logs::LogGroup_).
+
+![Tree view of compiled Cloudformation template](../static/overrides-tree-view.png)
+
+Since we are looking to override the timeout, we will specify override for **MyFunctionFunction** resource
+
+```yml
+resources:
+  myFunction:
+    type: function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: path/to/my/lambda.ts
+    # {start-highlight}
+    overrides:
+      MyFunctionFunction:
+        Timeout: 15
+    # {stop-highlight}
+```

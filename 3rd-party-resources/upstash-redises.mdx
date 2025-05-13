@@ -1,0 +1,204 @@
+---
+title: "Upstash Redis"
+order: 190
+---
+
+# Overview
+
+- Redis is a fast, NoSQL in-memory data store that can provide sub-millisecond latency.
+
+- [Upstash provides Redis](https://upstash.com/) as a serverless service. This enables users to leverage Redis without
+  the need for paying and managing their own servers.
+
+- Upstash uses **Per-Request pricing** so you do NOT need to pay for the servers/instances and you only pay for request
+  you make.
+
+- Low latency data, ease of use, and pay-per-request pricing makes Upstash a perfect choice for Serverless applications.
+
+# When to use
+
+<NegativeMargin />
+
+## Advantages
+
+- **REST API** - access your database using [simple REST API](https://docs.upstash.com/redis/features/restapi)
+- **Secure** - with option to enable TLS out of the box
+- **High availability** - with option to enable multi-zone replication
+- **Pay-per-request** - pay only for what you use. Refer to
+  [Upstash pricing](https://docs.upstash.com/redis/overall/pricing)
+- **Scalable**
+
+## Disadvantages
+
+- **Separate billing** - Even though Stacktape seamlessly integrates Upstash Redis to your stacks, you still need to
+  manage your billing separately.
+
+# Provider configuration
+
+- You must have an Upstash account. To create one, head over to
+  [Upstash registration page](https://console.upstash.com/login).
+
+- You need following to configure the provider:
+
+  - Email address of your Upstash account (`accountEmail`).
+  - API Key associated with the account (`apiKey`).
+
+- You can obtain API Key in [Upstash account management console](https://console.upstash.com/account/api).
+- The recommended way to store your credentials is to use [secrets](/resources/secrets/).
+
+```yml
+# {start-highlight}
+providerConfig:
+  upstash:
+    accountEmail: xxxxx.yyyy@example.com
+    apiKey: $Secret('upstash-api-key')
+# {stop-highlight}
+
+resources:
+  myUpstash:
+    type: upstash-redis
+```
+
+<PropertiesTable definitionName="UpstashProviderConfig" />
+
+# Basic usage
+
+```yml
+providerConfig:
+  upstash:
+    accountEmail: xxxxx.yyyy@example.com
+    apiKey: $Secret('upstash-api-key')
+
+resources:
+  # {start-highlight}
+  myUpstash:
+    type: upstash-redis
+  # {stop-highlight}
+
+  myFunction:
+    type: function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: lambdas/upstash.ts
+      environment:
+        - name: UPSTASH_REDIS_REST_URL
+          value: $ResourceParam('myUpstash', 'restUrl')
+        - name: UPSTASH_REDIS_REST_TOKEN
+          value: $ResourceParam('myUpstash', 'restToken')
+```
+
+```ts
+import upstash from '@upstash/redis';
+
+const redis = upstash({ url: process.env.UPSTASH_REDIS_REST_URL, token: process.env.UPSTASH_REDIS_REST_TOKEN });
+
+export default async (event) => {
+  // write data
+  let { data, error } = await redis.set('key1', 'value1');
+
+  // read data
+  ({ data, error } = await redis.get('key1'));
+  console.log(data);
+
+  if (error) {
+    throw error;
+  }
+};
+```
+
+> Code of `myFunction` function
+
+<PropertiesTable definitionName="UpstashRedis" />
+
+# Deployment region
+
+Currently Upstash Redis supports only following regions:
+
+- us-east-1
+- us-west-1
+- eu-west-1
+- ap-northeast-1
+
+If you are deploying your stack in some other region, Stacktape will try to deploy the database in the region
+geographically closest to the region of your stack.
+
+# Enable TLS
+
+- If you enable TLS on existing database, the database will experience a downtime about 1-2 seconds (NO data will be lost).\n- Enabling TLS can cause performance downgrade. If high throughput is essential for your app, consider [reading this thread](https://github.com/redis/redis/issues/7595) before using TLS.\n<div class="highlight-wrapper">
+  <div style="margin-right: 16px;line-height: 0px;">
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ED8B00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    </path>
+    - </line>
+    - </line>
+  </svg>
+  </div>
+  <div>Once TLS is enabled, it cannot be disabled.\n\n</div>
+</div>
+
+```yml
+providerConfig:
+  upstash:
+    accountEmail: xxxxx.yyyy@example.com
+    apiKey: $Secret('upstash-api-key')
+
+resources:
+  myUpstash:
+    type: upstash-redis
+    properties:
+      # {start-highlight}
+      enableTls: true
+      # {stop-highlight}
+```
+
+# Enable multizone replication
+
+- When enabled the data is replicated to multiple availability zones.\n- Enabling multi zone replication will increase per-request-cost to $0.4 per 100K requests (from original $0.2).\n- For more information refer to [Upstash docs](https://docs.upstash.com/redis/features/multizone).\n<div class="highlight-wrapper">
+  <div style="margin-right: 16px;line-height: 0px;">
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ED8B00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    </path>
+    - </line>
+    - </line>
+  </svg>
+  </div>
+  <div>Once multizone replication is enabled, it cannot be disabled\n\n</div>
+</div>
+
+```yml
+providerConfig:
+  upstash:
+    accountEmail: xxxxx.yyyy@example.com
+    apiKey: $Secret('upstash-api-key')
+
+resources:
+  myUpstash:
+    type: upstash-redis
+    properties:
+      # {start-highlight}
+      enableMultizoneReplication: true
+      # {stop-highlight}
+```
+
+# Enable strong consistency
+
+- Strong consistency can only be enabled during database creation.\n- When strong consistency is enabled, persistence to disk and replication to the majority of replicas are performed before returning response to the client.\n- Enabling strong consistency mode may increase the latency of writes.\n- For more information refer to [Upstash docs](https://docs.upstash.com/redis/features/consistency)\n
+
+```yml
+providerConfig:
+  upstash:
+    accountEmail: xxxxx.yyyy@example.com
+    apiKey: $Secret('upstash-api-key')
+
+resources:
+  myUpstash:
+    type: upstash-redis
+    properties:
+      # {start-highlight}
+      enableStrongConsistency: true
+      # {stop-highlight}
+```
+
+# Referenceable parameters
+
+<ReferenceableParams resource="upstash-redis" />
