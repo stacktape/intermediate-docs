@@ -63,14 +63,50 @@ myProperty: $MyDirective1($MyDirective2())
 
 ### $CliArgs()
 
-- Returns command-line arguments passed to the Stacktape command.
+- Returns command-line argument passed to the Stacktape command.
+- Besides Stacktape arguments, you can access custom arguments when running a command. Custom arguments are passed to
+  stacktape command after `--` separator
+- You can also specify default value as a second argument of the directive `$CliArgs('myArg', 'myDefaultValue')`
+
+```bash
+stacktape deploy --stage test --region eu-west-1 -- --myCustomArg myValue
+```
+
+> Example running stacktape with custom argument
 
 ```yml
-stackConfig:
-  tags:
-    - name: stage
-      value: $CliArgs().stage
+scripts:
+  build:
+    type: local-script
+    properties:
+      # {start-highlight}
+      executeCommand: $Format('npm run build --stage {}', $CliArgs('stage'))
+      # {stop-highlight}
+
+resources:
+  webService:
+    type: web-service
+    properties:
+      packaging:
+        type: stacktape-image-buildpack
+        properties:
+          entryfilePath: src/main.ts
+
+      environment:
+        - name: STAGE
+          # {start-highlight}
+          value: $CliArgs('stage')
+          # {stop-highlight}
+        - name: CUSTOM_ARG
+          # {start-highlight}
+          value: $CliArgs('myCustomArg', 'myDefaultValue')
+          # {stop-highlight}
+      resources:
+        cpu: 2
+        memory: 2048
 ```
+
+> Example config using $CliArgs directive
 
 <Divider />
 
