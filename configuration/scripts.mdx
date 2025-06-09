@@ -339,6 +339,38 @@ resources:
             instanceSize: db.t2.micro
 ```
 
+# Giving permissions to script
+
+You can use property `assumeRoleOfResource` to grant script AWS permissions.
+
+- If specified, the script will be executed with the permissions of the specified resource.\n- Resource must already be deployed when the script is executed.\n- On the background, the script is injected with AWS environment variables which are automatically picked up by most of the AWS SDKs and CLIs.\n- Supported resource types include:
+- `function`\n- `batch-job`\n- `worker-service`\n- `web-service`\n- `private-service`\n- `multi-container-workload`\n- `nextjs-web`\n\n
+
+```yml
+scripts:
+  seedDb:
+    executeScript:
+      scripts/seed-db.ts
+      # {start-highlight}
+    assumeRoleOfResource: myFunction
+    # {stop-highlight}
+    environment:
+      - name: TABLE_NAME
+        value: $ResourceParam('dynamoTable', 'name')
+
+resources:
+  dynamoTable:
+    type: dynamo-db-table
+
+  myFunction:
+    type: function
+    properties:
+      allowAccessTo:
+        - dynamoTable
+```
+
+> Script will have same AWS IAM permissions as myFunction
+
 # API reference
 
 <PropertiesTable definitionName="LocalScript" />

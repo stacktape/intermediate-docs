@@ -80,6 +80,14 @@ stacktape script:run --stage <<stage>> --scriptName <<scriptName>>
         "<ul>\n<li>Example stages are <code>production</code>, <code>staging</code>, <code>testing</code> or <code>dev-john</code>.</li>\n<li>You can configure the default stage used with every Stacktape command using the <code>defaults:configure</code> command.</li>\n<li>Maximum allowed length is 12 characters.</li>\n</ul>\n"
     },
     {
+      description: "#### Name of the deployed resource to assume role of during script execution",
+      allowedTypes: ["string"],
+      alias: "aror",
+      required: false,
+      name: "assumeRoleOfResource",
+      shortDescription: "<p> Name of the deployed resource to assume role of during script execution</p>\n"
+    },
+    {
       description:
         "#### Name of the AWS account used to perform the operation\n---\n- The account must be first connected in the [Stacktape console](https://console.stacktape.com/aws-accounts)",
       allowedTypes: ["string"],

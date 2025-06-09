@@ -720,6 +720,29 @@ resources:
       # {stop-highlight}
 ```
 
+# Maintenance window
+
+- The maintenance window is the time period during which the database is available for maintenance.\n- During this time, your database instance can be updated with modifications like OS patching or database engine version upgrades.\n- The database might be unavailable for a short period of time during maintenance. To avoid service interruptions, you should use `multiAz` deployment for RDS engines or use an Aurora engine.\n- The maintenance window is **specified in UTC**.\n- The maintenance window is specified in the format of `day:time-day:time`. Example: `Sun:02:00-Sun:04:00`\n- By default, the maintenance window is set to **Sunday 02:00 - Sunday 04:00** adjusted to the region's timezone (but does not account for daylight savings time). Examples:
+- In **us-east-1** the maintenance window is set to **Sunday 07:00 - Sunday 09:00 UTC** which translates to **Sunday 02:00 - Sunday 04:00** in the region's timezone\n- In **eu-west-1** the maintenance window is set to **Sunday 01:00 - Sunday 03:00 UTC** which translates to **Sunday 02:00 - Sunday 04:00** in the region's timezone\n\n
+
+```yml
+resources:
+  myDatabase:
+    type: relational-database
+    properties:
+      credentials:
+        masterUserPassword: my_secret_password
+      engine:
+        type: postgres
+        properties:
+          version: '16.2'
+          primaryInstance:
+            instanceSize: db.t3.micro
+      # {start-highlight}
+      preferredMaintenanceWindow: Sun:04:00-Sun:05:00
+      # {stop-highlight}
+```
+
 # Referenceable parameters
 
 <ReferenceableParams resource="relational-database" />
