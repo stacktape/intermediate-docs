@@ -516,39 +516,6 @@ Batching behavior can be configured. The function is triggered when any of the f
   `batchSize` property.
 - Maximum **Payload limit** is reached. Maximum payload size is 6 MB.
 
-### Upstash Kafka
-
-Stacktape provides simple integration with [Upstash Kafka topic](/resources/upstash-kafka-topics/#consumer-integration)
-or you can also integrate with any custom Kafka cluster and topic.
-
-```yml
-providerConfig:
-  upstash:
-    accountEmail: xxxxx.yyyy@example.com
-    apiKey: $Secret('upstash-api-key')
-
-resources:
-  myTopic:
-    type: upstash-kafka-topic
-
-  # is triggered when there are records in upstash kafka topic
-  myConsumer:
-    type: function
-    properties:
-      packaging:
-        type: stacktape-lambda-buildpack
-        properties:
-          entryfilePath: consumer.ts
-      # {start-highlight}
-      events:
-        - type: kafka-topic
-          properties:
-            upstashKafkaTopic: myTopic
-      # {stop-highlight}
-```
-
-> Integrating with Upstash Kafka topic
-
 ### Custom Kafka
 
 When configuring custom Kafka integration you need to specify `bootstrapServers`, `topicName` and `authentication`

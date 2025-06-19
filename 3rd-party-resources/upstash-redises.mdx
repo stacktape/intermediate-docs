@@ -1,5 +1,5 @@
 ---
-title: "Upstash Redis"
+title: "Upstash Serverless Redis"
 order: 190
 ---
 
@@ -118,24 +118,19 @@ Currently Upstash Redis supports only following regions:
 
 - us-east-1
 - us-west-1
+- us-west-2
 - eu-west-1
-- ap-northeast-1
+- eu-central-1
+- ap-southeast-1
+- ap-southeast-2
+- sa-east-1
 
 If you are deploying your stack in some other region, Stacktape will try to deploy the database in the region
 geographically closest to the region of your stack.
 
-# Enable TLS
+# Enable Eviction
 
-- If you enable TLS on existing database, the database will experience a downtime about 1-2 seconds (NO data will be lost).\n- Enabling TLS can cause performance downgrade. If high throughput is essential for your app, consider [reading this thread](https://github.com/redis/redis/issues/7595) before using TLS.\n<div class="highlight-wrapper">
-  <div style="margin-right: 16px;line-height: 0px;">
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ED8B00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    </path>
-    - </line>
-    - </line>
-  </svg>
-  </div>
-  <div>Once TLS is enabled, it cannot be disabled.\n\n</div>
-</div>
+- When enabled, Redis will automatically evict keys when memory limit is reached.\n- Uses optimistic-volatile algorithm (combination of volatile-random and allkeys-random policies).\n- Allows older data to be automatically removed to make room for new data.\n
 
 ```yml
 providerConfig:
@@ -148,54 +143,7 @@ resources:
     type: upstash-redis
     properties:
       # {start-highlight}
-      enableTls: true
-      # {stop-highlight}
-```
-
-# Enable multizone replication
-
-- When enabled the data is replicated to multiple availability zones.\n- Enabling multi zone replication will increase per-request-cost to $0.4 per 100K requests (from original $0.2).\n- For more information refer to [Upstash docs](https://docs.upstash.com/redis/features/multizone).\n<div class="highlight-wrapper">
-  <div style="margin-right: 16px;line-height: 0px;">
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ED8B00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    </path>
-    - </line>
-    - </line>
-  </svg>
-  </div>
-  <div>Once multizone replication is enabled, it cannot be disabled\n\n</div>
-</div>
-
-```yml
-providerConfig:
-  upstash:
-    accountEmail: xxxxx.yyyy@example.com
-    apiKey: $Secret('upstash-api-key')
-
-resources:
-  myUpstash:
-    type: upstash-redis
-    properties:
-      # {start-highlight}
-      enableMultizoneReplication: true
-      # {stop-highlight}
-```
-
-# Enable strong consistency
-
-- Strong consistency can only be enabled during database creation.\n- When strong consistency is enabled, persistence to disk and replication to the majority of replicas are performed before returning response to the client.\n- Enabling strong consistency mode may increase the latency of writes.\n- For more information refer to [Upstash docs](https://docs.upstash.com/redis/features/consistency)\n
-
-```yml
-providerConfig:
-  upstash:
-    accountEmail: xxxxx.yyyy@example.com
-    apiKey: $Secret('upstash-api-key')
-
-resources:
-  myUpstash:
-    type: upstash-redis
-    properties:
-      # {start-highlight}
-      enableStrongConsistency: true
+      enableEviction: true
       # {stop-highlight}
 ```
 
