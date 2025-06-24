@@ -302,9 +302,9 @@ Whether you chose to use Fargate or EC2 instances, your containers are running s
 
 Following applies when configuring `resources` section of your service:
 
-- When specifing resources there are two underlying compute engines to use:\n\n- **Fargate** - abstracts the server and cluster management away from the user, allowing them to run containers without
+- When specifying resources there are two underlying compute engines to use:\n\n- **Fargate** - abstracts the server and cluster management away from the user, allowing them to run containers without
 managing the underlying servers, simplifying deployment and management of applications but offering less control over the computing environment.\n- **EC2 (Elastic Compute Cloud)** - provides granular control over the underlying servers (instances).
-By choosing `instanceTypes` you get complete control over the computing environment and the ability to optimize for specific workloads.\n\n- To use Fargate: Do NOT specify `instanceTypes` and specify `cpu` and `memory` properties.\n\n\n- To use EC2 instances: specify `instanceTypes`.\n\n\n
+By choosing `instanceTypes` you get complete control over the computing environment and the ability to optimize for specific workloads.\n\n- **To use Fargate**: Do NOT specify `instanceTypes` and specify `cpu` and `memory` properties.\n\n\n- **To use EC2 instances**: specify `instanceTypes`.\n\n\n
 
 <PropertiesTable definitionName="ContainerWorkloadResourcesConfig" searchForReferencesInDefinition="WebServiceProps" />
 
@@ -347,8 +347,8 @@ Only when instance type higher on the list is not available, next instance type 
     - </line>
   </svg>
   </div>
-  <div>To ensure that your containers are running on patched and up-to-date EC2 instances, your compute resource gets automatically
-re-deployed once a week(Sunday 03:00 UTC). Your compute resource stays available throughout this process.\n\n</div>
+  <div>To ensure that your containers are running on patched and up-to-date EC2 instances, your instances are automatically
+refreshed (replaced) once a week(Sunday 00:00 UTC). Your compute resource stays available throughout this process.\n\n</div>
 </div>
 
 ```yml
@@ -384,9 +384,7 @@ behavior can be expected:
   instances using binpack strategy. This strategy aims to put as many instances of your service on the available EC2
   instances as possible(to maximize utilization).
 
-<br />
-
-##### Default cpu and memory
+### Default cpu and memory
 
 - If you do not specify `cpu` then entire capacity of EC2 instance CPU is shared between containers running on the EC2
   instance.
@@ -395,6 +393,45 @@ behavior can be expected:
 
   In other words: Stacktape sets the memory so that the smallest instance type in `instanceTypes`(in terms of memory) is
   able to provide that amount of memory.
+
+### Using warm pool
+
+You can enable a warm pool for your web service by setting the `enableWarmPool` property to `true` in your resources
+configuration. This feature provides several benefits for scaling performance and cost optimization:
+
+- **Only works when you specify exactly one instance type in `instanceTypes`**. Warm pools are not supported with mixed
+  instance types.
+- Creates a warm pool of pre-initialized EC2 instances that are kept in a `Stopped` state, ready to be quickly launched
+  when scaling up.
+- Warm pool instances are maintained between the desired capacity count and the maximum capacity count of your Auto
+  Scaling group.
+- When scaling up is needed, instances from the warm pool are started much faster than launching new instances from
+  scratch.
+- **Cost optimization**: Instances in the warm pool are in `Stopped` state, so you only pay for EBS storage, not for
+  compute time.
+- Improves scaling performance by reducing the time needed to launch new instances during traffic spikes.
+- The warm pool size is automatically managed based on your workload's scaling configuration.
+- For more details, see
+  [AWS Auto Scaling warm pools documentation](https://docs.aws.amazon.com/autoscaling/ec2/userguide/ec2-auto-scaling-warm-pools.html).
+
+```yml
+resources:
+  myWebService:
+    type: web-service
+    properties:
+      packaging:
+        type: stacktape-image-buildpack
+        properties:
+          entryfilePath: src/index.ts
+      resources:
+        instanceTypes:
+          - c5.large
+        # {start-highlight}
+        enableWarmPool: true
+      # {stop-highlight}
+```
+
+> Example using warm pool with EC2 instances
 
 # Scaling
 
