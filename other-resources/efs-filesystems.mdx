@@ -126,7 +126,22 @@ const data: string = fs.readFileSync(testFile, "utf8");
 Optionally, depending on your needs, you can set a throughput mode. Various throughput modes have various use cases, but
 in general, we recommend `elastic` mode (default).
 
-- **elastic** (Recommended): Best for unpredictable or spiky workloads\n\n- Ideal for workloads using high throughput ≤5% of the time\n- Perfect for web apps, CI/CD pipelines, or occasional data analytics\n- Automatically scales up/down based on demand\n\n- **provisioned**: Best for steady, predictable workloads\n\n- Ideal when using high throughput  > 5% of the time\n- Suitable for media streaming, production databases\n- Requires setting `provisionedThroughputInMibps`\n\n- **bursting**: Scales with storage size\n\n- Provides baseline of 50 KiB/s per GiB of storage\n- Good for small dev environments and team file shares\n- Can hit limits if burst credits are depleted\n- Consider switching if consistently using  > 80% throughput\n\n
+-   **elastic** (Recommended): Best for unpredictable or spiky workloads
+    
+    -   Ideal for workloads using high throughput ≤5% of the time
+    -   Perfect for web apps, CI/CD pipelines, or occasional data analytics
+    -   Automatically scales up/down based on demand
+-   **provisioned**: Best for steady, predictable workloads
+    
+    -   Ideal when using high throughput >5% of the time
+    -   Suitable for media streaming, production databases
+    -   Requires setting `provisionedThroughputInMibps`
+-   **bursting**: Scales with storage size
+    
+    -   Provides baseline of 50 KiB/s per GiB of storage
+    -   Good for small dev environments and team file shares
+    -   Can hit limits if burst credits are depleted
+    -   Consider switching if consistently using >80% throughput
 
 ```yml
 resources:
@@ -143,7 +158,11 @@ resources:
 
 You can optionally enable daily backup to be able to restore files in case of accidental deletion etc.
 
-- Uses AWS Backup with default settings of daily backups and 35-day retention period\n- Performs incremental backups - only changed, added, or removed files are copied after initial backup\n- Backs up data from all storage classes (Standard, IA, Archive) without data access charges\n- Restored data is always placed in the Standard storage class\n- Default backup plan and vault are automatically created and managed by AWS\n
+-   Uses AWS Backup with default settings of daily backups and 35-day retention period
+-   Performs incremental backups - only changed, added, or removed files are copied after initial backup
+-   Backs up data from all storage classes (Standard, IA, Archive) without data access charges
+-   Restored data is always placed in the Standard storage class
+-   Default backup plan and vault are automatically created and managed by AWS
 
 ```yml
 resources:
@@ -159,7 +178,9 @@ resources:
 
 You can specify root directory during mounting to limit access of the resource to the filesystem.
 
-- Specifies which directory in the EFS filesystem should be used as the root for this mount\n- Only this directory and its subdirectories will be accessible to the function\n- If not specified, the entire filesystem will be accessible\n
+-   Specifies which directory in the EFS filesystem should be used as the root for this mount
+-   Only this directory and its subdirectories will be accessible to the function
+-   If not specified, the entire filesystem will be accessible
 
 ```yml
 resources:

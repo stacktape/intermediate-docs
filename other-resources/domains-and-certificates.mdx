@@ -203,27 +203,19 @@ resources:
       # {stop-highlight}
 ```
 
-<!-- # Overview
+{/* # Overview
 
-Stacktape allows you to connect your custom domain names to some of your resources
-(Web Service, Nextjs web, HTTP API Gateways, Application Load Balancers and Buckets with CDNs).\n\nConnecting a custom domain to the resource does 2 things:\n\n- **Creates DNS records**:
-- If you use your custom domain with a resource, Stacktape automatically creates a DNS record (during deploy) pointing the specified domain name to the resource.\n\n- **Adds TLS certificates**
-- If the origin resource (HTTP API Gateway, Application Load Balancer or CDN) uses HTTPS protocol, Stacktape takes care of
-issuing and attaching correct (free, AWS-managed) certificate to the resource.
-This means, you do not have to deal with TLS termination as it is handled by the connected resource.\n- If you want to use your own certificates, you can configure `customCertificateArns`.\n\n<div class="highlight-wrapper">
-  <div style="margin-right: 16px;line-height: 0px;">
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ED8B00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    </path>
-    - </line>
-    - </line>
-  </svg>
-  </div>
-  <div>To manage a custom domain, it first needs to be added to your AWS account.
-This means that a [hosted zone](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/AboutHZWorkingWith.html)
-(collection of records managed together for a given domain)
-for your domain exists in your AWS account and your domain registrar's name servers are pointing to it.
-To learn more, refer to [Adding a domain guide](/other-resources/domains-and-certificates/#adding-domain).\n\n</div>
-</div>
+Stacktape allows you to connect your custom domain names to some of your resources (Web Service, Nextjs web, HTTP API Gateways, Application Load Balancers and Buckets with CDNs).
+
+Connecting a custom domain to the resource does 2 things:
+
+-   **Creates DNS records**:
+    -   If you use your custom domain with a resource, Stacktape automatically creates a DNS record (during deploy) pointing the specified domain name to the resource.
+-   **Adds TLS certificates**
+    -   If the origin resource (HTTP API Gateway, Application Load Balancer or CDN) uses HTTPS protocol, Stacktape takes care of issuing and attaching correct (free, AWS-managed) certificate to the resource. This means, you do not have to deal with TLS termination as it is handled by the connected resource.
+    -   If you want to use your own certificates, you can configure `customCertificateArns`.
+
+To manage a custom domain, it first needs to be added to your AWS account. This means that a [hosted zone](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/AboutHZWorkingWith.html) (collection of records managed together for a given domain) for your domain exists in your AWS account and your domain registrar's name servers are pointing to it. To learn more, refer to [Adding a domain guide](/other-resources/domains-and-certificates/#adding-domain).
 
 # Under the hood
 
@@ -231,7 +223,7 @@ For managing domains and their DNS records, Stacktape uses [AWS Route 53](https:
 easily buy domain through
 [Route 53 AWS console](https://us-east-1.console.aws.amazon.com/route53/home#DomainRegistration:). SSL/TLS certificates
 for domains are generated using [AWS Certificate Manager(ACM)](https://aws.amazon.com/certificate-manager/)(free of
-charge). -->
+charge). */}
 
 # Assigning custom domains to resources
 

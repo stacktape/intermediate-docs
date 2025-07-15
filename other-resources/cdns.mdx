@@ -129,25 +129,17 @@ information.
 
 # Custom domain names
 
-Stacktape allows you to connect your custom domain names to some of your resources
-(Web Service, Nextjs web, HTTP API Gateways, Application Load Balancers and Buckets with CDNs).\n\nConnecting a custom domain to the resource does 2 things:\n\n- **Creates DNS records**:
-- If you use your custom domain with a resource, Stacktape automatically creates a DNS record (during deploy) pointing the specified domain name to the resource.\n\n- **Adds TLS certificates**
-- If the origin resource (HTTP API Gateway, Application Load Balancer or CDN) uses HTTPS protocol, Stacktape takes care of
-issuing and attaching correct (free, AWS-managed) certificate to the resource.
-This means, you do not have to deal with TLS termination as it is handled by the connected resource.\n- If you want to use your own certificates, you can configure `customCertificateArns`.\n\n<div class="highlight-wrapper">
-  <div style="margin-right: 16px;line-height: 0px;">
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ED8B00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    </path>
-    - </line>
-    - </line>
-  </svg>
-  </div>
-  <div>To manage a custom domain, it first needs to be added to your AWS account.
-This means that a [hosted zone](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/AboutHZWorkingWith.html)
-(collection of records managed together for a given domain)
-for your domain exists in your AWS account and your domain registrar's name servers are pointing to it.
-To learn more, refer to [Adding a domain guide](/other-resources/domains-and-certificates/#adding-domain).\n\n</div>
-</div>
+Stacktape allows you to connect your custom domain names to some of your resources (Web Service, Nextjs web, HTTP API Gateways, Application Load Balancers and Buckets with CDNs).
+
+Connecting a custom domain to the resource does 2 things:
+
+-   **Creates DNS records**:
+    -   If you use your custom domain with a resource, Stacktape automatically creates a DNS record (during deploy) pointing the specified domain name to the resource.
+-   **Adds TLS certificates**
+    -   If the origin resource (HTTP API Gateway, Application Load Balancer or CDN) uses HTTPS protocol, Stacktape takes care of issuing and attaching correct (free, AWS-managed) certificate to the resource. This means, you do not have to deal with TLS termination as it is handled by the connected resource.
+    -   If you want to use your own certificates, you can configure `customCertificateArns`.
+
+To manage a custom domain, it first needs to be added to your AWS account. This means that a [hosted zone](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/AboutHZWorkingWith.html) (collection of records managed together for a given domain) for your domain exists in your AWS account and your domain registrar's name servers are pointing to it. To learn more, refer to [Adding a domain guide](/other-resources/domains-and-certificates/#adding-domain).
 
 <PropertiesTable definitionName="DomainConfiguration" searchForReferencesInDefinition="CdnConfiguration" />
 
@@ -168,7 +160,16 @@ resources:
 
 # Edge lambda functions
 
-- You can associate `edge-lambda-function` with CDN to be executed:\n\n- `onRequest` - function is executed when CDN receives a request from a client(viewer) before checking CDN cache\n- `onResponse` - function is executed before returning the response to the client(viewer)\n\n- Potential use-cases for using edge functions:\n\n- generating immediate HTTP response without the need to check CDN cache or forward to the origin\n- modifying request (i.e rewrite url, headers etc) before forwarding to the origin\n- inspection of cookies\n- inspection/validation of authorization headers and tokens\n\n
+-   You can associate `edge-lambda-function` with CDN to be executed:
+    
+    -   `onRequest` - function is executed when CDN receives a request from a client(viewer) before checking CDN cache
+    -   `onResponse` - function is executed before returning the response to the client(viewer)
+-   Potential use-cases for using edge functions:
+    
+    -   generating immediate HTTP response without the need to check CDN cache or forward to the origin
+    -   modifying request (i.e rewrite url, headers etc) before forwarding to the origin
+    -   inspection of cookies
+    -   inspection/validation of authorization headers and tokens
 
 For more information refer to [Edge lambda functions](/compute-resources/edge-lambda-functions) page.
 
@@ -458,12 +459,15 @@ main origin (the one CDN is attached to), the request can be forwarded to some o
 ([http-api-gateway](#routing-to-http-api-gateway), [bucket](#routing-to-bucket),
 [application-load-balancer](#routing-to-application-load-balancer) or a [custom origin](#routing-to-custom-origin)).
 
-- Each incoming request to the CDN is first evaluated against route rewrites. The requested path is compared with path pattern specified in route rewrite.\n- If the requested path matches the path pattern specified by route rewrite, the request is sent to the configured route.\n- Route rewrites are evaluated in order. The first match is where the request will be sent to.\n- If no match is found, request is sent to the default origin (the one that the CDN is attached to).\n**Example use cases**:\n\n- Most of the content you are serving is a static content
-served from a bucket (static website). Some content however needs to be
-rendered dynamically by a lambda function. You can route paths that need
-to be rendered dynamically to the Lambda function.\n- You want to cache your `jpg` files longer than
-other files. You can create route rewrite that will catch every path
-ending with `jpg` and set custom caching options for these paths.\n
+-   Each incoming request to the CDN is first evaluated against route rewrites. The requested path is compared with path pattern specified in route rewrite.
+-   If the requested path matches the path pattern specified by route rewrite, the request is sent to the configured route.
+-   Route rewrites are evaluated in order. The first match is where the request will be sent to.
+-   If no match is found, request is sent to the default origin (the one that the CDN is attached to).
+
+**Example use cases**:
+
+-   Most of the content you are serving is a static content served from a bucket (static website). Some content however needs to be rendered dynamically by a lambda function. You can route paths that need to be rendered dynamically to the Lambda function.
+-   You want to cache your `jpg` files longer than other files. You can create route rewrite that will catch every path ending with `jpg` and set custom caching options for these paths.
 
 <PropertiesTable definitionName="CdnRouteRewrite" searchForReferencesInDefinition="CdnConfiguration" />
 
@@ -616,7 +620,10 @@ resources:
 You can set price class to reduce the costs for your CDN. Setting price class affects the number locations
 ([PoPs](#cdn-explained)) from which the CDN serves traffic.
 
-- Higher price class results in more locations that serve your traffic.\n- This can result in better performance in some regions, but is more costly.\n- Example: If your users are located only in US & Europe, you can save money by configuring `PriceClass_100`\n- To learn more about price classes, refer to [AWS docs](https://aws.amazon.com/cloudfront/pricing/)\n
+-   Higher price class results in more locations that serve your traffic.
+-   This can result in better performance in some regions, but is more costly.
+-   Example: If your users are located only in US & Europe, you can save money by configuring `PriceClass_100`
+-   To learn more about price classes, refer to [AWS docs](https://aws.amazon.com/cloudfront/pricing/)
 
 ```yml
 resources:
@@ -632,8 +639,8 @@ resources:
 
 # Using firewall
 
-- You can use `web-app-firewall` to protect your resources from common web exploits that could affect application availability, compromise security, or consume excessive resources.\n- Web app firewall protects your application by filtering dangerous requests coming to your app.
-You can read more about the firewall [in our docs](/security-resources/web-app-firewalls/).\n
+-   You can use `web-app-firewall` to protect your resources from common web exploits that could affect application availability, compromise security, or consume excessive resources.
+-   Web app firewall protects your application by filtering dangerous requests coming to your app. You can read more about the firewall [in our docs](/security-resources/web-app-firewalls/).
 
 To lean more, check [web-app-firewall](/resources/web-app-firewalls/) documentation.
 

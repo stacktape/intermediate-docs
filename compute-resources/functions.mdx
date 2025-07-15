@@ -60,7 +60,7 @@ resources:
           entryfilePath: path/to/my-lambda.ts
 ```
 
-> Stacktape configuration of a basic lambda function(see also code example below)
+> Stacktape configuration of a basic lambda function (see also code example below)
 
 ```ts
 // Stacktape will automatically package any library for you
@@ -163,7 +163,9 @@ resources:
 
 # Runtime
 
-- Stacktape automatically detects the function's language and uses the latest runtime version associated with that language.\n- Example: uses `nodejs22.x` for all files ending with `.js` and `.ts`.\n- For the list of all available lambda runtimes, refer to [AWS docs](https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html).\n
+-   Stacktape automatically detects the function's language and uses the latest runtime version associated with that language.
+-   Example: uses `nodejs22.x` for all files ending with `.js` and `.ts`.
+-   For the list of all available lambda runtimes, refer to [AWS docs](https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html).
 
 # Timeout
 
@@ -187,9 +189,12 @@ resources:
 
 # Environment variables
 
-Most commonly used types of environment variables:\n\n- Static - string, number or boolean (will be stringified).\n- Result of a [custom directive](/configuration/directives/#custom-directives).\n- Referenced property of another resource (using **$ResourceParam** directive). To learn more, refer to
-[referencing parameters guide](/configuration/referencing-parameters/).
-If you are using environment variables to inject information about resources into your script, see also property [connectTo](/configuration/scripts/#connecting-to-resources) which simplifies this process.\n- Value of a [secret](/resources/secrets/) (using [$Secret directive](/configuration/directives/#secret)).\n
+Most commonly used types of environment variables:
+
+-   Static - string, number or boolean (will be stringified).
+-   Result of a [custom directive](/configuration/directives/#custom-directives).
+-   Referenced property of another resource (using **$ResourceParam** directive). To learn more, refer to [referencing parameters guide](/configuration/referencing-parameters/). If you are using environment variables to inject information about resources into your script, see also property [connectTo](/configuration/scripts/#connecting-to-resources) which simplifies this process.
+-   Value of a [secret](/resources/secrets/) (using [$Secret directive](/configuration/directives/#secret)).
 
 ```yml
 environment:
@@ -860,7 +865,7 @@ You can reference both:
 - **in-config alarms** defined within your config file,
 - to learn more about creating alarms refer to [Alarms docs](https://docs.stacktape.com/configuration/alarms/).
 
-<!-- <PropertiesTable definitionName="AlarmIntegration" searchForReferencesInDefinition="LambdaFunction" /> -->
+{/* <PropertiesTable definitionName="AlarmIntegration" searchForReferencesInDefinition="LambdaFunction" /> */}
 
 #### Referencing in-config alarm
 
@@ -1128,25 +1133,148 @@ resources:
 
 <br />
 
-By referencing resources (or services) in `connectTo` list, Stacktape automatically:\n\n- configures correct compute resource's **IAM role permissions** if needed\n- sets up correct **security group rules** to allow access if needed\n- **injects relevant environment variables** containing information about resource you are connecting to into the compute resource's runtime
-- names of environment variables use upper-snake-case and are in form `STP_[RESOURCE_NAME]_[VARIABLE_NAME]`,\n- examples: `STP_MY_DATABASE_CONNECTION_STRING` or `STP_MY_EVENT_BUS_ARN`,\n- list of injected variables for each resource type can be seen below.\n\n\nGranted permissions and injected environment variables are different depending on resource type:\n\n\n`Bucket`\n\n- **Permissions:**
-- list objects in a bucket\n- create / get / delete / tag object in a bucket\n\n- **Injected env variables**: `NAME`, `ARN`\n\n`DynamoDB table`\n\n- **Permissions:**
-- get / put / update / delete item in a table\n- scan / query a table\n- describe table stream\n\n- **Injected env variables**: `NAME`, `ARN`, `STREAM_ARN`\n\n`MongoDB Atlas cluster`\n\n- **Permissions:**
-- Allows connection to a cluster with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about
-MongoDB Atlas clusters accessibility modes, refer to
-[MongoDB Atlas cluster docs](/3rd-party-resources/mongo-db-atlas-clusters/#accessibility).\n- Creates access "user" associated with compute resource's role to allow for secure credential-less access to the the cluster\n\n- **Injected env variables**: `CONNECTION_STRING`\n\n`Relational(SQL) database`\n\n- **Permissions:**
-- Allows connection to a relational database with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about
-relational database accessibility modes, refer to [Relational databases docs](/resources/relational-databases/#accessibility).\n\n- **Injected env variables**: `CONNECTION_STRING`, `JDBC_CONNECTION_STRING`, `HOST`, `PORT`
-  (in case of aurora multi instance cluster additionally: `READER_CONNECTION_STRING`, `READER_JDBC_CONNECTION_STRING`, `READER_HOST`)\n\n`Redis cluster`\n\n- **Permissions:**
-- Allows connection to a redis cluster with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about
-redis cluster accessibility modes, refer to [Redis clusters docs](/resources/redis-clusters/#accessibility).\n\n- **Injected env variables**: `HOST`, `READER_HOST`, `PORT`\n\n`Event bus`\n\n- **Permissions:**
-- publish events to the specified Event bus\n\n- **Injected env variables**: `ARN`\n\n`Function`\n\n- **Permissions:**
-- invoke the specified function\n- invoke the specified function via url (if lambda has URL enabled)\n\n- **Injected env variables**: `ARN`\n\n`Batch job`\n\n- **Permissions:**
-- submit batch-job instance into batch-job queue\n- list submitted job instances in a batch-job queue\n- describe / terminate a batch-job instance\n- list executions of state machine which executes the batch-job according to its strategy\n- start / terminate execution of a state machine which executes the batch-job according to its strategy\n\n- **Injected env variables**: `JOB_DEFINITION_ARN`, `STATE_MACHINE_ARN`\n\n`User auth pool`\n\n- **Permissions:**
-- full control over the user pool (`cognito-idp:*`)\n- for more information about allowed methods refer to [AWS docs](https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazoncognitouserpools.html)\n\n- **Injected env variables**: `ID`, `CLIENT_ID`, `ARN`\n\n\n`SNS Topic`\n\n- **Permissions:**
-- confirm/list subscriptions of the topic\n- publish/subscribe to the topic\n- unsubscribe from the topic\n\n- **Injected env variables**: `ARN`, `NAME`\n\n\n`SQS Queue`\n\n- **Permissions:**
-- send/receive/delete message\n- change visibility of message\n- purge queue\n\n- **Injected env variables**: `ARN`, `NAME`, `URL`\n\n`Upstash Kafka topic`\n\n- **Injected env variables**: `TOPIC_NAME`, `TOPIC_ID`, `USERNAME`, `PASSWORD`, `TCP_ENDPOINT`, `REST_URL`\n\n`Upstash Redis`\n\n- **Injected env variables**: `HOST`, `PORT`, `PASSWORD`, `REST_TOKEN`, `REST_URL`, `REDIS_URL`\n\n`Private service`\n\n- **Injected env variables**: `ADDRESS`\n\n`aws:ses`(Macro)\n\n- **Permissions:**
-- gives full permissions to aws ses (`ses:*`).\n- for more information about allowed methods refer to [AWS docs](https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonses.html)\n\n
+By referencing resources (or services) in `connectTo` list, Stacktape automatically:
+
+-   configures correct compute resource's **IAM role permissions** if needed
+-   sets up correct **security group rules** to allow access if needed
+-   **injects relevant environment variables** containing information about resource you are connecting to into the compute resource's runtime
+    -   names of environment variables use upper-snake-case and are in form `STP_[RESOURCE_NAME]_[VARIABLE_NAME]`,
+    -   examples: `STP_MY_DATABASE_CONNECTION_STRING` or `STP_MY_EVENT_BUS_ARN`,
+    -   list of injected variables for each resource type can be seen below.
+
+  
+
+Granted permissions and injected environment variables are different depending on resource type:
+
+  
+
+`Bucket`
+
+-   **Permissions:**
+    -   list objects in a bucket
+    -   create / get / delete / tag object in a bucket
+-   **Injected env variables**: `NAME`, `ARN`
+
+  
+
+`DynamoDB table`
+
+-   **Permissions:**
+    -   get / put / update / delete item in a table
+    -   scan / query a table
+    -   describe table stream
+-   **Injected env variables**: `NAME`, `ARN`, `STREAM_ARN`
+
+  
+
+`MongoDB Atlas cluster`
+
+-   **Permissions:**
+    -   Allows connection to a cluster with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about MongoDB Atlas clusters accessibility modes, refer to [MongoDB Atlas cluster docs](/3rd-party-resources/mongo-db-atlas-clusters/#accessibility).
+    -   Creates access "user" associated with compute resource's role to allow for secure credential-less access to the the cluster
+-   **Injected env variables**: `CONNECTION_STRING`
+
+  
+
+`Relational(SQL) database`
+
+-   **Permissions:**
+    -   Allows connection to a relational database with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about relational database accessibility modes, refer to [Relational databases docs](/resources/relational-databases/#accessibility).
+-   **Injected env variables**: `CONNECTION_STRING`, `JDBC_CONNECTION_STRING`, `HOST`, `PORT` (in case of aurora multi instance cluster additionally: `READER_CONNECTION_STRING`, `READER_JDBC_CONNECTION_STRING`, `READER_HOST`)
+
+  
+
+`Redis cluster`
+
+-   **Permissions:**
+    -   Allows connection to a redis cluster with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about redis cluster accessibility modes, refer to [Redis clusters docs](/resources/redis-clusters/#accessibility).
+-   **Injected env variables**: `HOST`, `READER_HOST`, `PORT`
+
+  
+
+`Event bus`
+
+-   **Permissions:**
+    -   publish events to the specified Event bus
+-   **Injected env variables**: `ARN`
+
+  
+
+`Function`
+
+-   **Permissions:**
+    -   invoke the specified function
+    -   invoke the specified function via url (if lambda has URL enabled)
+-   **Injected env variables**: `ARN`
+
+  
+
+`Batch job`
+
+-   **Permissions:**
+    -   submit batch-job instance into batch-job queue
+    -   list submitted job instances in a batch-job queue
+    -   describe / terminate a batch-job instance
+    -   list executions of state machine which executes the batch-job according to its strategy
+    -   start / terminate execution of a state machine which executes the batch-job according to its strategy
+-   **Injected env variables**: `JOB_DEFINITION_ARN`, `STATE_MACHINE_ARN`
+
+  
+
+`User auth pool`
+
+-   **Permissions:**
+    -   full control over the user pool (`cognito-idp:*`)
+    -   for more information about allowed methods refer to [AWS docs](https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazoncognitouserpools.html)
+-   **Injected env variables**: `ID`, `CLIENT_ID`, `ARN`
+
+  
+  
+
+`SNS Topic`
+
+-   **Permissions:**
+    -   confirm/list subscriptions of the topic
+    -   publish/subscribe to the topic
+    -   unsubscribe from the topic
+-   **Injected env variables**: `ARN`, `NAME`
+
+  
+  
+
+`SQS Queue`
+
+-   **Permissions:**
+    -   send/receive/delete message
+    -   change visibility of message
+    -   purge queue
+-   **Injected env variables**: `ARN`, `NAME`, `URL`
+
+  
+
+`Upstash Kafka topic`
+
+-   **Injected env variables**: `TOPIC_NAME`, `TOPIC_ID`, `USERNAME`, `PASSWORD`, `TCP_ENDPOINT`, `REST_URL`
+
+  
+
+`Upstash Redis`
+
+-   **Injected env variables**: `HOST`, `PORT`, `PASSWORD`, `REST_TOKEN`, `REST_URL`, `REDIS_URL`
+
+  
+
+`Private service`
+
+-   **Injected env variables**: `ADDRESS`
+
+  
+
+`aws:ses`(Macro)
+
+-   **Permissions:**
+    -   gives full permissions to aws ses (`ses:*`).
+    -   for more information about allowed methods refer to [AWS docs](https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonses.html)
 
 ## Using iamRoleStatements
 
@@ -1184,8 +1312,19 @@ cloudformationResources:
 
 # Deployment strategies
 
-- Using `deployment` you can update the function in live environment in a safe way - by shifting the traffic to the new version gradually.\n- Gradual shift of traffic gives you opportunity to test/monitor the function during update and in a case of a problem swiftly rollback.\n- Supports multiple strategies:
-- **Canary10Percent5Minutes** - Shifts 10 percent of traffic in the first increment. The remaining 90 percent is deployed five minutes later.\n- **Canary10Percent10Minutes** - Shifts 10 percent of traffic in the first increment. The remaining 90 percent is deployed 10 minutes later.\n- **Canary10Percent15Minutes** - Shifts 10 percent of traffic in the first increment. The remaining 90 percent is deployed 15 minutes later.\n- **Canary10Percent30Minutes** - Shifts 10 percent of traffic in the first increment. The remaining 90 percent is deployed 30 minutes later.\n- **Linear10PercentEvery1Minute** - Shifts 10 percent of traffic every minute until all traffic is shifted.\n- **Linear10PercentEvery2Minutes** - Shifts 10 percent of traffic every two minutes until all traffic is shifted.\n- **Linear10PercentEvery3Minutes** - Shifts 10 percent of traffic every three minutes until all traffic is shifted.\n- **Linear10PercentEvery10Minutes** - Shifts 10 percent of traffic every 10 minutes until all traffic is shifted.\n- **AllAtOnce** - Shifts all traffic to the updated Lambda functions at once.\n\n- You can validate/abort deployment(update) using lambda-function hooks.\n
+-   Using `deployment` you can update the function in live environment in a safe way - by shifting the traffic to the new version gradually.
+-   Gradual shift of traffic gives you opportunity to test/monitor the function during update and in a case of a problem swiftly rollback.
+-   Supports multiple strategies:
+    -   **Canary10Percent5Minutes** - Shifts 10 percent of traffic in the first increment. The remaining 90 percent is deployed five minutes later.
+    -   **Canary10Percent10Minutes** - Shifts 10 percent of traffic in the first increment. The remaining 90 percent is deployed 10 minutes later.
+    -   **Canary10Percent15Minutes** - Shifts 10 percent of traffic in the first increment. The remaining 90 percent is deployed 15 minutes later.
+    -   **Canary10Percent30Minutes** - Shifts 10 percent of traffic in the first increment. The remaining 90 percent is deployed 30 minutes later.
+    -   **Linear10PercentEvery1Minute** - Shifts 10 percent of traffic every minute until all traffic is shifted.
+    -   **Linear10PercentEvery2Minutes** - Shifts 10 percent of traffic every two minutes until all traffic is shifted.
+    -   **Linear10PercentEvery3Minutes** - Shifts 10 percent of traffic every three minutes until all traffic is shifted.
+    -   **Linear10PercentEvery10Minutes** - Shifts 10 percent of traffic every 10 minutes until all traffic is shifted.
+    -   **AllAtOnce** - Shifts all traffic to the updated Lambda functions at once.
+-   You can validate/abort deployment(update) using lambda-function hooks.
 
 <PropertiesTable
   definitionName="LambdaFunctionDeploymentConfig"

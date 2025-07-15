@@ -114,17 +114,10 @@ export default handler;
 
 # Directory upload
 
-- After the upload is finished, your bucket will contain the contents of the local folder.\n- Files are uploaded using parallel, multipart uploads.\n<div class="highlight-wrapper">
-  <div style="margin-right: 16px;line-height: 0px;">
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ED8B00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    </path>
-    - </line>
-    - </line>
-  </svg>
-  </div>
-  <div>Existing contents of the bucket will be deleted and replaced with the contents of the local directory.
-  You should not use `directoryUpload` for buckets with application-generated or user-generated content.\n\n</div>
-</div>
+-   After the upload is finished, your bucket will contain the contents of the local folder.
+-   Files are uploaded using parallel, multipart uploads.
+
+Existing contents of the bucket will be deleted and replaced with the contents of the local directory. You should not use `directoryUpload` for buckets with application-generated or user-generated content.
 
 ```yml
 resources:
@@ -169,11 +162,18 @@ resources:
 
 # Cors
 
-- Web browsers use CORS (Cross-Origin Resource Sharing) to block the website from making requests to a different origin
-(server) than the one the website is served from. This means that if you make a request from a website served from
-`https://my-website.s3.eu-west-1.amazonaws.com/` to `https://my-api.my-domain.com`, the request will fail.\n\n\n- If you enable CORS and do not specify any cors rules, the default rule with following configuration is used:\n\n- AllowedMethods: `GET`, `PUT`, `HEAD`, `POST`, `DELETE`\n- AllowedOrigins: '*'\n- AllowedHeaders: `Authorization`, `Content-Length`, `Content-Type`, `Content-MD5`, `Date`,
-`Expect`, `Host`, `x-amz-content-sha256`, `x-amz-date`, `x-amz-security-token`\n\n- When the bucket receives a preflight request from a browser, it evaluates the CORS configuration for the bucket and uses the first CORS rule
-that matches the incoming browser request to enable a cross-origin request. For a rule to match, the following conditions must be met:\n\n- The request's Origin header must match one of allowedOrigins element.\n- The request method (for example, `GET` or `PUT`) or the `Access-Control-Request-Method` header in case of a preflight `OPTIONS` request must be one of the allowedMethods.\n- Every header listed in the request's `Access-Control-Request-Headers` header on the preflight request must match one of headers allowedHeaders.\n\n
+-   Web browsers use CORS (Cross-Origin Resource Sharing) to block the website from making requests to a different origin (server) than the one the website is served from. This means that if you make a request from a website served from `https://my-website.s3.eu-west-1.amazonaws.com/` to `https://my-api.my-domain.com`, the request will fail.
+    
+-   If you enable CORS and do not specify any cors rules, the default rule with following configuration is used:
+    
+    -   AllowedMethods: `GET`, `PUT`, `HEAD`, `POST`, `DELETE`
+    -   AllowedOrigins: '\*'
+    -   AllowedHeaders: `Authorization`, `Content-Length`, `Content-Type`, `Content-MD5`, `Date`, `Expect`, `Host`, `x-amz-content-sha256`, `x-amz-date`, `x-amz-security-token`
+-   When the bucket receives a preflight request from a browser, it evaluates the CORS configuration for the bucket and uses the first CORS rule that matches the incoming browser request to enable a cross-origin request. For a rule to match, the following conditions must be met:
+    
+    -   The request's Origin header must match one of allowedOrigins element.
+    -   The request method (for example, `GET` or `PUT`) or the `Access-Control-Request-Method` header in case of a preflight `OPTIONS` request must be one of the allowedMethods.
+    -   Every header listed in the request's `Access-Control-Request-Headers` header on the preflight request must match one of headers allowedHeaders.
 
 ```yml
 resources:
@@ -192,7 +192,8 @@ resources:
 
 # Versioning
 
-- If enabled, bucket keeps multiple variants of an object.\n- This can help you to recover objects from an accidental deletion/overwrite, or to store multiple objects with the same name.\n
+-   If enabled, bucket keeps multiple variants of an object.
+-   This can help you to recover objects from an accidental deletion/overwrite, or to store multiple objects with the same name.
 
 ```yml
 resources:
@@ -255,9 +256,10 @@ resource, which is a bucket pre-configured for these use-cases.
 
 ## Storage class transition
 
-- By default, all objects are in the standard (general purpose) class.\n- Depending on your access patterns, you can transition your objects to a different storage class to save costs.\n- To better understand differences between storage classes, refer to
-[AWS Docs](https://aws.amazon.com/s3/storage-classes/)\n- To learn more about storage class transitions, refer to
-[AWS Docs](https://docs.aws.amazon.com/AmazonS3/latest/userguide/lifecycle-transition-general-considerations.html)\n
+-   By default, all objects are in the standard (general purpose) class.
+-   Depending on your access patterns, you can transition your objects to a different storage class to save costs.
+-   To better understand differences between storage classes, refer to [AWS Docs](https://aws.amazon.com/s3/storage-classes/)
+-   To learn more about storage class transitions, refer to [AWS Docs](https://docs.aws.amazon.com/AmazonS3/latest/userguide/lifecycle-transition-general-considerations.html)
 
 ```yml
 resources:
@@ -407,9 +409,12 @@ resources:
 
 ## Accessibility modes
 
-- Allows you to easily configure the most commonly used access patterns.\n- Available modes:
-- `public-read-write` - Everyone can read from and write to the bucket.\n- `public-read` - Everyone can read from the bucket. Only compute resources and entities with sufficient IAM permissions can write to the bucket.\n- `private` - (default) Only compute resources and entities with sufficient IAM permissions can read from or write to the bucket.\n\n- For functions, batch jobs and container workloads, you can grant required IAM permissions to read/write from
-the bucket using `allowsAccessTo` or `iamRoleStatements` in their configuration.\n
+-   Allows you to easily configure the most commonly used access patterns.
+-   Available modes:
+    -   `public-read-write` - Everyone can read from and write to the bucket.
+    -   `public-read` - Everyone can read from the bucket. Only compute resources and entities with sufficient IAM permissions can write to the bucket.
+    -   `private` - (default) Only compute resources and entities with sufficient IAM permissions can read from or write to the bucket.
+-   For functions, batch jobs and container workloads, you can grant required IAM permissions to read/write from the bucket using `allowsAccessTo` or `iamRoleStatements` in their configuration.
 
 ## Access policy statements
 

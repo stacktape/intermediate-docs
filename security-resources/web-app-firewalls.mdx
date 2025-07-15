@@ -58,7 +58,8 @@ resources:
 
 Scope determines whether you wish to use web app firewall with a regional resource or a cdn:
 
-- Use `cdn` if you wish to use firewall with CDN - CDN can be enabled on resources such as HTTP API Gateway, Bucket, Application load balancer or Web Service.\n- Use `regional` if you wish to use firewall directly with one of the following resources: Application load balancer, User Pool or Web Service\n
+-   Use `cdn` if you wish to use firewall with CDN - CDN can be enabled on resources such as HTTP API Gateway, Bucket, Application load balancer or Web Service.
+-   Use `regional` if you wish to use firewall directly with one of the following resources: Application load balancer, User Pool or Web Service
 
 <Warning>
   Scope can't be changed after the firewall is created. If you need to change the scope, you will need to delete old
@@ -69,11 +70,19 @@ Scope determines whether you wish to use web app firewall with a regional resour
 
 All requests coming to the resources protected by `web-app-firewall` are evaluated against the specified rules.
 
-Rule can be a reference to **managed-rule-group** or user defined **custom-rule-group** or **rate-based-rule**.\n\n- **managed-rule-group**
-- references rule group pre-created by AWS or other vendors for specific use cases.\n- referenced by `name` and `vendorName`,\n- For more information refer to [AWS Docs](https://docs.aws.amazon.com/waf/latest/developerguide/aws-managed-rule-groups-list.html)\n\n- **custom-rule-group**
-- references custom rule group created by you.\n- referenced by rule group's `arn`\n\n- **rate-based-rule**
-- tracks the rate of requests for each originating IP address, and triggers the rule action when the rate
- exceeds a limit that you specify on the number of requests in any 5-minute time span\n- you can use this to put a temporary block on requests from an IP address that is sending excessive requests.\n- For more information refer to [AWS Docs](https://docs.aws.amazon.com/waf/latest/APIReference/API_RateBasedStatement.html)\n\n
+Rule can be a reference to **managed-rule-group** or user defined **custom-rule-group** or **rate-based-rule**.
+
+-   **managed-rule-group**
+    -   references rule group pre-created by AWS or other vendors for specific use cases.
+    -   referenced by `name` and `vendorName`,
+    -   For more information refer to [AWS Docs](https://docs.aws.amazon.com/waf/latest/developerguide/aws-managed-rule-groups-list.html)
+-   **custom-rule-group**
+    -   references custom rule group created by you.
+    -   referenced by rule group's `arn`
+-   **rate-based-rule**
+    -   tracks the rate of requests for each originating IP address, and triggers the rule action when the rate exceeds a limit that you specify on the number of requests in any 5-minute time span
+    -   you can use this to put a temporary block on requests from an IP address that is sending excessive requests.
+    -   For more information refer to [AWS Docs](https://docs.aws.amazon.com/waf/latest/APIReference/API_RateBasedStatement.html)
 
 ## Default rules
 
@@ -162,9 +171,10 @@ resources:
 
 - There are two ways of aggregation:
 
-- `IP` - Aggregate the request counts based on the IP addresses of the requests.\n- `FORWARDED_IP` - Aggregate the request counts based on the IP addresses in the specified header
-- If you choose this option, you can also specify the `headerName` and `fallbackBehavior` in the `forwardedIPConfig` property.\n- If you don't specify these properties the default values are `X-Forwarded-For` and `NO_MATCH` respectively.
-For more information about rate-based rules refer to [AWS Docs](https://docs.aws.amazon.com/waf/latest/APIReference/API_RateBasedStatement.html)\n\n
+-   `IP` - Aggregate the request counts based on the IP addresses of the requests.
+-   `FORWARDED_IP` - Aggregate the request counts based on the IP addresses in the specified header
+    -   If you choose this option, you can also specify the `headerName` and `fallbackBehavior` in the `forwardedIPConfig` property.
+    -   If you don't specify these properties the default values are `X-Forwarded-For` and `NO_MATCH` respectively. For more information about rate-based rules refer to [AWS Docs](https://docs.aws.amazon.com/waf/latest/APIReference/API_RateBasedStatement.html)
 
 ```yml
 resources:
