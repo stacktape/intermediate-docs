@@ -1,0 +1,90 @@
+---
+title: "init"
+order: 5
+nestedTo: /cli/commands
+---
+
+# Overview and basic usage
+
+Initializes Stacktape project to the specified directory.
+
+<br />
+
+{/* WRITE ONLY BELOW THIS LINE */}
+
+{/* WRITE ONLY ABOVE THIS LINE */}
+
+```bash
+stacktape init
+```
+
+# API reference
+
+<CliCommandsApiReference
+  command="init"
+  sortedArgs={[
+    {
+      description:
+        "#### Path to the directory where the starter project should be initialized to\n---\n- If not specified, you will be prompted to specify it interactively using CLI\n- If the directory is not empty, its contents will be deleted",
+      allowedTypes: ["string"],
+      alias: "ipt",
+      required: false,
+      name: "initializeProjectTo",
+      shortDescription: "<p> Path to the directory where the starter project should be initialized to</p>\n",
+      longDescription:
+        "<ul>\n<li>If not specified, you will be prompted to specify it interactively using CLI</li>\n<li>If the directory is not empty, its contents will be deleted</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### Format of logs printed to your console.\n---\nAvailable options:\n- `fancy`: Logs are colorized and dynamically re-rendered.\n- `normal`: Logs are colorized but not dynamically re-rendered.\n- `basic`: Simple text only\n- `json`: Logs are printed as JSON objects",
+      allowedTypes: ["string"],
+      allowedValues: ["basic", "fancy", "json", "normal"],
+      alias: "lf",
+      required: false,
+      name: "logFormat",
+      shortDescription: "<p> Format of logs printed to your console.</p>\n",
+      longDescription:
+        "<p>Available options:</p>\n<ul>\n<li><code>fancy</code>: Logs are colorized and dynamically re-rendered.</li>\n<li><code>normal</code>: Logs are colorized but not dynamically re-rendered.</li>\n<li><code>basic</code>: Simple text only</li>\n<li><code>json</code>: Logs are printed as JSON objects</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### Level of logs that are being printed to the console.\n---\nAvailable options:\n- `info`: Prints basic information about everything that's happening.\n- `error`: Prints only errors.\n- `debug`: Prints detailed information about everything that's happening.",
+      allowedTypes: ["string"],
+      allowedValues: ["debug", "error", "info"],
+      alias: "ll",
+      required: false,
+      name: "logLevel",
+      shortDescription: "<p> Level of logs that are being printed to the console.</p>\n",
+      longDescription:
+        "<p>Available options:</p>\n<ul>\n<li><code>info</code>: Prints basic information about everything that&#39;s happening.</li>\n<li><code>error</code>: Prints only errors.</li>\n<li><code>debug</code>: Prints detailed information about everything that&#39;s happening.</li>\n</ul>\n"
+    },
+    {
+      description: "#### Path to the root project directory where the configuration should be generated to\n---",
+      allowedTypes: ["string"],
+      alias: "pd",
+      required: false,
+      name: "projectDirectory",
+      shortDescription: "<p> Path to the root project directory where the configuration should be generated to</p>\n",
+      longDescription: ""
+    },
+    {
+      description: "#### Identifier of the starter project to initialize.",
+      allowedTypes: ["string"],
+      alias: "sid",
+      required: false,
+      name: "starterId",
+      shortDescription: "<p> Identifier of the starter project to initialize.</p>\n"
+    },
+    {
+      description:
+        "#### Id of the template to download\n---\n- The list of available templates is available on the [Config builder page](https://console.stacktape.com/templates)",
+      allowedTypes: ["string"],
+      alias: "ti",
+      required: false,
+      name: "templateId",
+      shortDescription: "<p> Id of the template to download</p>\n",
+      longDescription:
+        '<ul>\n<li>The list of available templates is available on the <a href="https://console.stacktape.com/templates" style="font-weight: bold;" target="_blank" rel="noreferrer" onclick="event.stopPropagation();">Config builder page</a></li>\n</ul>\n'
+    }
+  ]}
+/>

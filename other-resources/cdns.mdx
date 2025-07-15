@@ -1,0 +1,681 @@
+---
+title: "CDNs"
+order: 240
+---
+
+# Overview
+
+- CDN (Content Delivery Network) is a geographically distributed network that helps you deliver your application content
+  fast and secure to the end-users across the globe.
+- By distributing and caching content across 310+ globally dispersed **Points of Presence (PoPs** - also called edge
+  locations) you can significantly decrease the latency of data delivery as well as reduce load on your application.
+- CDN helps you improve security with automatic TLS and defends your application against DDoS attacks at no additional
+  costs.
+
+# Under the hood
+
+Under the hood Stacktape uses [Amazon CloudFront](https://aws.amazon.com/cloudfront/) content delivery network spanning
+across many regions around the globe. In Stacktape, CDN is always associated with some underlying resource(this resource
+then becomes a default origin for CDN). See also sections [CDN explained](#cdn-explained) and
+[Basic usage](#basic-usage).
+
+# CDN explained
+
+CDN can be seen as a layer between your application(origin) and clients connecting to the application.
+
+- Instead of clients sending request directly to your application (**origin** - [bucket](#cdn-with-bucket),
+  [http-api-gateway](#cdn-with-http-api-gateway) or [application-load-balancers](#cdn-with-application-load-balancer)),
+  they send request to CDN.
+- CDN delivers the request from the client to the closest CDN PoP (Point of Presence) edge location.
+- CDN PoP gets a response from your application (**origin**).
+- CDN PoP sends the response to the client. At the same time **it caches the response**.
+- On subsequent requests from clients, CDN PoP can respond immediately using the cached response (**cache hit**).
+- You can control which responses should be cached and for how long. Read section
+  [Caching configuration](#cache-control) for more information.
+
+![Client application flow with CDN](../static/cdn/cdn-table.png)
+
+# Basic usage
+
+In Stacktape, you can use CDN by configuring it on the specified resource ([bucket](#cdn-with-bucket),
+[http-api-gateway](#cdn-with-http-api-gateway) or [application-load-balancers](#cdn-with-application-load-balancer)).
+This resource then becomes the main **origin** for the CDN, which means that the requests sent to the CDN will be
+forwarded to this resource.
+
+```yml
+resources:
+  myBucket:
+    type: bucket
+    properties:
+      # {start-highlight}
+      cdn:
+        enabled: true
+      # {stop-highlight}
+```
+
+You can also configure [route rewrites](#route-rewrites) to forward specified paths to other **origins** (other than the
+main origin). This enables you to have **hybrid infrastructures** where some requests are routed to bucket (to get the
+static content) and others are routed to http-api-gateway API (to get the dynamic content).
+
+<PropertiesTable definitionName="CdnConfiguration" />
+
+# CDN with bucket
+
+With **bucket** you can enable CDN using two lines.
+
+```yml
+resources:
+  myBucket:
+    type: bucket
+    properties:
+      # {start-highlight}
+      cdn:
+        enabled: true
+      # {stop-highlight}
+```
+
+By default, CDN caches content returned from the bucket for 6 months.
+
+<br />
+
+Most common use case for using CDN with a bucket is using the bucket to serve your **static website**:
+
+- Stacktape can automatically set-up correct cache-control headers for your static content when uploading the content to
+  the bucket.
+
+- See [Cache control](#cache-control) section to understand how to control the caching behavior.
+
+# CDN with http-api-gateway
+
+With **http-api-gateway** you can enable CDN using two lines.
+
+```yml
+resources:
+  myApiGateway:
+    type: http-api-gateway
+    properties:
+      # {start-highlight}
+      cdn:
+        enabled: true
+      # {stop-highlight}
+```
+
+By default, **CDN does not cache any content returned from the http-api-gateway**, as it assumes that all content
+returned by http-api-gateway is **dynamic**. You can control caching behavior by sending the cache control header within
+response from http-api-gateway. See [Cache control](#cache-control) section for more information.
+
+# CDN with application-load-balancer
+
+With **http-api-gateway** you can enable CDN using two lines. If your **application-load-balancer** uses custom
+**listeners** you need to specify the port of a listener to which the CDN should deliver traffic.
+
+```yml
+resources:
+  myLoadBalancer:
+    type: application-load-balancer
+    properties:
+      # {start-highlight}
+      cdn:
+        enabled: true
+      # {stop-highlight}
+```
+
+By default, **CDN does not cache any content returned from the application-load-balancer**, as it assumes that all
+content returned by application-load-balancer is **dynamic**. You can control caching behavior by sending the cache
+control header within response from application-load-balancer. See [Cache control](#cache-control) section for more
+information.
+
+<Divider />
+
+# Custom domain names
+
+Stacktape allows you to connect your custom domain names to some of your resources (Web Service, Nextjs web, HTTP API Gateways, Application Load Balancers and Buckets with CDNs).
+
+Connecting a custom domain to the resource does 2 things:
+
+-   **Creates DNS records**:
+    -   If you use your custom domain with a resource, Stacktape automatically creates a DNS record (during deploy) pointing the specified domain name to the resource.
+-   **Adds TLS certificates**
+    -   If the origin resource (HTTP API Gateway, Application Load Balancer or CDN) uses HTTPS protocol, Stacktape takes care of issuing and attaching correct (free, AWS-managed) certificate to the resource. This means, you do not have to deal with TLS termination as it is handled by the connected resource.
+    -   If you want to use your own certificates, you can configure `customCertificateArns`.
+
+To manage a custom domain, it first needs to be added to your AWS account. This means that a [hosted zone](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/AboutHZWorkingWith.html) (collection of records managed together for a given domain) for your domain exists in your AWS account and your domain registrar's name servers are pointing to it. To learn more, refer to [Adding a domain guide](/other-resources/domains-and-certificates/#adding-domain).
+
+<PropertiesTable definitionName="DomainConfiguration" searchForReferencesInDefinition="CdnConfiguration" />
+
+```yml
+resources:
+  myHttpApi:
+    type: 'http-api-gateway'
+    properties:
+      cdn:
+        enabled: true
+        # {start-highlight}
+        customDomains:
+          - domainName: mydomain.com
+        # {stop-highlight}
+```
+
+<Divider />
+
+# Edge lambda functions
+
+-   You can associate `edge-lambda-function` with CDN to be executed:
+    
+    -   `onRequest` - function is executed when CDN receives a request from a client(viewer) before checking CDN cache
+    -   `onResponse` - function is executed before returning the response to the client(viewer)
+-   Potential use-cases for using edge functions:
+    
+    -   generating immediate HTTP response without the need to check CDN cache or forward to the origin
+    -   modifying request (i.e rewrite url, headers etc) before forwarding to the origin
+    -   inspection of cookies
+    -   inspection/validation of authorization headers and tokens
+
+For more information refer to [Edge lambda functions](/compute-resources/edge-lambda-functions) page.
+
+<PropertiesTable definitionName="EdgeFunctionsConfig" searchForReferencesInDefinition="CdnConfiguration" />
+
+```yml
+resources:
+  # {start-highlight}
+  authFunction:
+    type: edge-lambda-function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: auth-function.ts
+  # {stop-highlight}
+
+  myBucket:
+    type: bucket
+    properties:
+      cdn:
+        enabled: true
+        # {start-highlight}
+        edgeFunctions:
+          onRequest: authFunction
+        # {stop-highlight}
+```
+
+<Divider />
+
+# Cache control
+
+There are 2 ways to control caching behavior of the CDN:
+
+1. By using `cache-control` header in the responses from your origins.
+
+   - `cache-control` header is automatically detected by the CDN and the response is cached based on the directives in
+     the header.
+   - to see how to configure `cache-control` header, refer to respective sections for
+     [bucket](#cache-control-header-with-buckets) or
+     [http-api-gateway/application-load-balancer](#cache-control-header-with-http-api-gateway-application-load-balancer)
+   - this approach gives you fine-grained control over caching behavior and is **recommended**.
+
+2. By setting (`minTTL`, `maxTTL`, `defaultTTL`) in CDN caching options.
+   - this approach lets you set basic caching rules, but is overall less flexible.
+   - see section [CDN cache options](#cdn-caching-options)
+
+<Warning>
+
+Stacktape automatically invalidates cache after each successful deployment.
+
+This means that each time you deploy, entire cache in all [CDN PoPs (edge locations)](#cdn-explained) is **flushed** and
+subsequent requests to CDN will need to **re-fetch the content from the origin**.
+
+You can disable automatic invalidation. See section [Automatic invalidation](#automatic-invalidation).
+
+</Warning>
+
+<Divider />
+
+## Cache-Control header with buckets
+
+You can set **cache-control** header by setting metadata on the objects uploaded to your bucket.
+
+<br />
+
+Stacktape can set the correct **cache-control** headers automatically when uploading objects to your bucket, if you:
+
+- choose to upload your objects using [directory upload](/resources/buckets/#directory-upload) functionality,
+- use one of the headers presets. The **header presets** are made for most common use-cases, but you are also able to
+  [customize them](/resources/buckets/#adding-metadata) and set your own headers.
+
+```yml
+resources:
+  myBucket:
+    type: bucket
+    properties:
+      directoryUpload:
+        directoryPath: my-web/build
+        headersPreset: static-website
+      cdn:
+        enabled: true
+```
+
+> Bucket with `directoryUpload` and `headersPreset`
+
+<Divider />
+
+## Cache-Control header with http-api-gateway/application-load-balancer
+
+When using CDN with a **http-api-gateway** or an **application-load-balancer**, you can set **cache-control** header by
+sending it with response from your application.
+
+Consider following example:
+
+```yml
+resources:
+  myApiGateway:
+    type: http-api-gateway
+    properties:
+      cdn:
+        enabled: true
+
+  myFunction:
+    type: function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: hello.ts
+      events:
+        - type: http-api-gateway
+          properties:
+            httpApiGatewayName: myApiGateway
+            method: GET
+            path: /hello
+```
+
+> Stacktape configuration with CDN enabled **http-api-gateway** and a **function**
+
+```ts
+export default async (event, context) => {
+  return {
+    statusCode: 200,
+    statusDescription: '200 OK',
+    isBase64Encoded: false,
+    headers: {
+      'Content-Type': 'text/plain',
+      // {start-highlight}
+      'Cache-Control': 'max-age=30'
+      // {stop-highlight}
+    },
+    body: 'Hello !!!'
+  };
+};
+```
+
+> Code of the **function** returning response that sets the **cache-control** header
+
+Similar configuration could be done with **application-load-balancer**. Or you could swap the function for a
+**multi-container-workload** since the response format is same.
+
+<br />
+
+To understand directives in the `cache-control` header and how to use them, refer to
+[MDN docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control).
+
+<Divider />
+
+## CDN caching options
+
+Caching options enable you to specify default caching behavior for your CDN.
+
+You can specify different caching options for each [route rewrite](#route-rewrites). This gives you ability to set
+different default caching options for different routes.
+
+<br />
+
+If you do not specify caching options, Stacktape uses default caching options (depending on the target origin):
+
+| Origin type               | minTTL | maxTTL   | defaultTTL |
+| ------------------------- | ------ | -------- | ---------- |
+| Bucket                    | 0      | 31536000 | 15768000   |
+| Http Api Gateway          | 0      | 31536000 | 0          |
+| Application Load Balancer | 0      | 31536000 | 0          |
+
+<br />
+
+In the following example:
+
+- We are setting default TTL for the default route to 60 seconds (1 minute).
+- Every request, with URL path starting with `/static` has default TTL 604800 seconds (1 week).
+- If responses from origin do not contain `cache-control` header, default TTL is used.
+
+```yml
+resources:
+  myHttpApi:
+    type: 'http-api-gateway'
+    properties:
+      cdn:
+        enabled: true
+        # {start-highlight}
+        cachingOptions:
+          defaultTTL: 60
+        # {stop-highlight}
+        routeRewrites:
+          - path: /static/*
+            # {start-highlight}
+            cachingOptions:
+              defaultTTL: 604800
+            # {stop-highlight}
+```
+
+<PropertiesTable definitionName="CdnCachingOptions" searchForReferencesInDefinition="CdnConfiguration" />
+
+## Controlling cache key
+
+The cache key is the unique identifier for every object in the cache. It determines whether a client request results in
+a **cache hit**. A **cache hit** occurs when a client request generates the same cache key as a prior request, and the
+object for that cache key is in the [CDN PoP](#cdn-explained) location's cache. If the object is in the cache and is
+valid, it can be served to client without sending request to the origin.
+
+- A cache key can be configured to include headers, cookies, or query params.
+- Every part of request that is included in a cache key is automatically forwarded to the origin. If you wish to forward
+  parts of request to the origin but NOT include them in the cache key, use
+  [forwarding options](#cdn-forwarding-options)
+- Cache key can be controlled by using `cacheKeyParameters` within caching options.
+
+<br />
+
+If you do not specify cache key, Stacktape uses default cache key (depending on the target origin):
+
+| Origin type               | Parts of request included in cache key                 |
+| ------------------------- | ------------------------------------------------------ |
+| Bucket                    | URL path                                               |
+| Http Api Gateway          | URL path + all query params + **Authorization** header |
+| Application Load Balancer | URL path + all query params + **Authorization** header |
+
+<br />
+<br />
+
+**Example usage:** If your origin uses the `Accept-Language` HTTP header in client requests to return different content
+based on the client’s language, you might want to include this header in the cache key.
+
+```yml
+resources:
+  myApiGateway:
+    type: http-api-gateway
+    properties:
+      cdn:
+        enabled: true
+        cachingOptions:
+          # {start-highlight}
+          cacheKeyParameters:
+            headers:
+              whitelist:
+                - Accept-Language
+          # {stop-highlight}
+```
+
+> CDN with custom cache key configured: URL(default) + Accept-Language header
+
+<PropertiesTable definitionName="CdnCacheKey" searchForReferencesInDefinition="CdnConfiguration" />
+
+# CDN forwarding options
+
+Forwarding options specify which parts of a request get forwarded to the origin. You can also filter which types
+(methods) of requests are forwarded.
+
+Different forwarding options can be specified for each [route rewrite](#route-rewrites).
+
+<br />
+
+If no forwarding options are specified, Stacktape uses default forwarding options (depending on the target origin):
+
+| Origin type               | Parts of request forwarded to origin                    |
+| ------------------------- | ------------------------------------------------------- |
+| Bucket                    | URL path                                                |
+| Http Api Gateway          | URL path + all query params + all headers + all cookies |
+| Application Load Balancer | URL path + all query params + all headers + all cookies |
+
+<br />
+
+```yml
+resources:
+  myHttpApi:
+    type: 'http-api-gateway'
+    properties:
+      cdn:
+        enabled: true
+        # {start-highlight}
+        forwardingOptions:
+          allowedMethods:
+            - 'GET'
+            - 'POST'
+        # {stop-highlight}
+```
+
+> CDN configured to only forward requests with methods `GET` and `POST`
+
+<PropertiesTable definitionName="CdnForwardingOptions" searchForReferencesInDefinition="CdnConfiguration" />
+
+# Route rewrites
+
+Route rewrites can be used to route incoming requests to different origins: I.e., instead of forwarding a request to the
+main origin (the one CDN is attached to), the request can be forwarded to some other origin
+([http-api-gateway](#routing-to-http-api-gateway), [bucket](#routing-to-bucket),
+[application-load-balancer](#routing-to-application-load-balancer) or a [custom origin](#routing-to-custom-origin)).
+
+-   Each incoming request to the CDN is first evaluated against route rewrites. The requested path is compared with path pattern specified in route rewrite.
+-   If the requested path matches the path pattern specified by route rewrite, the request is sent to the configured route.
+-   Route rewrites are evaluated in order. The first match is where the request will be sent to.
+-   If no match is found, request is sent to the default origin (the one that the CDN is attached to).
+
+**Example use cases**:
+
+-   Most of the content you are serving is a static content served from a bucket (static website). Some content however needs to be rendered dynamically by a lambda function. You can route paths that need to be rendered dynamically to the Lambda function.
+-   You want to cache your `jpg` files longer than other files. You can create route rewrite that will catch every path ending with `jpg` and set custom caching options for these paths.
+
+<PropertiesTable definitionName="CdnRouteRewrite" searchForReferencesInDefinition="CdnConfiguration" />
+
+<Divider />
+
+## Routing to bucket
+
+<PropertiesTable definitionName="CdnBucketRoute" searchForReferencesInDefinition="CdnConfiguration" />
+
+In the following example:
+
+- we are routing all requests with url path starting with `/static` to the bucket **myBucket**.
+- all other requests are routed to the http-api-gateway **myHttpApi** (default origin).
+
+```yml
+resources:
+  myHttpApi:
+    type: 'http-api-gateway'
+    properties:
+      cdn:
+        enabled: true
+        # {start-highlight}
+        routeRewrites:
+          - path: /static/*
+            routeTo:
+              type: bucket
+              properties:
+                bucketName: myBucket
+                disableUrlNormalization: true
+        # {stop-highlight}
+
+  myBucket:
+    type: 'bucket'
+```
+
+![CDN route rewrites - representation of above configuration](../static/cdn/cdn-route-rewrite.png)
+
+<Divider />
+
+## Routing to application-load-balancer
+
+<PropertiesTable definitionName="CdnLoadBalancerRoute" searchForReferencesInDefinition="CdnConfiguration" />
+
+In the following example:
+
+- we are routing all requests with url path starting with `/app2` to the application-load-balancer **myLoadBalancer**.
+- all other requests are routed to the http-api-gateway **myHttpApi** (default origin).
+
+```yml
+resources:
+  myHttpApi:
+    type: 'http-api-gateway'
+    properties:
+      cdn:
+        enabled: true
+        # {start-highlight}
+        routeRewrites:
+          - path: /app2/*
+            routeTo:
+              type: 'application-load-balancer'
+              properties:
+                loadBalancerName: myLoadBalancer
+        # {stop-highlight}
+
+  myLoadBalancer:
+    type: 'application-load-balancer'
+```
+
+<Divider />
+
+## Routing to http-api-gateway
+
+<PropertiesTable definitionName="CdnHttpApiGatewayRoute" searchForReferencesInDefinition="CdnConfiguration" />
+
+In the following example:
+
+- we are routing all requests with url path starting with `/app2/` to the http-api-gateway **appApiGateway**.
+- all other requests are routed to the http-api-gateway **myHttpApi** (default origin).
+
+```yml
+resources:
+  myHttpApi:
+    type: 'http-api-gateway'
+    properties:
+      cdn:
+        enabled: true
+        # {start-highlight}
+        routeRewrites:
+          - path: /app2/*
+            routeTo:
+              type: 'http-api-gateway'
+              properties:
+                httpApiGatewayName: appApiGateway
+        # {stop-highlight}
+
+  appApiGateway:
+    type: 'http-api-gateway'
+```
+
+<Divider />
+
+## Routing to custom origin
+
+<PropertiesTable definitionName="CdnCustomDomainRoute" searchForReferencesInDefinition="CdnConfiguration" />
+
+In the following example:
+
+- we are routing all request with url path starting with `/external` to the custom origin
+  (`my-custom-origin.example.com`).
+- all other requests are routed to the application-load-balancer **myLoadBalancer**.
+
+```yml
+resources:
+  myLoadBalancer:
+    type: 'application-load-balancer'
+    properties:
+      cdn:
+        enabled: true
+        # {start-highlight}
+        routeRewrites:
+          - path: /external/*
+            routeTo:
+              type: custom-origin
+              properties:
+                domainName: my-custom-origin.example.com
+        # {stop-highlight}
+```
+
+# Automatic invalidation
+
+By default Stacktape invalidates the CDN cache after each deploy. This means that the cache is **flushed and new
+requests will result in requests to the origin**. This in turn ensures that only new content is served to the clients.
+
+You can disable automatic invalidation by setting `invalidateAfterDeploy` to **false**.
+
+```yml
+resources:
+  myApiGateway:
+    type: http-api-gateway
+    properties:
+      cdn:
+        enabled: true
+        # {start-highlight}
+        invalidateAfterDeploy: false
+        # {stop-highlight}
+```
+
+# Setting price class
+
+You can set price class to reduce the costs for your CDN. Setting price class affects the number locations
+([PoPs](#cdn-explained)) from which the CDN serves traffic.
+
+-   Higher price class results in more locations that serve your traffic.
+-   This can result in better performance in some regions, but is more costly.
+-   Example: If your users are located only in US & Europe, you can save money by configuring `PriceClass_100`
+-   To learn more about price classes, refer to [AWS docs](https://aws.amazon.com/cloudfront/pricing/)
+
+```yml
+resources:
+  myApiGateway:
+    type: http-api-gateway
+    properties:
+      cdn:
+        enabled: true
+        # {start-highlight}
+        cloudfrontPriceClass: PriceClass_200
+        # {stop-highlight}
+```
+
+# Using firewall
+
+-   You can use `web-app-firewall` to protect your resources from common web exploits that could affect application availability, compromise security, or consume excessive resources.
+-   Web app firewall protects your application by filtering dangerous requests coming to your app. You can read more about the firewall [in our docs](/security-resources/web-app-firewalls/).
+
+To lean more, check [web-app-firewall](/resources/web-app-firewalls/) documentation.
+
+```yml
+resources:
+  # {start-highlight}
+  myFirewall:
+    type: web-app-firewall
+    properties:
+      scope: cdn
+  # {stop-highlight}
+  myApiGateway:
+    type: http-api-gateway
+    properties:
+      cdn:
+        enabled: true
+        # {start-highlight}
+        useFirewall: myFirewall
+        # {stop-highlight}
+```
+
+# API reference
+
+<PropertiesTable definitionName="CacheKeyCookies" searchForReferencesInDefinition="CdnConfiguration" />
+
+<PropertiesTable definitionName="CacheKeyHeaders" searchForReferencesInDefinition="CdnConfiguration" />
+
+<PropertiesTable definitionName="CacheKeyQueryString" searchForReferencesInDefinition="CdnConfiguration" />
+
+<PropertiesTable definitionName="CdnCustomRequestHeader" searchForReferencesInDefinition="CdnConfiguration" />
+
+<PropertiesTable definitionName="ForwardCookies" searchForReferencesInDefinition="CdnConfiguration" />
+
+<PropertiesTable definitionName="ForwardHeaders" searchForReferencesInDefinition="CdnConfiguration" />
+
+<PropertiesTable definitionName="ForwardQueryString" searchForReferencesInDefinition="CdnConfiguration" />
+
+<PropertiesTable definitionName="CdnResponseHeader" searchForReferencesInDefinition="CdnConfiguration" />

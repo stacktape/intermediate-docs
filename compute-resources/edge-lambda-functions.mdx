@@ -1,0 +1,492 @@
+---
+title: "Edge lambda functions"
+order: 250
+---
+
+# Overview
+
+- Edge lambda function is a scalable and highly available computing resource that runs your code closer to users of your
+  application, improving performance and latency.
+
+- Functions are globally distributed across regional CDN cache locations (13 locations spread across the globe), which
+  makes it possible to execute them closer to the end user
+
+- Lambda functions are **"serverless"** and fully managed. You don't have to worry about provisioning and managing
+  servers, container and OS security, patching, scaling & many other DevOps tasks.
+
+- Supported runtimes are Node.js (Javascript and Typescript) and Python.
+
+- Similarly to regular Lambda Functions, you only pay for the compute time you use - there is no charge when your code
+  is not running.
+
+- Use-cases for Edge lambda functions: performing user authentication, cookie inspection, validation of requests, and
+  many more.
+
+# Under the hood
+
+Under the hood, Stacktape uses [Lambda@Edge](https://aws.amazon.com/lambda/edge/). Lambda@Edge functions are always
+associated with CDNs and are triggered when request/response is sent to/from the CDN.
+
+# When to use
+
+<NegativeMargin />
+
+## Advantages
+
+- **Low latency** - By running code closer to end user, latency and overall performance is improved.
+- **Scalability** - Run your code without necessity to manage any infrastructure. Similarly to regular
+  [functions](/compute-resources/lambda-functions), Edge lambda functions provide high scalability.
+- **Pay-per-use** - You only pay for the compute time you consume (rounded to 1ms). Refer to
+  [Lambda@Edge pricing](https://aws.amazon.com/lambda/pricing/) in AWS docs.
+
+## Disadvantages
+
+- **Limited execution environment** - (Applies to `onRequest`/`onResponse` lambdas) Your Edge lambda functions are
+  limited to 128MB of memory and maximum execution time of 5 seconds.
+
+# Basic usage
+
+-   You can associate `edge-lambda-function` with CDN to be executed:
+    
+    -   `onRequest` - function is executed when CDN receives a request from a client(viewer) before checking CDN cache
+    -   `onResponse` - function is executed before returning the response to the client(viewer)
+-   Potential use-cases for using edge functions:
+    
+    -   generating immediate HTTP response without the need to check CDN cache or forward to the origin
+    -   modifying request (i.e rewrite url, headers etc) before forwarding to the origin
+    -   inspection of cookies
+    -   inspection/validation of authorization headers and tokens
+
+<br />
+
+In the following example we are using `edge-lambda-function` to validate `Authorization` header of each incoming user
+request. If user is not authorized, he is redirected to login page.
+
+```yml
+resources:
+  # {start-highlight}
+  authFunction:
+    type: edge-lambda-function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: auth-function.ts
+  # {stop-highlight}
+
+  myBucket:
+    type: bucket
+    properties:
+      cdn:
+        enabled: true
+        # {start-highlight}
+        edgeFunctions:
+          onRequest: authFunction
+        # {stop-highlight}
+```
+
+```ts
+const validateAuthorizationToken = (token) => {
+  // perform some validation
+  return true;
+};
+
+export default async (event) => {
+  const { request } = event.Records[0].cf;
+  const { headers } = request;
+
+  const authorizationToken = headers.authorization?.[0]?.value;
+
+  const userAuthorized = validateAuthorizationToken(authorizationToken);
+
+  // if user is not authorized, redirect him to login page
+  if (!userAuthorized) {
+    return {
+      status: '302',
+      headers: {
+        location: [
+          {
+            key: 'Location',
+            value: '/login'
+          }
+        ],
+        'cache-control': [
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, max-age=0, must-revalidate'
+          }
+        ]
+      }
+    };
+  }
+
+  // after we validated that user is authorized, we can return the request
+  // request will be forwarded to origin
+  return request;
+};
+```
+
+> Code of authorizer function `authFunction`
+
+<PropertiesTable
+  definitionName="EdgeLambdaFunction"
+  rewriteLinksForReferencedCompositeTypes={{
+    StpBuildpackLambdaPackaging: "#packaging",
+    CustomArtifactLambdaPackaging: "#packaging"
+  }}
+/>
+
+# Event structure
+
+Event delivered to the function differs based on whether you are using `onRequest` or `onResponse` trigger:
+
+- [Event structure for `onRequest` function](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/lambda-event-structure.html#example-viewer-request)
+- [Event structure for `onResponse` function](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/lambda-event-structure.html#lambda-event-structure-response-viewer)
+
+# On request trigger
+
+When using `onRequest` trigger with edge-lambda-function you can:
+
+1. **Return response from function** - In this case the response is served to the client directly and the request is NOT
+   forwarded to the origin.
+2. **Forward request to origin** - You can modify the request (path, body, headers ...) before forwarding to origin or
+   you can forward it as is.
+
+Following example code combines both options:
+
+- If user is authorized - forwards request to the origin
+- If user is not authorized - return redirect response to login page
+
+```ts
+const validateAuthorizationToken = (token) => {
+  // perform some validation
+  return true;
+};
+
+export default async (event) => {
+  const { request } = event.Records[0].cf;
+  const { headers } = request;
+
+  const authorizationToken = headers.authorization?.[0]?.value;
+
+  const userAuthorized = validateAuthorizationToken(authorizationToken);
+
+  // if user is not authorized, redirect him to login page
+  if (!userAuthorized) {
+    return {
+      status: '302',
+      headers: {
+        location: [
+          {
+            key: 'Location',
+            value: '/login'
+          }
+        ],
+        'cache-control': [
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, max-age=0, must-revalidate'
+          }
+        ]
+      }
+    };
+  }
+
+  // after we validated that user is authorized, we can return the request
+  // request will be forwarded to origin
+  return request;
+};
+```
+
+> Code of authorizer function
+
+```yml
+resources:
+  # {start-highlight}
+  authFunction:
+    type: edge-lambda-function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: auth-function.ts
+  # {stop-highlight}
+
+  myBucket:
+    type: bucket
+    properties:
+      cdn:
+        enabled: true
+        # {start-highlight}
+        edgeFunctions:
+          onRequest: authFunction
+        # {stop-highlight}
+```
+
+> Example config
+
+# On response trigger
+
+When using `onResponse` trigger with edge-lambda-function you can modify the response before returning.
+
+In following example we are using it to set response cookie.
+
+```ts
+export default async (event) => {
+  const { response } = event.Records[0].cf;
+
+  response.headers['set-cookie'] = [
+    {
+      key: 'Set-Cookie',
+      value: 'my-experimental-cookie=cookie-value'
+    }
+  ];
+
+  return response;
+};
+```
+
+> Code of the function
+
+```yml
+resources:
+  # {start-highlight}
+  cookieFunction:
+    type: edge-lambda-function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: set-cookie.ts
+  # {stop-highlight}
+
+  myBucket:
+    type: bucket
+    properties:
+      cdn:
+        enabled: true
+        # {start-highlight}
+        edgeFunctions:
+          onResponse: cookieFunction
+        # {stop-highlight}
+```
+
+> Example config
+
+# Packaging
+
+Refer to [packaging docs](/configuration/packaging#packaging-lambda-functions).
+
+<Warning>
+
+When using cdn-lambda function with `onRequest` or `onResponse` trigger the zipped package size is limited to 1 MB.
+
+</Warning>
+
+# Logging
+
+-   Information about the function invocation and function logs (stdout and stderr) are automatically sent to a pre-created CloudWatch log group.
+-   By default, logs are retained for 180 days..
+-   You can see the logs in the log group page in the AWS CloudWatch console. You can use `stacktape stack-info` command to get a direct link.
+
+Edge lambda functions are executed in multiple locations (regions) across the world depending on the cdn edge location which serves the client request (usually the location closest to the client).
+
+As a result the logs for the function executed in given region are delivered to a log group in that region. The list of regions where edge lambda can execute: **us-east-1**, **us-east-2**, **us-west-1**, **us-west-2**, **ap-south-1**, **ap-northeast-1**, **ap-northeast-2**, **ap-southeast-1**, **ap-southeast-2**, **eu-west-1**, **eu-west-2**, **eu-central-1**, **sa-east-1**
+
+<PropertiesTable definitionName="LambdaFunctionLogging" searchForReferencesInDefinition="EdgeLambdaFunction" />
+
+# Accessing other resources
+
+- For most of the AWS resources, resource-to-resource communication is not allowed by default. This helps to enforce
+  security and resource isolation. Access must be explicitly granted using [IAM](https://aws.amazon.com/iam/) (Identity
+  and Access Management) permissions.
+
+- Stacktape automatically handles IAM permissions for the underlying AWS services that it creates (i.e. granting cdn
+  lambda function permission to write logs to Cloudwatch).
+
+- If your function needs to communicate with other infrastructure components, you need to add permissions manually. You
+  can do this in 2 ways listed below.
+
+## Using connectTo
+
+- List of resource names or AWS services that this function will be able to access (basic IAM permissions will be
+  granted automatically). Granted permissions differ based on the resource.
+- Works only for resources managed by Stacktape in `resources` section (not arbitrary Cloudformation resources)
+- This is useful if you don't want to deal with IAM permissions yourself. Handling permissions using raw IAM role
+  statements can be cumbersome, time-consuming and error-prone. Moreover, when using `connectTo` property, Stacktape
+  **automatically injects information about resource** you are connecting to as environment variables into your compute
+  resource.
+
+```yml
+resources:
+  authFunction:
+    type: edge-lambda-function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: auth-function.ts
+      # {start-highlight}
+      connectTo:
+        # access to the dynamo table
+        - myDynamoTable
+        # access to AWS SES
+        - aws:ses
+      # {stop-highlight}
+
+  myDynamoTable:
+    type: dynamo-db-table
+    properties:
+      primaryKey:
+        partitionKey:
+          name: id
+          type: string
+```
+
+<br />
+
+By referencing resources (or services) in `connectTo` list, Stacktape automatically:
+
+-   configures correct compute resource's **IAM role permissions** if needed
+-   sets up correct **security group rules** to allow access if needed
+-   **injects relevant environment variables** containing information about resource you are connecting to into the compute resource's runtime
+    -   names of environment variables use upper-snake-case and are in form `STP_[RESOURCE_NAME]_[VARIABLE_NAME]`,
+    -   examples: `STP_MY_DATABASE_CONNECTION_STRING` or `STP_MY_EVENT_BUS_ARN`,
+    -   list of injected variables for each resource type can be seen below.
+
+Injecting of environment variables does not work for edge lambda functions.
+
+Using connectTo with resources which are protected within VPC does not work, as edge lambda functions are distributed across globe and are not part of VPC.
+
+  
+
+Granted permissions and injected environment variables are different depending on resource type:
+
+  
+
+`Bucket`
+
+-   **Permissions:**
+    -   list objects in a bucket
+    -   create / get / delete / tag object in a bucket
+-   **Injected env variables**: `NAME`, `ARN`
+
+  
+
+`DynamoDB table`
+
+-   **Permissions:**
+    -   get / put / update / delete item in a table
+    -   scan / query a table
+    -   describe table stream
+-   **Injected env variables**: `NAME`, `ARN`, `STREAM_ARN`
+
+  
+
+`MongoDB Atlas cluster`
+
+-   **Permissions:**
+    -   Allows connection to a cluster with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about MongoDB Atlas clusters accessibility modes, refer to [MongoDB Atlas cluster docs](/3rd-party-resources/mongo-db-atlas-clusters/#accessibility).
+    -   Creates access "user" associated with compute resource's role to allow for secure credential-less access to the the cluster
+-   **Injected env variables**: `CONNECTION_STRING`
+
+  
+
+`Relational(SQL) database`
+
+-   **Permissions:**
+    -   Allows connection to a relational database with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about relational database accessibility modes, refer to [Relational databases docs](/resources/relational-databases/#accessibility).
+-   **Injected env variables**: `CONNECTION_STRING`, `JDBC_CONNECTION_STRING`, `HOST`, `PORT` (in case of aurora multi instance cluster additionally: `READER_CONNECTION_STRING`, `READER_JDBC_CONNECTION_STRING`, `READER_HOST`)
+
+  
+
+`Redis cluster`
+
+-   **Permissions:**
+    -   Allows connection to a redis cluster with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about redis cluster accessibility modes, refer to [Redis clusters docs](/resources/redis-clusters/#accessibility).
+-   **Injected env variables**: `HOST`, `READER_HOST`, `PORT`
+
+  
+
+`Event bus`
+
+-   **Permissions:**
+    -   publish events to the specified Event bus
+-   **Injected env variables**: `ARN`
+
+  
+
+`Function`
+
+-   **Permissions:**
+    -   invoke the specified function
+-   **Injected env variables**: `ARN`
+
+  
+
+`Batch job`
+
+-   **Permissions:**
+    -   submit batch-job instance into batch-job queue
+    -   list submitted job instances in a batch-job queue
+    -   describe / terminate a batch-job instance
+    -   list executions of state machine which executes the batch-job according to its strategy
+    -   start / terminate execution of a state machine which executes the batch-job according to its strategy
+-   **Injected env variables**: `JOB_DEFINITION_ARN`, `STATE_MACHINE_ARN`
+
+  
+
+`User auth pool`
+
+-   **Permissions:**
+    -   full control over the user pool (`cognito-idp:*`)
+    -   for more information about allowed methods refer to [AWS docs](https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazoncognitouserpools.html)
+-   **Injected env variables**: `ID`, `CLIENT_ID`, `ARN`
+
+  
+
+`Upstash Kafka topic`
+
+-   **Injected env variables**: `TOPIC_NAME`, `TOPIC_ID`, `USERNAME`, `PASSWORD`, `TCP_ENDPOINT`, `REST_URL`
+
+  
+
+`Upstash Redis`
+
+-   **Injected env variables**: `HOST`, `PORT`, `PASSWORD`, `REST_TOKEN`, `REST_URL`, `REDIS_URL`
+
+  
+
+`aws:ses`(Macro)
+
+-   **Permissions:**
+    -   gives full permissions to aws ses (`ses:*`).
+    -   for more information about allowed methods refer to [AWS docs](https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonses.html)
+
+## Using iamRoleStatements
+
+- List of raw IAM role statement objects. These will be appended to the function's role.
+- Allows you to set granular control over your function's permissions.
+- Can be used to give access to _any_ Cloudformation resource
+
+<Warning>
+
+Be advised when accessing resources from edge-lambda-functions. While your stack(and the resources you are accessing)
+are deployed in a specific region, the function can be executed in any edge location around the world. This might result
+in **higher latencies** when function is accessing the resource from a more distant region.
+
+<br />
+
+Example:
+
+1. You have stack with a bucket and a edge lambda function (which has access granted to the bucket) deployed in region
+   **eu-west-1**.
+2. Request to CDN comes to **us-east-1** region.
+3. The function is executed in **us-east-1** region. Due to network delays the communication between the function and
+   the bucket might be slower.
+
+</Warning>
+
+# API reference
+
+<PropertiesTable definitionName="StpIamRoleStatement" searchForReferencesInDefinition="EdgeLambdaFunction" />

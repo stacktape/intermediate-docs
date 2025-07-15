@@ -1,0 +1,107 @@
+---
+title: ""
+order: 2
+---
+
+# Introduction
+
+- Hooks allow you to execute a custom command or script before or after specified command is executed.
+- Example use cases:
+  - build, validate or lint your application before deployment
+  - run unit tests on your application before deployment
+  - execute database migration after deployment
+  - cleanup database before delete
+
+# Usage
+
+Within hook, you can reference scripts specified in [scripts](/configuration/scripts/) section of your config.
+
+Scripts can be referenced in a hook, but they can also be executed manually. Refer to
+[scripts docs](/configuration/scripts/) to learn more.
+
+<Info>
+
+During execution the script will get the following environment variables:
+
+- `STP_HOOK_TYPE` - `before` or `after`
+- `STP_COMMAND` - Stacktape command used
+
+This is in addition to the environment variables specified on the script definition and the environment variables
+injected when using [connectTo](/configuration/scripts/#connecting-to-resources).
+
+</Info>
+
+<PropertiesTable definitionName="NamedScriptLifecycleHook" searchForReferencesInDefinition="Hooks" />
+
+```yaml
+scripts:
+  # {start-highlight}
+  buildWeb:
+    # {stop-highlight}
+    type: local-script
+    properties:
+      executeCommand: npx gatsby build
+
+hooks:
+  beforeDeploy:
+    # {start-highlight}
+    - scriptName: buildWeb
+    # {stop-highlight}
+```
+
+> Using script in the hook
+
+# Hookable events
+
+<PropertiesTable definitionName="Hooks" />
+
+## Before command hooks
+
+- Executed before the command, but AFTER the configuration has been successfully loaded.
+
+<Warning>
+  Executed only if the configuration was successfully loaded and hooks have been registered. The hook won't be executed
+  if there's an error with your CLI arguments or in your configuration.
+</Warning>
+
+## After command hooks
+
+- Executed after the command has successfully finished.
+- Most common use case for using after deploy hooks is migration/seeding of the database, or API/endpoint testing.
+
+```yml
+scripts:
+  migrateDb:
+    type: local-script-with-bastion-tunneling
+    properties:
+      executeScript: migrate.ts
+      connectTo:
+        - myDatabase
+
+# {start-highlight}
+hooks:
+  afterDeploy:
+    - scriptName: migrateDb
+# {stop-highlight}
+
+resources:
+  myBastion:
+    type: bastion
+
+  myDatabase:
+    type: relational-database
+    properties:
+      # database is only accessible from withing VPC
+      accessibility:
+        accessibilityMode: vpc
+      engine:
+        type: postgres
+        properties:
+          version: '16.2'
+          primaryInstance:
+            instanceSize: db.t3.micro
+      credentials:
+        masterUserPassword: my_secret_pass
+```
+
+> Stacktape config using the migration script with tunneling

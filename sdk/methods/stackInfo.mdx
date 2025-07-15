@@ -1,0 +1,163 @@
+---
+title: "stackInfo()"
+order: 6
+nestedTo: /sdk/methods
+---
+
+# Overview and basic usage
+
+<br />
+
+Prints information about the specified stack.
+
+<br />
+
+You can get the information in 2 ways:
+
+- **simple** (default): prints helpful links and parameters of the deployed stack to the terminal.
+- **detailed** (used if you specify the `--detailed` flag): saves detailed information about the stack to a file. By
+  default, the output is saved to `stack-info.yaml`. This can be configured using `--outFile` and `--outFormat` options.
+
+In the **detailed** mode:
+
+- If the stack is deployed and you specify `projectName`, `stage` and `region` you'll get overview of the deployed
+  stack.
+
+- If the stack is deployed and you additionally supply a configuration (stacktape template), you will see both resources
+  from configuration and deployed resources in the result. Depending on the difference between configuration and
+  deployed resources, status of the resource can be either `DEPLOYED`, `TO_BE_CREATED` or `TO_BE_DELETED`, suggesting
+  what will happen to the resource if you deploy (update) the stack.
+
+- If the stack is NOT deployed and you specify `projectName`, `--stage`, `--region` and supply a configuration, you'll
+  get an overview of resources that will be created if you deploy the stack.
+
+Sensitive values (such as database credentials) are omitted by default. If you want to include them, use
+`--showSensitiveValues` flag.
+
+<br />
+
+{/* WRITE ONLY BELOW THIS LINE */}
+
+{/* WRITE ONLY ABOVE THIS LINE */}
+
+```typescript
+import { Stacktape } from "stacktape";
+
+const stacktape = new Stacktape();
+
+stacktape.stackInfo({
+  region: "<<region>>",
+  stage: "<<stage>>"
+});
+```
+
+# API reference
+
+<SdkMethodsApiReference
+  command="stack:info"
+  sortedArgs={[
+    {
+      description: "#### AWS region to use for the current operation.\n---\n",
+      allowedTypes: ["string"],
+      allowedValues: [
+        "af-south-1",
+        "ap-east-1",
+        "ap-northeast-1",
+        "ap-northeast-2",
+        "ap-northeast-3",
+        "ap-south-1",
+        "ap-southeast-1",
+        "ap-southeast-2",
+        "ca-central-1",
+        "eu-central-1",
+        "eu-north-1",
+        "eu-south-1",
+        "eu-west-1",
+        "eu-west-2",
+        "eu-west-3",
+        "me-south-1",
+        "sa-east-1",
+        "us-east-1",
+        "us-east-2",
+        "us-west-1",
+        "us-west-2"
+      ],
+      required: true,
+      name: "region",
+      shortDescription: "<p> AWS region to use for the current operation.</p>\n",
+      longDescription: ""
+    },
+    {
+      description:
+        "#### Stage used for the operation.\n---\n- Example stages are `production`, `staging`, `testing` or `dev-john`.\n- You can configure the default stage used with every Stacktape command using the `defaults:configure` command.\n- Maximum allowed length is 12 characters.",
+      allowedTypes: ["string"],
+      required: true,
+      name: "stage",
+      shortDescription: "<p> Stage used for the operation.</p>\n",
+      longDescription:
+        "<ul>\n<li>Example stages are <code>production</code>, <code>staging</code>, <code>testing</code> or <code>dev-john</code>.</li>\n<li>You can configure the default stage used with every Stacktape command using the <code>defaults:configure</code> command.</li>\n<li>Maximum allowed length is 12 characters.</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### Name of the AWS account used to perform the operation\n---\n- The account must be first connected in the [Stacktape console](https://console.stacktape.com/aws-accounts)",
+      allowedTypes: ["string"],
+      required: false,
+      name: "awsAccount",
+      shortDescription: "<p> Name of the AWS account used to perform the operation</p>\n",
+      longDescription:
+        '<ul>\n<li>The account must be first connected in the <a href="https://console.stacktape.com/aws-accounts" style="font-weight: bold;" target="_blank" rel="noreferrer" onclick="event.stopPropagation();">Stacktape console</a></li>\n</ul>\n'
+    },
+    {
+      description:
+        "#### Path to your stacktape configuration file.\n---\n- Relative to CWD (current working directory).",
+      allowedTypes: ["string"],
+      required: false,
+      name: "configPath",
+      shortDescription: "<p> Path to your stacktape configuration file.</p>\n",
+      longDescription: "<ul>\n<li>Relative to CWD (current working directory).</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### Creates file with detailed stack information and saves it to a file.\n---\n- You can specify path to output file using argument `--outFile`\n- You can specify output format using argument `--outFormat`",
+      allowedTypes: ["boolean"],
+      required: false,
+      name: "detailed",
+      shortDescription: "<p> Creates file with detailed stack information and saves it to a file.</p>\n",
+      longDescription:
+        "<ul>\n<li>You can specify path to output file using argument <code>--outFile</code></li>\n<li>You can specify output format using argument <code>--outFormat</code></li>\n</ul>\n"
+    },
+    {
+      description: "#### Path to a file where the operation output will be saved.",
+      allowedTypes: ["string"],
+      required: false,
+      name: "outFile",
+      shortDescription: "<p> Path to a file where the operation output will be saved.</p>\n"
+    },
+    {
+      description: "#### Format of the output file used to save stack information\n---",
+      allowedTypes: ["string"],
+      allowedValues: ["json", "yml"],
+      required: false,
+      name: "outFormat",
+      shortDescription: "<p> Format of the output file used to save stack information</p>\n",
+      longDescription: ""
+    },
+    {
+      description:
+        "#### AWS profile to use with the command\n---\n- You can manage AWS profiles on your system using `aws-profile:create`, `aws-profile:update` or `aws-profile:delete` command.\n- You can configure the default profile used with every Stacktape command using the `defaults:configure` command.",
+      allowedTypes: ["string"],
+      required: false,
+      name: "profile",
+      shortDescription: "<p> AWS profile to use with the command</p>\n",
+      longDescription:
+        "<ul>\n<li>You can manage AWS profiles on your system using <code>aws-profile:create</code>, <code>aws-profile:update</code> or <code>aws-profile:delete</code> command.</li>\n<li>You can configure the default profile used with every Stacktape command using the <code>defaults:configure</code> command.</li>\n</ul>\n"
+    },
+    {
+      description: "#### Name of the Stacktape project relevant for this operation",
+      allowedTypes: ["string"],
+      required: false,
+      name: "projectName",
+      shortDescription: "<p> Name of the Stacktape project relevant for this operation</p>\n"
+    }
+  ]}
+/>

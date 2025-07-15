@@ -1,0 +1,412 @@
+---
+title: ""
+order: 300
+---
+
+# Overview
+
+Deployment script resources enable you to **execute custom script as a part of deployment process**. You can pass
+information about your infrastructure into the script by using parameters and environment variables and grant script
+permissions to stack resources. This gives the script ability to interact with other parts of deployed infrastructure.
+
+# Under the hood
+
+On the background, script is bundled into [AWS Lambda function](https://aws.amazon.com/lambda/) which is triggered
+during stack `deployment` or `delete` process. Deployment scripts **are NOT executed when using hotSwap deployment**.
+
+# When to use
+
+**Performing provisioning steps related to infrastructure** - Deployment of infrastructure is only a part of having the
+application successfully running. You might need to seed the database or run migrations, both of which are a great fit
+for a deployment script. Another example might be running a smoke test from your deployment script to ensure that
+everything is running correctly after deployment.
+
+<Divider />
+
+# Basic usage
+
+<PropertiesTable
+  definitionName="DeploymentScript"
+  rewriteLinksForReferencedCompositeTypes={{
+    StpBuildpackLambdaPackaging: "#packaging",
+    CustomArtifactLambdaPackaging: "#packaging"
+  }}
+/>
+
+In this example we are using `deployment-script` to test public API endpoint and integrations after deployment.
+
+```ts
+import fetch from 'node-fetch';
+
+export default async (event) => {
+  const { apiURL } = event;
+
+  // do whatever you want with apiURL ...
+  const result = await fetch(apiURL);
+
+  // fail the script if the test fails
+  if (result.statusCode === 404) {
+    throw Error('API test failed');
+  }
+};
+```
+
+> Example deployment script function written in Typescript (`test-url.ts`)
+
+```yml
+resources:
+  myHttpApi:
+    type: http-api-gateway
+
+  # {start-highlight}
+  testApiMethods:
+    type: deployment-script
+    properties:
+      trigger: after:deploy
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: test-url.ts
+      parameters:
+        apiURL: $ResourceParam('myHttpApi', 'url')
+  # {stop-highlight}
+```
+
+> Stacktape configuration with deployment script
+
+# Trigger
+
+Trigger property determines when is the script triggered.
+
+-   Currently available options for triggering script are:
+    -   `after:deploy` - executes script at the end of stack `deploy` operation (after all resources are deployed). If the script fails, whole deployment fails and stack will be rolled back.
+    -   `before:delete` - executes script before stack `delete` operation starts deleting resources. NOTE that even if the script fails, `delete` will continue and delete all resources.
+-   Besides triggering script during stack operations, you can trigger it manually using `stacktape deployment-script:run` command.
+
+```yml
+resources:
+  myHttpApi:
+    type: http-api-gateway
+
+  testApiMethods:
+    type: deployment-script
+    properties:
+      # {start-highlight}
+      trigger: after:deploy
+      # {stop-highlight}
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: test-url.ts
+      parameters:
+        apiURL: $ResourceParam('myHttpApi', 'url')
+```
+
+<Warning>
+
+Scripts that use triggers associated with stack delete operation (`before:delete`) are only executed if the script was
+present during the last deployment. In other words script must be first added to the stack during deployment so that it
+can be triggered during delete operation.
+
+</Warning>
+
+# Packaging
+
+Scripts are during deployment packaged and executed as lambda functions. Refer to lambda functions
+[packaging docs](/configuration/packaging#packaging-lambda-functions).
+
+# Parameters
+
+-   Parameters can be used to pass complex information to your script handler
+
+You cannot pass secret values (i.e using `$Secret` directive) using parameters. To pass secret values use `environment` variables instead.
+
+```yml
+resources:
+  myHttpApi:
+    type: http-api-gateway
+
+  testApiMethods:
+    type: deployment-script
+    properties:
+      trigger: after:deploy
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: test-url.ts
+      # {start-highlight}
+      parameters:
+        apiURL: $ResourceParam('myHttpApi', 'url')
+        testPaths:
+          - my/path/1
+          - my/path/2
+      # {stop-highlight}
+```
+
+# Environment
+
+-   Environment variables can be used to inject information about infrastructure (database URLS, secrets ...) into script's runtime
+-   To pass complex objects into your script use `parameters` instead
+
+<PropertiesTable definitionName="EnvironmentVar" searchForReferencesInDefinition="DeploymentScriptProps" />
+
+```yml
+resources:
+  myDatabase:
+    type: relational-database
+    properties:
+      credentials:
+        masterUserPassword: $Secret('my-database-password')
+      engine:
+        type: aurora-postgresql-serverless
+
+  testDatabase:
+    type: deployment-script
+    properties:
+      trigger: after:deploy
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: test-url.ts
+      # {start-highlight}
+      environment:
+        - name: DATABASE_URL
+          value: $ResourceParam('myDatabase', 'connectionString')
+      # {stop-highlight}
+```
+
+# Accessing other resources
+
+- For most of the AWS resources, resource-to-resource communication is not allowed by default. This helps to enforce
+  security and resource isolation. Access must be explicitly granted using [IAM](https://aws.amazon.com/iam/) (Identity
+  and Access Management) permissions.
+
+- Access control of [Relational Databases](/resources/relational-databases) is not managed by IAM. These resources are
+  not "cloud-native" by design and have their own access control mechanism (connection string with username and
+  password). They are accessible by default, and you don't need to grant any extra IAM permissions. You can further
+  restrict the access to your relational databases by configuring their
+  [access control mode](/resources/relational-databases/#accessibility).
+
+- Stacktape automatically handles IAM permissions for the underlying AWS services that it creates (i.e. granting script
+  permission to write logs to Cloudwatch).
+
+<br />
+
+If your script needs to communicate with other infrastructure components, you need to add permissions manually. You can
+do this in 2 ways:
+
+## Using connectTo
+
+- List of resource names or AWS services that this script will be able to access (basic IAM permissions will be granted
+  automatically). Granted permissions differ based on the resource.
+- Works only for resources managed by Stacktape in `resources` section (not arbitrary Cloudformation resources)
+- This is useful if you don't want to deal with IAM permissions yourself. Handling permissions using raw IAM role
+  statements can be cumbersome, time-consuming and error-prone. Moreover, when using `connectTo` property, Stacktape
+  **automatically injects information about resource** you are connecting to as environment variables into your script.
+
+```yml
+resources:
+  myScript:
+    type: deployment-script
+    properties:
+      trigger: after:deploy
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: path/to/my-script.ts
+      environment:
+        - name: MY_BUCKET_NAME
+          value: $ResourceParam('myBucket', 'name')
+      # {start-highlight}
+      connectTo:
+        # access to the bucket
+        - myBucket
+        # access to AWS SES
+        - aws:ses
+      # {stop-highlight}
+
+  myBucket:
+    type: bucket
+```
+
+<br />
+
+By referencing resources (or services) in `connectTo` list, Stacktape automatically:
+
+-   configures correct compute resource's **IAM role permissions** if needed
+-   sets up correct **security group rules** to allow access if needed
+-   **injects relevant environment variables** containing information about resource you are connecting to into the compute resource's runtime
+    -   names of environment variables use upper-snake-case and are in form `STP_[RESOURCE_NAME]_[VARIABLE_NAME]`,
+    -   examples: `STP_MY_DATABASE_CONNECTION_STRING` or `STP_MY_EVENT_BUS_ARN`,
+    -   list of injected variables for each resource type can be seen below.
+
+  
+
+Granted permissions and injected environment variables are different depending on resource type:
+
+  
+
+`Bucket`
+
+-   **Permissions:**
+    -   list objects in a bucket
+    -   create / get / delete / tag object in a bucket
+-   **Injected env variables**: `NAME`, `ARN`
+
+  
+
+`DynamoDB table`
+
+-   **Permissions:**
+    -   get / put / update / delete item in a table
+    -   scan / query a table
+    -   describe table stream
+-   **Injected env variables**: `NAME`, `ARN`, `STREAM_ARN`
+
+  
+
+`MongoDB Atlas cluster`
+
+-   **Permissions:**
+    -   Allows connection to a cluster with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about MongoDB Atlas clusters accessibility modes, refer to [MongoDB Atlas cluster docs](/3rd-party-resources/mongo-db-atlas-clusters/#accessibility).
+    -   Creates access "user" associated with compute resource's role to allow for secure credential-less access to the the cluster
+-   **Injected env variables**: `CONNECTION_STRING`
+
+  
+
+`Relational(SQL) database`
+
+-   **Permissions:**
+    -   Allows connection to a relational database with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about relational database accessibility modes, refer to [Relational databases docs](/resources/relational-databases/#accessibility).
+-   **Injected env variables**: `CONNECTION_STRING`, `JDBC_CONNECTION_STRING`, `HOST`, `PORT` (in case of aurora multi instance cluster additionally: `READER_CONNECTION_STRING`, `READER_JDBC_CONNECTION_STRING`, `READER_HOST`)
+
+  
+
+`Redis cluster`
+
+-   **Permissions:**
+    -   Allows connection to a redis cluster with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about redis cluster accessibility modes, refer to [Redis clusters docs](/resources/redis-clusters/#accessibility).
+-   **Injected env variables**: `HOST`, `READER_HOST`, `PORT`
+
+  
+
+`Event bus`
+
+-   **Permissions:**
+    -   publish events to the specified Event bus
+-   **Injected env variables**: `ARN`
+
+  
+
+`Function`
+
+-   **Permissions:**
+    -   invoke the specified function
+    -   invoke the specified function via url (if lambda has URL enabled)
+-   **Injected env variables**: `ARN`
+
+  
+
+`Batch job`
+
+-   **Permissions:**
+    -   submit batch-job instance into batch-job queue
+    -   list submitted job instances in a batch-job queue
+    -   describe / terminate a batch-job instance
+    -   list executions of state machine which executes the batch-job according to its strategy
+    -   start / terminate execution of a state machine which executes the batch-job according to its strategy
+-   **Injected env variables**: `JOB_DEFINITION_ARN`, `STATE_MACHINE_ARN`
+
+  
+
+`User auth pool`
+
+-   **Permissions:**
+    -   full control over the user pool (`cognito-idp:*`)
+    -   for more information about allowed methods refer to [AWS docs](https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazoncognitouserpools.html)
+-   **Injected env variables**: `ID`, `CLIENT_ID`, `ARN`
+
+  
+  
+
+`SNS Topic`
+
+-   **Permissions:**
+    -   confirm/list subscriptions of the topic
+    -   publish/subscribe to the topic
+    -   unsubscribe from the topic
+-   **Injected env variables**: `ARN`, `NAME`
+
+  
+  
+
+`SQS Queue`
+
+-   **Permissions:**
+    -   send/receive/delete message
+    -   change visibility of message
+    -   purge queue
+-   **Injected env variables**: `ARN`, `NAME`, `URL`
+
+  
+
+`Upstash Kafka topic`
+
+-   **Injected env variables**: `TOPIC_NAME`, `TOPIC_ID`, `USERNAME`, `PASSWORD`, `TCP_ENDPOINT`, `REST_URL`
+
+  
+
+`Upstash Redis`
+
+-   **Injected env variables**: `HOST`, `PORT`, `PASSWORD`, `REST_TOKEN`, `REST_URL`, `REDIS_URL`
+
+  
+
+`Private service`
+
+-   **Injected env variables**: `ADDRESS`
+
+  
+
+`aws:ses`(Macro)
+
+-   **Permissions:**
+    -   gives full permissions to aws ses (`ses:*`).
+    -   for more information about allowed methods refer to [AWS docs](https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonses.html)
+
+## Using iamRoleStatements
+
+- IAM Role statements are a low-level, granular and AWS-native way of controlling access to your resources.
+- IAM Role statements can be used to add permissions to any Cloudformation resource.
+- Configured IAM role statement objects will be appended to the script's role.
+
+```yml
+resources:
+  myScript:
+    type: deployment-script
+    properties:
+      trigger: after:deploy
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: path/to/my-script.ts
+      environment:
+        - name: TOPIC_ARN
+          value: $CfResourceParam('NotificationTopic', 'Arn')
+      # {start-highlight}
+      iamRoleStatements:
+        - Resource:
+            - $CfResourceParam('NotificationTopic', 'Arn')
+          Effect: 'Allow'
+          Action:
+            - 'sns:Publish'
+      # {stop-highlight}
+
+cloudformationResources:
+  NotificationTopic:
+    Type: AWS::SNS::Topic
+```
+
+# API reference
+
+<PropertiesTable definitionName="StpIamRoleStatement" searchForReferencesInDefinition="DeploymentScriptProps" />

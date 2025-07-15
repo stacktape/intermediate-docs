@@ -1,0 +1,375 @@
+---
+title: "Alarms"
+order: 1
+---
+
+# Overview
+
+Alarms are easy way to get keep your infrastructure in check and swiftly receive notifications when your resources get
+overwhelmed or faulty.
+
+Alarms are always configured to monitor a specified metric of a specified resource type. After threshold for the metric
+is broken, configured action is taken.
+
+# Under the hood
+
+Under the hood alarms are implemented as
+[AWS Cloudwatch Alarms](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html)
+
+# Usage
+
+Alarms can be created in 2 ways:
+
+- [Global alarms](#global-alarms) - created through Stacktape console. These alarms are applied to all resources of a
+  certain _type_ managed by Stacktape.
+- [In-config alarms](#in-config-alarms) - you can specify alarm directly on the resource in your _stacktape config
+  file_.
+
+# Global Alarms
+
+Global alarms are created through [Stacktape console](https://console.stacktape.com/alarms). By creating alarm in
+console, you are **creating a template(blueprint) of an alarm**. Only when you deploy(create/update) your stack after
+creating global alarm (and alarm is eligible for your stack's **serviceName** and **stage**), actual alarm is created
+for the eligible resources of your stack.
+
+<br />
+
+When configuring global alarm you can specify:
+
+- what type of resource and metric you wish to monitor
+- thresholds for the metric
+- automatic **Slack** or **email** notifications
+- which stacks does the alarm apply to (`serviceName`, `stage`)
+
+<Warning>
+
+Global alarms you create in console get applied only to resources in stacks **that are created/updated after the global
+alarm was created in console**. In other words, if you create global alarm, you need to use
+[deploy command](/cli/commands/deploy/) to apply alarms to resources in your stacks.
+
+</Warning>
+
+## Creating Global Alarm
+
+1. Go to [Stacktape console alarms page](https://console.stacktape.com/alarms) and click `Create new alarm` button
+
+![Alarm page](../static/alarms/alarm-page.png)
+
+2. Configure alarm according to your needs. In our example we are creating alarm to monitor Lambda functions' error
+   rate. We are also limiting alarm only to **prod** stage (used for production environments).
+
+![Creating alarm](../static/alarms/create-alarm.png)
+
+3. After creating alarm you can use [deploy command](/cli/commands/deploy/) on your stack to create actual alarms in the
+   stack.
+
+# In-config Alarms
+
+You can specify alarm directly in the stacktape config file as a property of a resource which should be monitored.
+
+```yml
+resources:
+  myLambdaFunction:
+    type: function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: 'lambdas/js-lambda.js'
+      # {start-highlight}
+      alarms:
+        - trigger:
+            type: lambda-error-rate
+            properties:
+              thresholdPercent: 5
+          notificationTargets:
+            - type: slack
+              properties:
+                conversationId: C038XXXXXX
+                accessToken: $Secret('slack-access-token')
+      # {stop-highlight}
+```
+
+## Schema of alarm
+
+<PropertiesTable definitionName="LambdaAlarm" />
+
+Alarm consists of 3 parts:
+
+1. [Trigger](#trigger) - Type of the trigger specifies what metric will be monitored.
+2. [Notifications](#notifications)(OPTIONAL) - Specifies where to send notification when alarm is triggered.
+3. [Evaluation](#evaluation)(OPTIONAL) - Configures evaluation period (interval) for the monitored metric.
+
+## Trigger
+
+Type of the trigger specifies what metric will be monitored. Depending on the type further properties of trigger can be
+specified
+
+<PropertiesTable definitionName="LambdaErrorRateTrigger" />
+
+```yml
+resources:
+  myLambdaFunction:
+    type: function
+    ...
+      # {start-highlight}
+      alarms:
+        - trigger:
+            type: lambda-error-rate
+            properties:
+              thresholdPercent: 5
+      # {stop-highlight}
+```
+
+<Info>
+
+See section [Trigger types](#trigger-types) to see all available alarms
+
+</Info>
+
+## Notifications
+
+Specifies where to send notification when alarm is triggered. There are 3 integrations available:
+
+**Slack** integration:
+
+```yml
+resources:
+  myResource:
+    type: ...
+    properties:
+      ...
+      alarms:
+        - trigger:
+            ...
+      # {start-highlight}
+          notificationTargets:
+            - type: slack
+              properties:
+                conversationId: C038XXXXXX
+                accessToken: $Secret('slack-access-token')
+      # {stop-highlight}
+```
+
+**MS Teams** integration:
+
+```yml
+resources:
+  myResource:
+    type: ...
+    properties:
+      ...
+      alarms:
+        - trigger:
+            ...
+      # {start-highlight}
+          notificationTargets:
+            - type: ms-teams
+              properties:
+                webhookUrl: MY_WEBHOOK_URL
+      # {stop-highlight}
+```
+
+**Email** integration:
+
+```yml
+resources:
+  myResource:
+    type: ...
+    properties:
+      ...
+      alarms:
+        - trigger:
+            ...
+      # {start-highlight}
+          notificationTargets:
+            - type: email
+              properties:
+                sender: alarm@company.com
+                recipient: support@company.com
+      # {stop-highlight}
+```
+
+## Evaluation
+
+Configures evaluation period (interval) for the monitored metric.
+
+<PropertiesTable definitionName="AlarmEvaluation" />
+
+```yml
+resources:
+  myResource:
+    type: ...
+    properties:
+      ...
+      alarms:
+        - trigger:
+            ...
+      # {start-highlight}
+          evaluation:
+            period: 200
+      # {stop-highlight}
+```
+
+> Lambda function with error rate alarm
+
+# Trigger Lambda on Alarm
+
+See [alarm event](/compute-resources/functions/#alarm-event) on function page.
+
+# Trigger types
+
+<Info>
+  New trigger types are being added continuously. If you have a specific wish for a trigger do not hesitate to open a{" "}
+  <a href="https://github.com/stacktape/stacktape/issues/new">Github issue</a>.
+</Info>
+
+## Lambda Error Rate
+
+<PropDescription definitionName="LambdaErrorRateTriggerProps" propertyName="threshold" descType="ld" />
+
+<PropertiesTable definitionName="LambdaErrorRateTrigger" />
+
+## Lambda Duration
+
+<PropDescription definitionName="LambdaDurationTriggerProps" propertyName="threshold" descType="ld" />
+
+<PropertiesTable definitionName="LambdaDurationTrigger" />
+
+## Database Read Latency
+
+<PropDescription definitionName="RelationalDatabaseReadLatencyTriggerProps" propertyName="threshold" descType="ld" />
+
+<PropertiesTable definitionName="RelationalDatabaseReadLatencyTrigger" />
+
+## Database Write Latency
+
+<PropDescription definitionName="RelationalDatabaseWriteLatencyTriggerProps" propertyName="threshold" descType="ld" />
+
+<PropertiesTable definitionName="RelationalDatabaseWriteLatencyTrigger" />
+
+## Database CPU Utilization
+
+<PropDescription definitionName="RelationalDatabaseCPUUtilizationTriggerProps" propertyName="threshold" descType="ld" />
+
+<PropertiesTable definitionName="RelationalDatabaseCPUUtilizationTrigger" />
+
+## Database Free Storage
+
+<PropDescription definitionName="RelationalDatabaseFreeStorageTriggerProps" propertyName="threshold" descType="ld" />
+
+<PropertiesTable definitionName="RelationalDatabaseFreeStorageTrigger" />
+
+## Database Free Memory
+
+<PropDescription definitionName="RelationalDatabaseFreeMemoryTriggerProps" propertyName="threshold" descType="ld" />
+
+<PropertiesTable definitionName="RelationalDatabaseFreeMemoryTrigger" />
+
+## Database Connection Count
+
+<PropDescription
+  definitionName="RelationalDatabaseConnectionCountTriggerProps"
+  propertyName="threshold"
+  descType="ld"
+/>
+
+<PropertiesTable definitionName="RelationalDatabaseConnectionCountTrigger" />
+
+## Http Api Gateway Error Rate
+
+<PropDescription definitionName="HttpApiGatewayErrorRateTriggerProps" propertyName="threshold" descType="ld" />
+
+<PropertiesTable definitionName="HttpApiGatewayErrorRateTrigger" />
+
+## Http Api Gateway Latency
+
+<PropDescription definitionName="HttpApiGatewayLatencyTriggerProps" propertyName="threshold" descType="ld" />
+
+<PropertiesTable definitionName="HttpApiGatewayLatencyTrigger" />
+
+## Application Load Balancer Error Rate
+
+<PropDescription definitionName="ApplicationLoadBalancerErrorRateTriggerProps" propertyName="threshold" descType="ld" />
+
+<PropertiesTable definitionName="ApplicationLoadBalancerErrorRateTrigger" />
+
+## Application Load Balancer Custom
+
+-   You can pick any metric available in the list below
+-   Threshold will be compared with the calculated value which is calculated using the formula `statistic(CHOSEN_METRIC)` where:
+-   `statistic` - is a statistic function applied to the collected values (metrics) retrieved during the evaluation period (`avg`(average) by default)
+-   `CHOSEN_METRIC` - is a metric you choose
+
+Available metrics are:
+
+-   **ActiveConnectionCount** - The total number of concurrent TCP connections active from clients to the load balancer and from the load balancer to targets.
+-   **AnomalousHostCount** - The number of hosts detected with anomalies.
+-   **ClientTLSNegotiationErrorCount** - The number of TLS connections initiated by the client that did not establish a session with the load balancer due to a TLS error.
+-   **ConsumedLCUs** - The number of load balancer capacity units (LCU) used by your load balancer.
+-   **DesyncMitigationMode\_NonCompliant\_Request\_Count** - The number of requests that do not comply with RFC 7230.
+-   **DroppedInvalidHeaderRequestCount** - The number of requests where the load balancer removed HTTP headers with header fields that are not valid before routing the request.
+-   **MitigatedHostCount** - The number of targets under mitigation.
+-   **ForwardedInvalidHeaderRequestCount** - The number of requests routed by the load balancer that had HTTP headers with header fields that are not valid.
+-   **GrpcRequestCount** - The number of gRPC requests processed over IPv4 and IPv6.
+-   **HTTP\_Fixed\_Response\_Count** - The number of fixed-response actions that were successful.
+-   **HTTP\_Redirect\_Count** - The number of redirect actions that were successful.
+-   **HTTP\_Redirect\_Url\_Limit\_Exceeded\_Count** - The number of redirect actions that couldn't be completed because the URL in the response location header is larger than 8K.
+-   **HTTPCode\_ELB\_3XX\_Count** - The number of HTTP 3XX redirection codes that originate from the load balancer.
+-   **HTTPCode\_ELB\_4XX\_Count** - The number of HTTP 4XX client error codes that originate from the load balancer.
+-   **HTTPCode\_ELB\_5XX\_Count** - The number of HTTP 5XX server error codes that originate from the load balancer.
+-   **HTTPCode\_ELB\_500\_Count** - The number of HTTP 500 error codes that originate from the load balancer.
+-   **HTTPCode\_ELB\_502\_Count** - The number of HTTP 502 error codes that originate from the load balancer.
+-   **HTTPCode\_ELB\_503\_Count** - The number of HTTP 503 error codes that originate from the load balancer.
+-   **HTTPCode\_ELB\_504\_Count** - The number of HTTP 504 error codes that originate from the load balancer.
+-   **IPv6ProcessedBytes** - The total number of bytes processed by the load balancer over IPv6.
+-   **IPv6RequestCount** - The number of IPv6 requests received by the load balancer.
+-   **NewConnectionCount** - The total number of new TCP connections established from clients to the load balancer and from the load balancer to targets.
+-   **NonStickyRequestCount** - The number of requests where the load balancer chose a new target because it couldn't use an existing sticky session.
+-   **ProcessedBytes** - The total number of bytes processed by the load balancer over IPv4 and IPv6.
+-   **RejectedConnectionCount** - The number of connections that were rejected because the load balancer had reached its maximum number of connections.
+-   **RequestCount** - The number of requests processed over IPv4 and IPv6.
+-   **RuleEvaluations** - The number of rules processed by the load balancer given a request rate averaged over an hour.
+-   **HealthyHostCount** - The number of targets that are considered healthy.
+-   **HTTPCode\_Target\_2XX\_Count** - The number of HTTP 2XX response codes generated by the targets.
+-   **HTTPCode\_Target\_3XX\_Count** - The number of HTTP 3XX response codes generated by the targets.
+-   **HTTPCode\_Target\_4XX\_Count** - The number of HTTP 4XX response codes generated by the targets.
+-   **HTTPCode\_Target\_5XX\_Count** - The number of HTTP 5XX response codes generated by the targets.
+-   **RequestCountPerTarget** - The average request count per target, in a target group.
+-   **TargetConnectionErrorCount** - The number of connections that were not successfully established between the load balancer and target.
+-   **TargetResponseTime** - The time elapsed, in seconds, after the request leaves the load balancer until the target starts to send the response headers.
+-   **TargetTLSNegotiationErrorCount** - The number of TLS connections initiated by the load balancer that did not establish a session with the target.
+-   **UnHealthyHostCount** - The number of targets that are considered unhealthy.
+-   **HealthyStateDNS** - The number of zones that meet the DNS healthy state requirements.
+-   **HealthyStateRouting** - The number of zones that meet the routing healthy state requirements.
+-   **UnhealthyRoutingRequestCount** - The number of requests that are routed using the routing failover action (fail open).
+-   **UnhealthyStateDNS** - The number of zones that do not meet the DNS healthy state requirements.
+-   **UnhealthyStateRouting** - The number of zones that do not meet the routing healthy state requirements.
+-   **LambdaInternalError** - The number of requests to a Lambda function that failed because of an issue internal to the load balancer or AWS Lambda.
+-   **LambdaTargetProcessedBytes** - The total number of bytes processed by the load balancer for requests to and responses from a Lambda function.
+-   **LambdaUserError** - The number of requests to a Lambda function that failed because of an issue with the Lambda function.
+-   **ELBAuthError** - The number of user authentications that could not be completed due to an internal error.
+-   **ELBAuthFailure** - The number of user authentications that could not be completed because the IdP denied access to the user.
+-   **ELBAuthLatency** - The time elapsed, in milliseconds, to query the IdP for the ID token and user info.
+-   **ELBAuthRefreshTokenSuccess** - The number of times the load balancer successfully refreshed user claims using a refresh token provided by the IdP.
+-   **ELBAuthSuccess** - The number of authenticate actions that were successful.
+-   **ELBAuthUserClaimsSizeExceeded** - The number of times that a configured IdP returned user claims that exceeded 11K bytes in size.
+
+<PropertiesTable definitionName="ApplicationLoadBalancerCustomTrigger" />
+
+## Sqs Queue Received Messages
+
+<PropDescription definitionName="SqsQueueReceivedMessagesCountTriggerProps" propertyName="threshold" descType="ld" />
+
+<PropertiesTable definitionName="SqsQueueReceivedMessagesCountTrigger" />
+
+## Sqs Queue Not Empty
+
+-   By default trigger is fired when the queue is not empty.
+-   For queue to be considered empty all of these metrics exposed by SQS queue must be 0 during the evaluation period:
+    -   `ApproximateNumberOfMessagesVisible`
+    -   `ApproximateNumberOfMessagesNotVisible`
+    -   `NumberOfMessagesReceived`
+    -   `NumberOfMessagesSent`
+
+<PropertiesTable definitionName="SqsQueueNotEmptyTrigger" />

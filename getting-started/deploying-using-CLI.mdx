@@ -1,0 +1,94 @@
+---
+title: "Deploying - using CLI"
+order: 5
+---
+
+# Prerequisites
+
+To deploy a git project using Stacktape:
+
+1. You must have a Stacktape account. If you don't have an account, please
+   [sign up](https://console.stacktape.com/sign-up)
+
+2. You must have an AWS account connected to your Stacktape organization. Connecting your account takes ~2 minutes. You
+   can connect the account on [AWS accounts page in the console](https://console.stacktape.com/aws-accounts)
+
+# 1. Install Stacktape
+
+<CodeBlock
+  tabs={[
+    {
+      lang: "bash",
+      code: "iwr https://installs.stacktape.com/windows.ps1 -useb | iex\n",
+      label: "Windows (PowerShell)"
+    },
+    { lang: "bash", code: "curl -L https://installs.stacktape.com/linux.sh | sh\n", label: "Linux" },
+    { lang: "bash", code: "curl -L https://installs.stacktape.com/macos.sh | sh\n", label: "Macos" },
+    { lang: "bash", code: "curl -L https://installs.stacktape.com/macos-arm.sh | sh\n", label: "Macos ARM" }
+  ]}
+/>
+
+After the installation is complete, you might need to manually add Stacktape bin folder to PATH environment variable. To
+do it, follow the instruction printed to the terminal.
+
+## 1.1 Log in to Stacktape
+
+You can login to Stacktape using simple command:
+
+```bash
+stacktape login
+```
+
+This command will prompt you for your Stacktape API key. You can get it on
+[API keys page in the console](https://console.stacktape.com/api-keys/).
+
+## 2. Configure your stack
+
+You need to create a configuration file named `stacktape.yml` or `stacktape.ts` in the root directory of your project.
+
+If you already have it, you can continue with [3. Deploy](#3-deploy) step.
+
+If you do not have it yet, you have multiple options:
+
+1.  **(Recommended)** Use the [interactive config editor](https://console.stacktape.com/template-editor). To learn about
+    how to use it, head over to [using the config editor](/getting-started/using-config-editor).
+
+2.  Use a [starter projects](/getting-started/starter-project) with a pre-configured Stacktape configuration.
+
+3.  Follow one of the step-by-step tutorials. Currenctly available tutorials are
+    [Fullstack Next.js T3 app](/tutorials/t3-nextjs-app) and [Web API](/tutorials/web-api).
+
+4.  Write the config manually. To make this process easier, you can install
+    [Stacktape VScode extension](https://marketplace.visualstudio.com/items?itemName=stacktape.vscode-stacktape).
+
+# 3. Deploy
+
+Once you've successfully configured your stack, you can deploy it very easily - by a single command:
+
+```bash
+stacktape deploy --region <<region> --stage <<stage>> --projectName <<projectName>>
+```
+
+The arguments required by the command have the following meaning:
+
+- **region** - the code of one of the
+  [33 available AWS regions](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html#Concepts.RegionsAndAvailabilityZones.Regions).
+  For people in US, this will be likely `us-east-1`, and for EU customers `eu-west-1`.
+- **stage** - arbitrary name of the stage (also called environment). E.g. `production`, `staging` or `dev-john`.
+- **projectName** - name of the project this stack will belong to. This is used to distinguish your projects from each
+  other in the Stacktape console. Use arbitrary, descriptive name, e.g. `todo-app`, `pet-eshop`, etc. In most cases,
+  this is identical with the name of the git repository.
+
+## 3.1 - Monitor the deployment
+
+Stacktape continuously prints the information about the ongoing deployment to your terminal.
+
+Once the deployment is finished, you'll be able to view the stack details in the Stacktape console.
+
+At this point, you have a successfully deployed, production-grade AWS application, that follows all of the recommended
+AWS best practices.
+
+<PreviousNext
+  left={{ url: "/getting-started/deploying-using-console/", title: "Deploying using console" }}
+  right={{ url: "/getting-started/deploying-using-GitOps/", title: "Deploying using GitOps" }}
+/>

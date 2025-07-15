@@ -1,0 +1,38 @@
+---
+title: "help"
+order: 34
+nestedTo: /cli/commands
+---
+
+# Overview and basic usage
+
+Prints help to the console. Describes commands and their arguments.
+
+<br />
+
+{/* WRITE ONLY BELOW THIS LINE */}
+
+{/* WRITE ONLY ABOVE THIS LINE */}
+
+```bash
+stacktape help
+```
+
+# API reference
+
+<CliCommandsApiReference
+  command="help"
+  sortedArgs={[
+    {
+      description:
+        "#### This argument has different meanings depending on the command you're using.\n---\n- When used with `stacktape help`, it allows you to specify a command to show the detailed help for.\n- When used with `stacktape container:session`, it allows you to specify a command to run inside the container to start the interactive session.",
+      allowedTypes: ["string"],
+      alias: "cmd",
+      required: false,
+      name: "command",
+      shortDescription: "<p> This argument has different meanings depending on the command you&#39;re using.</p>\n",
+      longDescription:
+        "<ul>\n<li>When used with <code>stacktape help</code>, it allows you to specify a command to show the detailed help for.</li>\n<li>When used with <code>stacktape container:session</code>, it allows you to specify a command to run inside the container to start the interactive session.</li>\n</ul>\n"
+    }
+  ]}
+/>

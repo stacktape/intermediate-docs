@@ -1,0 +1,240 @@
+---
+title: "dev"
+order: 2
+nestedTo: /cli/commands
+---
+
+# Overview and basic usage
+
+Runs the compute resource in a development mode
+
+<br />
+
+- Dev mode can be used to develop and debug your applications or to run integration tests.
+- The development mode does the following:
+- For `container workloads`:
+  - All of the container ports specified in the `events` section will be mapped to the host.
+  - Container's `environment` variables referenced by `$ResourceParam` and `$Secret` directives are automatically
+    downloaded and injected to the workload.
+  - Temporary credentials of the container's
+    [assumed role](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html) are injected to the
+    workload. This means that your locally running container will have the exact same IAM permissions as the deployed
+    version.
+  - The local emulation requires a deployed stack. Use the `--disableEmulation` flag if you want to locally run a
+    workload that has not yet been deployed (without emulation).
+  - Logs from the container are continuously pretty-printed to the console.
+  - You must specify the name of the container to run using the `--container` option.
+- For `lambda functions`:
+  - The lambda function is quickly and efficiently re-deployed without using Cloudformation.
+  - Logs of the lambda function are automatically download from Cloudwatch and continuously pretty-printed to the
+    console
+  - No emulation is required as the lambda function runs in the exact same environment as in the production
+- The compute resource is re-built and restarted/re-deployed, when you either:
+  - use the `--watch` flag and one of your source code files changes
+  - type `rs + enter` to the terminal
+
+{/* WRITE ONLY BELOW THIS LINE */}
+
+{/* WRITE ONLY ABOVE THIS LINE */}
+
+```bash
+stacktape dev --stage <<stage>> --region <<region>> --resourceName <<resourceName>>
+```
+
+# API reference
+
+<CliCommandsApiReference
+  command="dev"
+  sortedArgs={[
+    {
+      description: "#### AWS region to use for the current operation.\n---\n",
+      allowedTypes: ["string"],
+      allowedValues: [
+        "af-south-1",
+        "ap-east-1",
+        "ap-northeast-1",
+        "ap-northeast-2",
+        "ap-northeast-3",
+        "ap-south-1",
+        "ap-southeast-1",
+        "ap-southeast-2",
+        "ca-central-1",
+        "eu-central-1",
+        "eu-north-1",
+        "eu-south-1",
+        "eu-west-1",
+        "eu-west-2",
+        "eu-west-3",
+        "me-south-1",
+        "sa-east-1",
+        "us-east-1",
+        "us-east-2",
+        "us-west-1",
+        "us-west-2"
+      ],
+      alias: "r",
+      required: true,
+      name: "region",
+      shortDescription: "<p> AWS region to use for the current operation.</p>\n",
+      longDescription: ""
+    },
+    { allowedTypes: ["string"], alias: "rn", required: true, name: "resourceName", shortDescription: "" },
+    {
+      description:
+        "#### Stage used for the operation.\n---\n- Example stages are `production`, `staging`, `testing` or `dev-john`.\n- You can configure the default stage used with every Stacktape command using the `defaults:configure` command.\n- Maximum allowed length is 12 characters.",
+      allowedTypes: ["string"],
+      alias: "s",
+      required: true,
+      name: "stage",
+      shortDescription: "<p> Stage used for the operation.</p>\n",
+      longDescription:
+        "<ul>\n<li>Example stages are <code>production</code>, <code>staging</code>, <code>testing</code> or <code>dev-john</code>.</li>\n<li>You can configure the default stage used with every Stacktape command using the <code>defaults:configure</code> command.</li>\n<li>Maximum allowed length is 12 characters.</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### Name of the AWS account used to perform the operation\n---\n- The account must be first connected in the [Stacktape console](https://console.stacktape.com/aws-accounts)",
+      allowedTypes: ["string"],
+      alias: "aa",
+      required: false,
+      name: "awsAccount",
+      shortDescription: "<p> Name of the AWS account used to perform the operation</p>\n",
+      longDescription:
+        '<ul>\n<li>The account must be first connected in the <a href="https://console.stacktape.com/aws-accounts" style="font-weight: bold;" target="_blank" rel="noreferrer" onclick="event.stopPropagation();">Stacktape console</a></li>\n</ul>\n'
+    },
+    {
+      description:
+        "#### Path to your stacktape configuration file.\n---\n- Relative to CWD (current working directory).",
+      allowedTypes: ["string"],
+      alias: "cp",
+      required: false,
+      name: "configPath",
+      shortDescription: "<p> Path to your stacktape configuration file.</p>\n",
+      longDescription: "<ul>\n<li>Relative to CWD (current working directory).</li>\n</ul>\n"
+    },
+    {
+      description: "#### Name of the container (as specified in the container compute resource configuration).",
+      allowedTypes: ["string"],
+      alias: "cnt",
+      required: false,
+      name: "container",
+      shortDescription:
+        "<p> Name of the container (as specified in the container compute resource configuration).</p>\n"
+    },
+    {
+      description:
+        "#### Current working directory for the current operation.\n---\n- Every file path in your config will be resolved relatively to specified cwd.\n- By default, directory containing the configuration file is used.",
+      allowedTypes: ["string"],
+      alias: "cwd",
+      required: false,
+      name: "currentWorkingDirectory",
+      shortDescription: "<p> Current working directory for the current operation.</p>\n",
+      longDescription:
+        "<ul>\n<li>Every file path in your config will be resolved relatively to specified cwd.</li>\n<li>By default, directory containing the configuration file is used.</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### Disables automatic injection of parameters and assumed role credentials\n---\n- Stacktape's local emulation requires a deployed stack. Use this flag if you want to locally run a compute resource that has not yet been deployed.",
+      allowedTypes: ["boolean"],
+      alias: "de",
+      required: false,
+      name: "disableEmulation",
+      shortDescription: "<p> Disables automatic injection of parameters and assumed role credentials</p>\n",
+      longDescription:
+        "<ul>\n<li>Stacktape&#39;s local emulation requires a deployed stack. Use this flag if you want to locally run a compute resource that has not yet been deployed.</li>\n</ul>\n"
+    },
+    {
+      description: "#### Additional arguments to pass to Docker run or Docker build commands\n---",
+      allowedTypes: ["array"],
+      alias: "da",
+      required: false,
+      name: "dockerArgs",
+      shortDescription: "<p> Additional arguments to pass to Docker run or Docker build commands</p>\n",
+      longDescription: ""
+    },
+    {
+      description:
+        "#### Shows help for the command\n---\n- If specified, the command won't perform any action besides printing help.",
+      allowedTypes: ["string"],
+      alias: "h",
+      required: false,
+      name: "help",
+      shortDescription: "<p> Shows help for the command</p>\n",
+      longDescription:
+        "<ul>\n<li>If specified, the command won&#39;t perform any action besides printing help.</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### Format of logs printed to your console.\n---\nAvailable options:\n- `fancy`: Logs are colorized and dynamically re-rendered.\n- `normal`: Logs are colorized but not dynamically re-rendered.\n- `basic`: Simple text only\n- `json`: Logs are printed as JSON objects",
+      allowedTypes: ["string"],
+      allowedValues: ["basic", "fancy", "json", "normal"],
+      alias: "lf",
+      required: false,
+      name: "logFormat",
+      shortDescription: "<p> Format of logs printed to your console.</p>\n",
+      longDescription:
+        "<p>Available options:</p>\n<ul>\n<li><code>fancy</code>: Logs are colorized and dynamically re-rendered.</li>\n<li><code>normal</code>: Logs are colorized but not dynamically re-rendered.</li>\n<li><code>basic</code>: Simple text only</li>\n<li><code>json</code>: Logs are printed as JSON objects</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### Level of logs that are being printed to the console.\n---\nAvailable options:\n- `info`: Prints basic information about everything that's happening.\n- `error`: Prints only errors.\n- `debug`: Prints detailed information about everything that's happening.",
+      allowedTypes: ["string"],
+      allowedValues: ["debug", "error", "info"],
+      alias: "ll",
+      required: false,
+      name: "logLevel",
+      shortDescription: "<p> Level of logs that are being printed to the console.</p>\n",
+      longDescription:
+        "<p>Available options:</p>\n<ul>\n<li><code>info</code>: Prints basic information about everything that&#39;s happening.</li>\n<li><code>error</code>: Prints only errors.</li>\n<li><code>debug</code>: Prints detailed information about everything that&#39;s happening.</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### Preserves temporary files that stacktape generates using the operation.\n---\n- Temp folder includes CloudFormation template, packaged compute resources and other files.\n- By default, these changes are saved to `.stacktape/[invocation-id]`.\n- Temp folder location is also printed to the console.",
+      allowedTypes: ["boolean"],
+      alias: "ptf",
+      required: false,
+      name: "preserveTempFiles",
+      shortDescription: "<p> Preserves temporary files that stacktape generates using the operation.</p>\n",
+      longDescription:
+        "<ul>\n<li>Temp folder includes CloudFormation template, packaged compute resources and other files.</li>\n<li>By default, these changes are saved to <code>.stacktape/[invocation-id]</code>.</li>\n<li>Temp folder location is also printed to the console.</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### AWS profile to use with the command\n---\n- You can manage AWS profiles on your system using `aws-profile:create`, `aws-profile:update` or `aws-profile:delete` command.\n- You can configure the default profile used with every Stacktape command using the `defaults:configure` command.",
+      allowedTypes: ["string"],
+      alias: "p",
+      required: false,
+      name: "profile",
+      shortDescription: "<p> AWS profile to use with the command</p>\n",
+      longDescription:
+        "<ul>\n<li>You can manage AWS profiles on your system using <code>aws-profile:create</code>, <code>aws-profile:update</code> or <code>aws-profile:delete</code> command.</li>\n<li>You can configure the default profile used with every Stacktape command using the <code>defaults:configure</code> command.</li>\n</ul>\n"
+    },
+    {
+      description: "#### Name of the Stacktape project relevant for this operation",
+      allowedTypes: ["string"],
+      alias: "prj",
+      required: false,
+      name: "projectName",
+      shortDescription: "<p> Name of the Stacktape project relevant for this operation</p>\n"
+    },
+    {
+      description:
+        "#### Id of the template to download\n---\n- The list of available templates is available on the [Config builder page](https://console.stacktape.com/templates)",
+      allowedTypes: ["string"],
+      alias: "ti",
+      required: false,
+      name: "templateId",
+      shortDescription: "<p> Id of the template to download</p>\n",
+      longDescription:
+        '<ul>\n<li>The list of available templates is available on the <a href="https://console.stacktape.com/templates" style="font-weight: bold;" target="_blank" rel="noreferrer" onclick="event.stopPropagation();">Config builder page</a></li>\n</ul>\n'
+    },
+    {
+      description: "#### Watch for changes made to your source files and re-execute compute resource when they change.",
+      allowedTypes: ["boolean"],
+      alias: "w",
+      required: false,
+      name: "watch",
+      shortDescription:
+        "<p> Watch for changes made to your source files and re-execute compute resource when they change.</p>\n"
+    }
+  ]}
+/>

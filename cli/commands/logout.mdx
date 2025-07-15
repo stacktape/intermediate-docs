@@ -1,0 +1,95 @@
+---
+title: "logout"
+order: 36
+nestedTo: /cli/commands
+---
+
+# Overview and basic usage
+
+Removes Stacktape API Key from the current system
+
+<br />
+
+{/* WRITE ONLY BELOW THIS LINE */}
+
+{/* WRITE ONLY ABOVE THIS LINE */}
+
+```bash
+stacktape logout
+```
+
+# API reference
+
+<CliCommandsApiReference
+  command="logout"
+  sortedArgs={[
+    {
+      description:
+        "#### Your Stacktape API key\n---\n- You can get your API key at https://console.stacktape.com/api-keys.\n- If you don't specify your API Key, you will be prompted to supply it interactively.\n- Note that if you directly supply your API key, it will stay in your terminal history. This is considered unsafe.",
+      allowedTypes: ["string"],
+      alias: "ak",
+      required: false,
+      name: "apiKey",
+      shortDescription: "<p> Your Stacktape API key</p>\n",
+      longDescription:
+        '<ul>\n<li>You can get your API key at <a href="https://console.stacktape.com/api-keys" style="font-weight: bold;" target="_blank" rel="noreferrer" onclick="event.stopPropagation();">https://console.stacktape.com/api-keys</a>.</li>\n<li>If you don&#39;t specify your API Key, you will be prompted to supply it interactively.</li>\n<li>Note that if you directly supply your API key, it will stay in your terminal history. This is considered unsafe.</li>\n</ul>\n'
+    },
+    {
+      description:
+        "#### Name of the AWS account used to perform the operation\n---\n- The account must be first connected in the [Stacktape console](https://console.stacktape.com/aws-accounts)",
+      allowedTypes: ["string"],
+      alias: "aa",
+      required: false,
+      name: "awsAccount",
+      shortDescription: "<p> Name of the AWS account used to perform the operation</p>\n",
+      longDescription:
+        '<ul>\n<li>The account must be first connected in the <a href="https://console.stacktape.com/aws-accounts" style="font-weight: bold;" target="_blank" rel="noreferrer" onclick="event.stopPropagation();">Stacktape console</a></li>\n</ul>\n'
+    },
+    {
+      description:
+        "#### Shows help for the command\n---\n- If specified, the command won't perform any action besides printing help.",
+      allowedTypes: ["string"],
+      alias: "h",
+      required: false,
+      name: "help",
+      shortDescription: "<p> Shows help for the command</p>\n",
+      longDescription:
+        "<ul>\n<li>If specified, the command won&#39;t perform any action besides printing help.</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### Format of logs printed to your console.\n---\nAvailable options:\n- `fancy`: Logs are colorized and dynamically re-rendered.\n- `normal`: Logs are colorized but not dynamically re-rendered.\n- `basic`: Simple text only\n- `json`: Logs are printed as JSON objects",
+      allowedTypes: ["string"],
+      allowedValues: ["basic", "fancy", "json", "normal"],
+      alias: "lf",
+      required: false,
+      name: "logFormat",
+      shortDescription: "<p> Format of logs printed to your console.</p>\n",
+      longDescription:
+        "<p>Available options:</p>\n<ul>\n<li><code>fancy</code>: Logs are colorized and dynamically re-rendered.</li>\n<li><code>normal</code>: Logs are colorized but not dynamically re-rendered.</li>\n<li><code>basic</code>: Simple text only</li>\n<li><code>json</code>: Logs are printed as JSON objects</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### Level of logs that are being printed to the console.\n---\nAvailable options:\n- `info`: Prints basic information about everything that's happening.\n- `error`: Prints only errors.\n- `debug`: Prints detailed information about everything that's happening.",
+      allowedTypes: ["string"],
+      allowedValues: ["debug", "error", "info"],
+      alias: "ll",
+      required: false,
+      name: "logLevel",
+      shortDescription: "<p> Level of logs that are being printed to the console.</p>\n",
+      longDescription:
+        "<p>Available options:</p>\n<ul>\n<li><code>info</code>: Prints basic information about everything that&#39;s happening.</li>\n<li><code>error</code>: Prints only errors.</li>\n<li><code>debug</code>: Prints detailed information about everything that&#39;s happening.</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### AWS profile to use with the command\n---\n- You can manage AWS profiles on your system using `aws-profile:create`, `aws-profile:update` or `aws-profile:delete` command.\n- You can configure the default profile used with every Stacktape command using the `defaults:configure` command.",
+      allowedTypes: ["string"],
+      alias: "p",
+      required: false,
+      name: "profile",
+      shortDescription: "<p> AWS profile to use with the command</p>\n",
+      longDescription:
+        "<ul>\n<li>You can manage AWS profiles on your system using <code>aws-profile:create</code>, <code>aws-profile:update</code> or <code>aws-profile:delete</code> command.</li>\n<li>You can configure the default profile used with every Stacktape command using the <code>defaults:configure</code> command.</li>\n</ul>\n"
+    }
+  ]}
+/>

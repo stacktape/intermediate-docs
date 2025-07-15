@@ -1,0 +1,380 @@
+---
+title: "Migrating from Heroku"
+order: 4
+---
+
+# Introduction
+
+This guide describes how to migrate your application running on Heroku to AWS using Stacktape. Using Stacktape, you can
+deploy your web services and databases similarly to deploying them on Heroku. Main reason for using AWS instead of
+Heroku are:
+
+- Save on the bill - AWS can be a lot cheaper compared to Heroku
+- your own VPC (private network) out of the box,
+- broader support of resources (containers, lambda functions, batch jobs, dynamo...).
+
+It is possible to continue using other Heroku add-ons while your app is running on AWS by copying over the appropriate
+environment variables — e.g., if you are using Heroku’s Sendgrid add-on, set `SENDGRID_USERNAME` and `SENDGRID_PASSWORD`
+in your service [environment variables](#1-4-environment-and-secrets).
+
+# Prerequisites
+
+1. You should have a Stacktape account. If you do not have a Stacktape account, create one
+   [here](https://console.stacktape.com/sign-up).
+2. You should have an AWS account connected to your Stacktape organization. Refer to
+   [this tutorial](https://docs.stacktape.com/user-guides/connect-aws-account/) to see how to connect your AWS account.
+
+{/* # 1. Install Stacktape and connect your AWS account
+
+1. If you do not have Stacktape account yet, you can [sign up](https://console.stacktape.com/sign-up) here.
+
+2. After signing up, [connect your AWS account in Stacktape console](https://console.stacktape.com/aws-accounts)
+
+3. After connecting account, install Stacktape CLI using single command
+
+   <CodeBlock
+     tabs={[
+       {
+         lang: "bash",
+         code: "iwr https://installs.stacktape.com/windows.ps1 -useb | iex\n",
+         label: "Windows (PowerShell)"
+       },
+       { lang: "bash", code: "curl -L https://installs.stacktape.com/linux.sh | sh\n", label: "Linux" },
+       { lang: "bash", code: "curl -L https://installs.stacktape.com/macos.sh | sh\n", label: "Macos" },
+       { lang: "bash", code: "curl -L https://installs.stacktape.com/macos-arm.sh | sh\n", label: "Macos ARM" }
+     ]}
+   />
+
+4. (OPTIONAL) If you are using VS code, we recommend to install
+   [VS code extension](https://marketplace.visualstudio.com/items?itemName=stacktape.vscode-stacktape)
+
+Entire install process is described in greater detail in our
+[Install Stacktape docs](https://docs.stacktape.com/getting-started/setup-stacktape/) */}
+
+# Concepts mapping
+
+The following table explains how some Heroku concepts map to the Stacktape concepts.
+
+| Heroku                               | Stacktape                                                                                                                                                                                                                            |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Web Process (within a Heroku app)    | [Web service](https://docs.stacktape.com/compute-resources/web-services/)                                                                                                                                                            |
+| Worker Process (within a Heroku app) | [Worker service](https://docs.stacktape.com/compute-resources/worker-services/)                                                                                                                                                      |
+| Dyno                                 | An instance of your service                                                                                                                                                                                                          |
+| Heroku Postgres                      | [Relational database](https://docs.stacktape.com/database-resources/relational-databases/) (also possibility of [serverless database](https://docs.stacktape.com/database-resources/relational-databases/#aurora-serverless-engine)) |
+| Heroku Redis                         | [Redis cluster](https://docs.stacktape.com/database-resources/redis-clusters/) (also possibility of [serverless redis](https://docs.stacktape.com/3rd-party-resources/upstash-redises/))                                             |
+| Heroku Scheduler                     | [Lambda function with schedule event](https://docs.stacktape.com/compute-resources/functions/#schedule-event)                                                                                                                        |
+
+# 1 - Writing stacktape.yml
+
+Stacktape config file `stacktape.yml` is an infrastructure as a code (IaC) that specifies your services - how to package
+them and what resources they have available, along with your databases and all other infrastructure resources.
+Additionally, it can specify automated actions to execute as a part of the deployment process, such as testing or
+database migrations.
+
+## 1.1 - Create stacktape.yml
+
+Create config file **stacktape.yml** in your application's project directory.
+
+<Info>
+
+For easier writing of the config, you can try to use our
+[interactive config editor](https://console.stacktape.com/template-editor) or use our
+[VSCode editor extension](https://marketplace.visualstudio.com/items?itemName=stacktape.vscode-stacktape).
+
+</Info>
+
+## 1.2 - Adding web-service
+
+Since you are coming from Heroku, you will probably want to use
+[Web Service resource](https://docs.stacktape.com/compute-resources/web-services/) for your application. Web service is
+a simple container-based resource that runs your code with public URL and port exposed for HTTPS communication(automatic
+SSL out of the box), similar to Heroku's web dyno.
+
+Your web service definition contains everything Stacktape needs to know including how to **build and package your app**.
+You can use Heroku's buildpacks builder(same way Heroku builds and packages apps), which automatically detects the
+language and the framework of your application and applies the correct buildpacks for building your application.
+Optionally, you can specify buildpacks yourself.
+
+However, you can also choose to package app by:
+
+- [providing a Dockerfile](https://docs.stacktape.com/configuration/packaging/#custom-dockerfile-web-service)
+- using our built-in, zero-config
+  [Stacktape Image Buildpack](https://docs.stacktape.com/configuration/packaging/#stacktape-image-buildpack-web-service).
+- To see all packaging options refer to
+  [Web Service packaging docs](https://docs.stacktape.com/configuration/packaging/#packaging-web-services).
+
+<Info>
+
+For convenience, Stacktape automatically injects environment variable `PORT` into the web service.
+
+All the traffic is routed to this port, and **you should bind your application to this port**. Refer to
+[docs to see example](https://docs.stacktape.com/compute-resources/web-services/#basic-usage).
+
+</Info>
+
+```yaml
+resources:
+  appService:
+    type: web-service
+    properties:
+      packaging:
+        type: external-buildpack
+        properties:
+          sourceDirectoryPath: ./
+          builder: heroku/builder:22
+        #   buildpacks:
+        #     - heroku/nodejs
+      resources:
+        cpu: 1
+        memory: 1024
+```
+
+> Content of **stacktape.yml** file in your project directory.
+
+<Info>
+
+Alternatively, you can run your application using
+[worker-service](https://docs.stacktape.com/compute-resources/worker-services/)(similar to Heroku's worker process dyno)
+or any other suitable Stacktape compute resource.
+
+</Info>
+
+## 1.3 - Adding database
+
+To replace your relational database (Heroku Postgres), you can use
+[relational database](https://docs.stacktape.com/resources/relational-databases/) resource. Add it to the config
+alongside web service. Choose the engine version and instance size according to your needs.
+
+Here is a short overview of Heroku Postgres instances mapping to AWS RDS instances. To see the complete list of all AWS
+instances, refer to [AWS docs](https://aws.amazon.com/rds/instance-types/).
+
+| Heroku Plan                                         | AWS Instance                            |
+| --------------------------------------------------- | --------------------------------------- |
+| Essential-0: 1 GB, 20 connections                   | db.t3.micro: 2 vCPUs, 1 GB RAM          |
+| Essential-1: 10 GB, 20 connections                  | db.t3.small: 2 vCPUs, 2 GB RAM          |
+| Essential-2: 32 GB, 40 connections                  | db.t3.medium: 2 vCPUs, 4 GB RAM         |
+| Standard-0: 4 GB, 64 GB storage, 120 connections    | db.t3.medium: 2 vCPUs, 4 GB RAM         |
+| Standard-2: 8 GB, 256 GB storage, 400 connections   | db.m5.large: 2 vCPUs, 8 GB RAM          |
+| Standard-3: 15 GB, 512 GB storage, 500 connections  | db.m5.xlarge: 4 vCPUs, 16 GB RAM        |
+| Standard-4: 30 GB, 768 GB storage, 500 connections  | db.m5.2xlarge: 8 vCPUs, 32 GB RAM       |
+| Standard-5: 61 GB, 1 TB storage, 500 connections    | db.r5.2xlarge: 8 vCPUs, 64 GB RAM       |
+| Standard-6: 122 GB, 1.5 TB storage, 500 connections | db.r5.4xlarge: 16 vCPUs, 128 GB RAM     |
+| Standard-7: 244 GB, 2 TB storage, 500 connections   | db.r5.8xlarge: 32 vCPUs, 256 GB RAM     |
+| Standard-8: 488 GB, 3 TB storage, 500 connections   | db.r5.12xlarge: 48 vCPUs, 384 GB RAM    |
+| Standard-9: 768 GB, 4 TB storage, 500 connections   | db.r5.24xlarge: 96 vCPUs, 768 GB RAM    |
+| Standard-10: 1 TB, 8 TB storage, 500 connections    | db.x1e.32xlarge: 128 vCPUs, 3904 GB RAM |
+
+```yaml
+resources:
+  appService:
+    type: web-service
+    properties:
+      packaging:
+        type: external-buildpack
+        properties:
+          sourceDirectoryPath: ./
+          builder: heroku/builder:22
+      resources:
+        cpu: 1
+        memory: 1024
+
+  # {start-highlight}
+  database:
+    type: relational-database
+    properties:
+      credentials:
+        masterUserPassword: my-supper-password
+      engine:
+        type: postgres
+        properties:
+          version: "16.3"
+          primaryInstance:
+            instanceSize: db.t3.micro
+  # {stop-highlight}
+```
+
+> Content of **stacktape.yml** file after adding database.
+
+<Info>
+
+For storing password and other sensitive data we recommend to use
+[secrets](https://docs.stacktape.com/resources/secrets/).
+
+</Info>
+
+## 1.4 - Environment and Secrets
+
+You can easily inject environment variables to access them in a service by specifying them in `environment` list. You
+can use [$ResourceParam](https://docs.stacktape.com/configuration/directives/#resource-param) directive to inject
+information about other resources (such as database URL / connection string) into your service. For sensitive and secret
+values, you should [create secrets first](https://console.stacktape.com/secrets) and then reference them in the config
+using [$Secret](https://docs.stacktape.com/configuration/directives/#secret) directive. Stacktape resolved these
+directives during deployment.
+
+```yaml
+resources:
+  appService:
+    type: web-service
+    properties:
+      packaging:
+        type: external-buildpack
+        properties:
+          sourceDirectoryPath: ./
+          builder: heroku/builder:22
+      resources:
+        cpu: 1
+        memory: 1024
+      # {start-highlight}
+      environment:
+        - name: DATABASE_URL
+          value: $ResourceParam('database', 'connectionString')
+        # - name: DATABASE_PASSWORD
+        #   value: $Secret('my-database-password')
+      # {stop-highlight}
+
+  database:
+    type: relational-database
+    properties:
+      credentials:
+        # {start-highlight}
+        masterUserPassword: $Secret('my-database-password')
+        # {stop-highlight}
+      engine:
+        type: postgres
+        properties:
+          version: "16.3"
+          primaryInstance:
+            instanceSize: db.t3.micro
+```
+
+# 2 - Deploy your app
+
+After you have Stacktape config in your repository, you are ready to deploy your app.
+
+Stacktape offers multiple ways of deploying your application:
+
+1. [Using Stacktape CLI](https://docs.stacktape.com/getting-started/deploying-using-CLI/) - similar to using Heroku CLI.
+   requires Docker to be installed on the system.
+2. [GitOps (push-to-deploy)](https://docs.stacktape.com/getting-started/deploying-using-GitOps/) - setup integration
+   with Github or Gitlab to deploy your app when there is a push to a specified repository branch.
+3. [Deploy from Git interactively](https://docs.stacktape.com/getting-started/deploying-using-console/) - interactively
+   deploy from your Github or Gitlab repository using Stacktape.
+4. [Deploy from any CI/CD](https://docs.stacktape.com/getting-started/deploying-using-3rd-party-CI/) - deploy using any
+   CI/CD system.
+
+# 3 - Migrating your data from PostgreSQL
+
+If you have created a Render PostgreSQL database, you may want to copy the data from your Heroku Postgres database to
+Render.
+
+Put your Heroku app into maintenance mode so that no new data is written to the database during the copy.
+`<HEROKU APP NAME>` is the Heroku app that owns the Heroku Postgres add-on.
+
+<Info>
+
+This data migration process requires some downtime.
+
+</Info>
+
+```bash
+heroku maintenance:on --app <HEROKU APP NAME>
+```
+
+Create a backup of the data in your Heroku Postgres database.
+
+```bash
+heroku pg:backups:capture --app <HEROKU APP NAME>
+```
+
+Download the backup. This will download a file named `latest.dump` to your local computer.
+
+```bash
+heroku pg:backups:download --app <HEROKU APP NAME>
+```
+
+Import `latest.dump` into your Stacktape Postgres relational database. The value for `<CONNECTION STRING>` can be found
+in [Stackape console](https://console.stacktape.com/):
+
+- In the console, go to **"Projects"**,
+- select your project and stage,
+- On the project stage overview page, click on your database resource which should show you the details of the resource
+  (including `connectionString`)
+
+```bash
+pg_restore --verbose  --no-acl --no-owner -d <CONNECTION STRING> latest.dump
+```
+
+<Info>
+
+If your database is larger than 20GB or under heavy load, use instructions in
+[Heroku docs](https://help.heroku.com/7U1BTYHB/how-can-i-take-a-logical-backup-of-large-heroku-postgres-databases) to
+create a backup of your data. After that has completed, you can use the same `pg_restore` command above to import the
+data to your Stacktape Postgres database.
+
+Consider using the `--jobs` flag available to the `pg_restore` command to reduce the time required for restore.
+
+</Info>
+
+# 4 - Migrating a domain
+
+If your Heroku app uses a custom domain, you have two options:
+
+1. **Manage domains using your old DNS system** - you can keep using your DNS system while using Stacktape with AWS.
+   However, you will need to create/import a custom TLS certificate in
+   [AWS ACM](https://docs.aws.amazon.com/acm/latest/userguide/acm-overview.html) and reference it using
+   `customCertificateArn` in your web service domain configuration. After that, you can manually point your DNS record
+   to your app URL. See our docs on
+   [using 3rd party DNS provider](https://docs.stacktape.com/other-resources/domains-and-certificates/#using-3rd-party-dns).
+
+2. **Manage domains using Route53 DNS and Stacktape** - you can use Stacktape to assign your custom domain name to your
+   app during deployment. See our docs on
+   [managing domains with Stacktape](https://docs.stacktape.com/other-resources/domains-and-certificates/#managing-domains-with-stacktape).
+   This takes the burden of manually managing DNS records off you. Additionally, it gives you broad options for managing
+   domains: i.e. to automatically assign custom subdomains to your development and testing environments etc.
+
+# FAQ
+
+## How does auto scaling work?
+
+Web Service auto scale based on CPU/Memory usage thresholds. For more info, refer to the
+[web service docs on auto scaling](https://docs.stacktape.com/compute-resources/web-services/#scaling).
+
+## Can I monitor health of my app?
+
+Yes. Health is actually monitored out of the box. If your web service task(container) is deemed unhealthy(i.e your app
+crashes due to some bug), the task is automatically replaced with healthy one.
+
+Moreover, you can easily set up your own
+[internal health-checks](https://docs.stacktape.com/compute-resources/web-services/#healthcheck). If a task fails this
+health-check, it is deemed unhealthy and replaced.
+
+## Is my app available during updates?
+
+Yes. When you decide to deploy new version of your app(update to a new version), Stacktape uses
+[rolling update strategy](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/deployment-type-ecs.html). This
+means that any old web service task(container) is only removed when a new healthy task replaced it.
+
+Besides rolling update strategy, you can also choose from multiple types of
+[BLUE/GREEN deployment strategies](https://docs.stacktape.com/compute-resources/web-services/#deployment-strategies).
+
+## Can I use CDN in front of my app?
+
+Yes. Many applications can benefit from CDN. CDN can offload your services by caching responses, which results in less
+requests coming to the app which leads to less compute power consumed and paid for. With Stacktape you can
+[enable CDN with single line of config](https://docs.stacktape.com/compute-resources/web-services/#cdn)
+
+## Can I manage Atlas MongoDB clusters using Stacktape?
+
+Yes. You can seamlessly manage
+[Atlas MongoDB clusters](https://docs.stacktape.com/3rd-party-resources/mongo-db-atlas-clusters/) using Stacktape.
+
+## Do you support other resources?
+
+Yes. We support many resource types(container based, lambdas, batch jobs...) fitting all of your needs.
+[See our docs](https://docs.stacktape.com/).
+
+## Is Stacktape extensible?
+
+Yes. Except for plethora of AWS and 3rd party resource types Stacktape integrates by default, you can also extend your
+infrastructure using [AWS CDK](https://docs.stacktape.com/extending/aws-cdk-constructs/) or
+[AWS Cloudformation](https://docs.stacktape.com/extending/aws-cloudformation-resources/).

@@ -1,0 +1,325 @@
+---
+title: ""
+order: 211
+---
+
+# Overview
+
+- Network Load balancer is an entry-point to your application. Load balancer routes traffic to your application and
+  integrates easily with compute resources of your stack such as
+  [multi-container-workloads](/compute-resources/multi-container-workloads#network-load-balancer-event).
+- Network load balancers are used to communicate with your containers using the TCP protocol.
+- You can offload SSL/TLS termination to the load-balancer instead of handling it as a part of your application.
+- You can easily configure custom domain names for your net.
+
+# Under the hood
+
+Network load balancer is an abstraction which under the hood uses
+[AWS Network Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html).
+
+# When to use
+
+A network load balancer is a good fit for applications where you need custom TCP protocol (other than HTTP/HTTPS). If
+your application uses HTTP/HTTPS, we advise to use [application load balancer](/resources/application-load-balancers)
+instead.
+
+<NegativeMargin />
+
+## Advantages
+
+- **Predictable pricing** - Network load balancers have a predictable pricing model which can be
+  [found here](https://aws.amazon.com/elasticloadbalancing/pricing/?nc=sn&loc=3). Even though network-load-balancers
+  have fixed base price per month (as opposed to http-api-gateways, where you only pay for requests), when traffic is
+  high network-load-balancer can be cheaper.
+- **Scaling** - Network load balancer is designed to handle traffic as it grows and can load balance millions of
+  requests/sec.
+- **Health checks** - When a network load balancer is used with multi-container-workloads, the load balancer
+  periodically checks the health of target containers. It only sends requests to healthy ones and automatically notifies
+  multi-container-workload to replace unhealthy containers.
+- **Ease of use** - Integrate with compute resources of your stack with few lines of config
+- **Security** - You can offload SSL/TLS termination to the load-balancer instead of handling it as a part of your
+  application. This means that any communication between load-balancer and client can be encrypted.
+
+## Disadvantages
+
+- Fixed price base - You are paying ~20$/month for network-load-balancer even if it is sitting idle.
+- Network load balancer does not support other workloads than multi-container-workloads.
+
+<Divider />
+
+# Simple usage
+
+<PropertiesTable definitionName="NetworkLoadBalancer" />
+
+```yml
+resources:
+  # {start-highlight}
+  myLoadBalancer:
+    type: 'network-load-balancer'
+    properties:
+      listeners:
+        - port: 8080
+          protocol: TLS
+  # {stop-highlight}
+
+  myWorkload:
+    type: 'multi-container-workload'
+    properties:
+      containers:
+        - name: container1
+          packaging:
+            type: stacktape-image-buildpack
+            properties:
+              entryfilePath: containers/ts-container.ts
+          events:
+            - type: network-load-balancer
+              properties:
+                loadBalancerName: myLoadBalancer
+                listenerPort: 8080
+                containerPort: 8080
+      resources:
+        cpu: 0.25
+        memory: 512
+```
+
+> Network load balancer with function integration
+
+<Divider />
+
+# Integrating with compute resources
+
+By creating event integration on
+[multi-container-workloads](/compute-resources/multi-container-workloads#network-load-balancer-event), you are telling
+network load balancer to forward all of the traffic to the specified container.
+
+Each integration must specify:
+
+- `loadBalancerName` and `listenerPort`. These are the name of the load balancer and its port that will forward the
+  traffic to the container.
+- `containerPort` - port on the container that will receive the traffic.
+
+<br />
+
+```yml
+resources:
+  myLoadBalancer:
+    type: 'network-load-balancer'
+    properties:
+      listeners:
+        - port: 8080
+          protocol: TLS
+
+  myWorkload:
+    type: 'multi-container-workload'
+    properties:
+      containers:
+        - name: container1
+          packaging:
+            type: stacktape-image-buildpack
+            properties:
+              entryfilePath: containers/ts-container.ts
+          # {start-highlight}
+          events:
+            - type: network-load-balancer
+              properties:
+                loadBalancerName: myLoadBalancer
+                listenerPort: 8080
+                containerPort: 8080
+          # {stop-highlight}
+      resources:
+        cpu: 0.25
+        memory: 512
+```
+
+> Network load balancer with multi-container-workload integrations.
+
+More information on integrating compute resources with network load balancer can be found:
+
+- [integrate multi-container-workload with network load balancer](/compute-resources/multi-container-workloads#network-load-balancer-event).
+
+<Divider />
+
+# Custom domain names
+
+If you do not have a custom domain and want one, read the section
+[Registering domain](/other-resources/domains-and-certificates/#registering-domain) on the _Domains and TLS
+certificates_ page.
+
+If you already have an existing domain and you wish to use it with your app, there are two approaches:
+
+1. [Using Stacktape to manage domains and certs](#using-stacktape-to-manage-domain-and-certs) - you must use Route53 in
+   your AWS account as your DNS.
+2. [Using 3rd party DNS provider](#using-3rd-party-dns) - such as GoDaddy, Cloudflare etc. You must handle domains and
+   generate certificates yourself.
+
+For more information about domain management options, refer to
+[Domains and TLS certificates](/other-resources/domains-and-certificates/) page.
+
+## Using Stacktape to manage domains and certs
+
+Stacktape allows you to connect your custom domain names to some of your resources (Web Service, HTTP API Gateways, Application Load Balancers and Buckets with CDNs).
+
+Connecting a custom domain to the resource does 2 things:
+
+-   **Creates DNS records**:
+    -   If you use your custom domain with a resource, Stacktape automatically creates a DNS record (during deploy) pointing the specified domain name to the resource.
+-   **Adds TLS certificates**
+    -   If you do not specify custom `listeners` or your listeners use TLS, Stacktape takes care of issuing and attaching correct (free, AWS-managed) certificate to the resource. This means, you do not have to deal with TLS termination as it is handled by the connected resource.
+    -   If you want to use your own certificates, you can configure `customCertificateArns` on the listener.
+
+To manage a custom domain, it first needs to be added to your AWS account. This means that a [hosted zone](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/AboutHZWorkingWith.html) (collection of records managed together for a given domain) for your domain exists in your AWS account and your domain registrar's name servers are pointing to it. To learn more, refer to [Adding a domain guide](/other-resources/domains-and-certificates/#adding-domain).
+
+```yml
+resources:
+  myLoadBalancer:
+    type: 'network-load-balancer'
+    properties:
+      # {start-highlight}
+      customDomains:
+        - my-app.mydomain.com
+      # {stop-highlight}
+      listeners:
+        - port: 8080
+          protocol: TLS
+```
+
+## Using 3rd party DNS
+
+To use 3rd party DNS provider you must:
+
+1. Create/import a custom TLS certificate for your domain in
+   [AWS console](https://console.aws.amazon.com/acm/home#/certificates/list). Copy certificate ARN; you will need it in
+   the next step.
+2. Configure listener (more info on [listeners here](configure-custom-listeners)) on your load balancer with your custom
+   certificate using the copied ARN.
+
+```yml
+resources:
+  myLoadBalancer:
+    type: 'network-load-balancer'
+    properties:
+      listeners:
+        - port: 8080
+          protocol: TLS
+          # {start-highlight}
+          customCertificateArns:
+            - arn:aws:acm:eu-west-1:999999999999:certificate/8ab817b5-c4fa-4b1d-8b72-d6082cb40351
+          # {stop-highlight}
+
+  myWorkload:
+    type: 'multi-container-workload'
+    properties:
+      containers:
+        - name: container1
+          packaging:
+            type: stacktape-image-buildpack
+            properties:
+              entryfilePath: containers/ts-container.ts
+          events:
+            - type: network-load-balancer
+              properties:
+                loadBalancerName: myLoadBalancer
+                listenerPort: 8080
+                containerPort: 8080
+      resources:
+        cpu: 0.25
+        memory: 512
+```
+
+> Listener with custom certificate
+
+3. After you deploy your load balancer, you can find the domain name in
+   [Stacktape console](https://console.stacktape.com/projects) in:
+
+   _Your project and stage_ > _Click on your Application Load Balancer resource to see its domain_
+
+   Once you have the domain name, you can point DNS record to this domain using your DNS provider:
+
+   - Use **ALIAS** record type for root domains (i.e _mydomain.com_)
+   - Use **CNAME** record type for subdomains (i.e _www.mydomain.com_ or _staging.mydomain.com_
+
+<Divider />
+
+# Configure listeners
+
+- Listeners provide a way to expose ports of network-load-balancer. They makes network-load-balancer accessible from the
+  outside.
+
+- Listeners are listening on specified ports and forward traffic to compute resources through
+  [event integrations](#integrating-with-compute-resources).
+
+-   Listeners are used to expose specific ports of the Load balancer.
+-   Traffic routed to the listener is then routed to the target resource based on the integrations.
+
+<PropertiesTable
+  definitionName="NetworkLoadBalancerListener"
+  searchForReferencesInDefinition="NetworkLoadBalancerProps"
+/>
+
+```yml
+resources:
+  myLoadBalancer:
+    type: 'network-load-balancer'
+    properties:
+      customDomains:
+        - my-app.mydomain.com
+      # {start-highlight}
+      listeners:
+        - port: 8080
+          protocol: TLS
+        - port: 8081
+          protocol: TCP
+        - port: 8082
+          protocol: TLS
+      # {stop-highlight}
+```
+
+> Network load balancer with three listeners.
+
+## Using custom TLS certificates
+
+You can configure listener to use your custom TLS certificate. In order to do that you can:
+
+- Set `customCertificateArns` property to make the listener use custom certificate of your choice (you can create
+  certificate in [AWS console](https://console.aws.amazon.com/acm/home?#/certificates/request)). In this case you also
+  need to handle DNS records for your domain, i.e point correct domain name relevant for the certificate to the load
+  balancer.
+
+```yml
+resources:
+  myLoadBalancer:
+    type: 'network-load-balancer'
+    properties:
+      listeners:
+        - port: 8080
+          protocol: TLS
+          # {start-highlight}
+          customCertificateArns:
+            - arn:aws:acm:eu-west-1:999999999999:certificate/8ab817b5-c4fa-4b1d-8b72-d6082cb40351
+          # {stop-highlight}
+
+  myWorkload:
+    type: 'multi-container-workload'
+    properties:
+      containers:
+        - name: container1
+          packaging:
+            type: stacktape-image-buildpack
+            properties:
+              entryfilePath: containers/ts-container.ts
+          events:
+            - type: network-load-balancer
+              properties:
+                loadBalancerName: myLoadBalancer
+                listenerPort: 8080
+                containerPort: 8080
+      resources:
+        cpu: 0.25
+        memory: 512
+```
+
+<Divider />
+
+# Referenceable parameters
+
+<ReferenceableParams resource="network-load-balancer" />

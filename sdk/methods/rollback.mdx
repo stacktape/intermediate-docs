@@ -1,0 +1,143 @@
+---
+title: "rollback()"
+order: 8
+nestedTo: /sdk/methods
+---
+
+# Overview and basic usage
+
+<br />
+
+Rolls back the stack to the previous working version if the stack update did not successfully finished and is in the
+`UPDATE_FAILED` state.
+
+<br />
+
+<br />
+
+{/* WRITE ONLY BELOW THIS LINE */}
+
+{/* WRITE ONLY ABOVE THIS LINE */}
+
+```typescript
+import { Stacktape } from "stacktape";
+
+const stacktape = new Stacktape();
+
+stacktape.rollback({
+  region: "<<region>>",
+  stage: "<<stage>>"
+});
+```
+
+# API reference
+
+<SdkMethodsApiReference
+  command="rollback"
+  sortedArgs={[
+    {
+      description: "#### AWS region to use for the current operation.\n---\n",
+      allowedTypes: ["string"],
+      allowedValues: [
+        "af-south-1",
+        "ap-east-1",
+        "ap-northeast-1",
+        "ap-northeast-2",
+        "ap-northeast-3",
+        "ap-south-1",
+        "ap-southeast-1",
+        "ap-southeast-2",
+        "ca-central-1",
+        "eu-central-1",
+        "eu-north-1",
+        "eu-south-1",
+        "eu-west-1",
+        "eu-west-2",
+        "eu-west-3",
+        "me-south-1",
+        "sa-east-1",
+        "us-east-1",
+        "us-east-2",
+        "us-west-1",
+        "us-west-2"
+      ],
+      required: true,
+      name: "region",
+      shortDescription: "<p> AWS region to use for the current operation.</p>\n",
+      longDescription: ""
+    },
+    {
+      description:
+        "#### Stage used for the operation.\n---\n- Example stages are `production`, `staging`, `testing` or `dev-john`.\n- You can configure the default stage used with every Stacktape command using the `defaults:configure` command.\n- Maximum allowed length is 12 characters.",
+      allowedTypes: ["string"],
+      required: true,
+      name: "stage",
+      shortDescription: "<p> Stage used for the operation.</p>\n",
+      longDescription:
+        "<ul>\n<li>Example stages are <code>production</code>, <code>staging</code>, <code>testing</code> or <code>dev-john</code>.</li>\n<li>You can configure the default stage used with every Stacktape command using the <code>defaults:configure</code> command.</li>\n<li>Maximum allowed length is 12 characters.</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### Name of the AWS account used to perform the operation\n---\n- The account must be first connected in the [Stacktape console](https://console.stacktape.com/aws-accounts)",
+      allowedTypes: ["string"],
+      required: false,
+      name: "awsAccount",
+      shortDescription: "<p> Name of the AWS account used to perform the operation</p>\n",
+      longDescription:
+        '<ul>\n<li>The account must be first connected in the <a href="https://console.stacktape.com/aws-accounts" style="font-weight: bold;" target="_blank" rel="noreferrer" onclick="event.stopPropagation();">Stacktape console</a></li>\n</ul>\n'
+    },
+    {
+      description: "#### Directly supplied stacktape configuration object",
+      allowedTypes: ["object"],
+      required: false,
+      name: "config",
+      shortDescription: "<p> Directly supplied stacktape configuration object</p>\n"
+    },
+    {
+      description:
+        "#### Path to your stacktape configuration file.\n---\n- Relative to CWD (current working directory).",
+      allowedTypes: ["string"],
+      required: false,
+      name: "configPath",
+      shortDescription: "<p> Path to your stacktape configuration file.</p>\n",
+      longDescription: "<ul>\n<li>Relative to CWD (current working directory).</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### Current working directory for the current operation.\n---\n- Every file path in your config will be resolved relatively to specified cwd.\n- By default, directory containing the configuration file is used.",
+      allowedTypes: ["string"],
+      required: false,
+      name: "currentWorkingDirectory",
+      shortDescription: "<p> Current working directory for the current operation.</p>\n",
+      longDescription:
+        "<ul>\n<li>Every file path in your config will be resolved relatively to specified cwd.</li>\n<li>By default, directory containing the configuration file is used.</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### AWS profile to use with the command\n---\n- You can manage AWS profiles on your system using `aws-profile:create`, `aws-profile:update` or `aws-profile:delete` command.\n- You can configure the default profile used with every Stacktape command using the `defaults:configure` command.",
+      allowedTypes: ["string"],
+      required: false,
+      name: "profile",
+      shortDescription: "<p> AWS profile to use with the command</p>\n",
+      longDescription:
+        "<ul>\n<li>You can manage AWS profiles on your system using <code>aws-profile:create</code>, <code>aws-profile:update</code> or <code>aws-profile:delete</code> command.</li>\n<li>You can configure the default profile used with every Stacktape command using the <code>defaults:configure</code> command.</li>\n</ul>\n"
+    },
+    {
+      description: "#### Name of the Stacktape project relevant for this operation",
+      allowedTypes: ["string"],
+      required: false,
+      name: "projectName",
+      shortDescription: "<p> Name of the Stacktape project relevant for this operation</p>\n"
+    },
+    {
+      description:
+        "#### Id of the template to download\n---\n- The list of available templates is available on the [Config builder page](https://console.stacktape.com/templates)",
+      allowedTypes: ["string"],
+      required: false,
+      name: "templateId",
+      shortDescription: "<p> Id of the template to download</p>\n",
+      longDescription:
+        '<ul>\n<li>The list of available templates is available on the <a href="https://console.stacktape.com/templates" style="font-weight: bold;" target="_blank" rel="noreferrer" onclick="event.stopPropagation();">Config builder page</a></li>\n</ul>\n'
+    }
+  ]}
+/>

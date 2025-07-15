@@ -1,0 +1,262 @@
+---
+title: "codebuild:deploy"
+order: 1
+nestedTo: /cli/commands
+---
+
+# Overview and basic usage
+
+Deploys the stack (specified stage of your project) to AWS using AWS Codebuild.
+
+<br />
+
+- Codebuild deployment is executed on provisioned resources directly within your AWS account.
+- Executing deployment using codebuild offloads your local resources.
+- Overview of the process:
+  1. Project is zipped and uploaded to bucket in your account.
+  2. Codebuild build environment (dedicated VM) is provisioned.
+  3. Deployment is started.
+  4. Deployment is monitored and logs are continuously printed to the terminal
+- If the stack doesn't exist, creates a new one. If the stack already exists, updates it.
+- Requires a valid stacktape configuration file in the current working directory or configuring a path to the config
+  file using `--configPath` option.
+
+{/* WRITE ONLY BELOW THIS LINE */}
+
+{/* WRITE ONLY ABOVE THIS LINE */}
+
+```bash
+stacktape codebuild:deploy --stage <<stage>> --region <<region>>
+```
+
+# API reference
+
+<CliCommandsApiReference
+  command="codebuild:deploy"
+  sortedArgs={[
+    {
+      description: "#### AWS region to use for the current operation.\n---\n",
+      allowedTypes: ["string"],
+      allowedValues: [
+        "af-south-1",
+        "ap-east-1",
+        "ap-northeast-1",
+        "ap-northeast-2",
+        "ap-northeast-3",
+        "ap-south-1",
+        "ap-southeast-1",
+        "ap-southeast-2",
+        "ca-central-1",
+        "eu-central-1",
+        "eu-north-1",
+        "eu-south-1",
+        "eu-west-1",
+        "eu-west-2",
+        "eu-west-3",
+        "me-south-1",
+        "sa-east-1",
+        "us-east-1",
+        "us-east-2",
+        "us-west-1",
+        "us-west-2"
+      ],
+      alias: "r",
+      required: true,
+      name: "region",
+      shortDescription: "<p> AWS region to use for the current operation.</p>\n",
+      longDescription: ""
+    },
+    {
+      description:
+        "#### Stage used for the operation.\n---\n- Example stages are `production`, `staging`, `testing` or `dev-john`.\n- You can configure the default stage used with every Stacktape command using the `defaults:configure` command.\n- Maximum allowed length is 12 characters.",
+      allowedTypes: ["string"],
+      alias: "s",
+      required: true,
+      name: "stage",
+      shortDescription: "<p> Stage used for the operation.</p>\n",
+      longDescription:
+        "<ul>\n<li>Example stages are <code>production</code>, <code>staging</code>, <code>testing</code> or <code>dev-john</code>.</li>\n<li>You can configure the default stage used with every Stacktape command using the <code>defaults:configure</code> command.</li>\n<li>Maximum allowed length is 12 characters.</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### Automatically confirm prompts during deploy/delete operations.\n---\n- By default Stacktape prompts before this operations and user needs to confirm to proceed.\n- By using this switch the prompt is skipped and Stacktape automatically proceeds.",
+      allowedTypes: ["boolean"],
+      alias: "aco",
+      required: false,
+      name: "autoConfirmOperation",
+      shortDescription: "<p> Automatically confirm prompts during deploy/delete operations.</p>\n",
+      longDescription:
+        "<ul>\n<li>By default Stacktape prompts before this operations and user needs to confirm to proceed.</li>\n<li>By using this switch the prompt is skipped and Stacktape automatically proceeds.</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### Name of the AWS account used to perform the operation\n---\n- The account must be first connected in the [Stacktape console](https://console.stacktape.com/aws-accounts)",
+      allowedTypes: ["string"],
+      alias: "aa",
+      required: false,
+      name: "awsAccount",
+      shortDescription: "<p> Name of the AWS account used to perform the operation</p>\n",
+      longDescription:
+        '<ul>\n<li>The account must be first connected in the <a href="https://console.stacktape.com/aws-accounts" style="font-weight: bold;" target="_blank" rel="noreferrer" onclick="event.stopPropagation();">Stacktape console</a></li>\n</ul>\n'
+    },
+    {
+      description:
+        "#### Path to your stacktape configuration file.\n---\n- Relative to CWD (current working directory).",
+      allowedTypes: ["string"],
+      alias: "cp",
+      required: false,
+      name: "configPath",
+      shortDescription: "<p> Path to your stacktape configuration file.</p>\n",
+      longDescription: "<ul>\n<li>Relative to CWD (current working directory).</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### Current working directory for the current operation.\n---\n- Every file path in your config will be resolved relatively to specified cwd.\n- By default, directory containing the configuration file is used.",
+      allowedTypes: ["string"],
+      alias: "cwd",
+      required: false,
+      name: "currentWorkingDirectory",
+      shortDescription: "<p> Current working directory for the current operation.</p>\n",
+      longDescription:
+        "<ul>\n<li>Every file path in your config will be resolved relatively to specified cwd.</li>\n<li>By default, directory containing the configuration file is used.</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### Disables automatic rollback after the deployment failure\n---\nWhen automatic rollback is **enabled** (default) and the deployment fails:\n- the stack will be automatically rolled back to the latest working version\n- resources created during the failed deployment will be deleted.\n- to move forward, you should resolve the issues and deploy again\n\nWhen automatic rollback is **disabled** and the deployment fails:\n- the stack will remain in the `UPDATE_FAILED` state\n- all of the successfully created and updated resources will be kept\n- to move forward, you can resolve the issues causing the deployment to fail and then use `stacktape deploy` again\n  or roll back to the latest working version using the `stacktape rollback` command.",
+      allowedTypes: ["boolean"],
+      alias: "dar",
+      required: false,
+      name: "disableAutoRollback",
+      shortDescription: "<p> Disables automatic rollback after the deployment failure</p>\n",
+      longDescription:
+        "<p>When automatic rollback is <strong>enabled</strong> (default) and the deployment fails:</p>\n<ul>\n<li>the stack will be automatically rolled back to the latest working version</li>\n<li>resources created during the failed deployment will be deleted.</li>\n<li>to move forward, you should resolve the issues and deploy again</li>\n</ul>\n<p>When automatic rollback is <strong>disabled</strong> and the deployment fails:</p>\n<ul>\n<li>the stack will remain in the <code>UPDATE_FAILED</code> state</li>\n<li>all of the successfully created and updated resources will be kept</li>\n<li>to move forward, you can resolve the issues causing the deployment to fail and then use <code>stacktape deploy</code> again\nor roll back to the latest working version using the <code>stacktape rollback</code> command.</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### Disables drift detection (changes made to the stack that weren't made using CloudFormation)\n---\n- These changes can be made for example using AWS console, aws-cli or aws-sdk.\n- By default, Stacktape won't allow an update to a stack that has \"drifted\".",
+      allowedTypes: ["boolean"],
+      alias: "ddd",
+      required: false,
+      name: "disableDriftDetection",
+      shortDescription:
+        "<p> Disables drift detection (changes made to the stack that weren&#39;t made using CloudFormation)</p>\n",
+      longDescription:
+        "<ul>\n<li>These changes can be made for example using AWS console, aws-cli or aws-sdk.</li>\n<li>By default, Stacktape won&#39;t allow an update to a stack that has &quot;drifted&quot;.</li>\n</ul>\n"
+    },
+    {
+      description: "#### Additional arguments to pass to Docker run or Docker build commands\n---",
+      allowedTypes: ["array"],
+      alias: "da",
+      required: false,
+      name: "dockerArgs",
+      shortDescription: "<p> Additional arguments to pass to Docker run or Docker build commands</p>\n",
+      longDescription: ""
+    },
+    {
+      description:
+        "#### Shows help for the command\n---\n- If specified, the command won't perform any action besides printing help.",
+      allowedTypes: ["string"],
+      alias: "h",
+      required: false,
+      name: "help",
+      shortDescription: "<p> Shows help for the command</p>\n",
+      longDescription:
+        "<ul>\n<li>If specified, the command won&#39;t perform any action besides printing help.</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### Attempts to performer faster deploy (for code changes only)\n---\n- When using hotswap switch, Stacktape will attempt to update code of your `functions` and `multi-container-workloads`\n  by updating the affected resources directly (HOTSWAP deployment) without invoking Cloudformation.\n- Using hotswap is only recommended for development stacks.\n- The hotswap deployment will only be used if all of the stack changes are hot-swappable.",
+      allowedTypes: ["boolean"],
+      alias: "hs",
+      required: false,
+      name: "hotSwap",
+      shortDescription: "<p> Attempts to performer faster deploy (for code changes only)</p>\n",
+      longDescription:
+        "<ul>\n<li>When using hotswap switch, Stacktape will attempt to update code of your <code>functions</code> and <code>multi-container-workloads</code>\nby updating the affected resources directly (HOTSWAP deployment) without invoking Cloudformation.</li>\n<li>Using hotswap is only recommended for development stacks.</li>\n<li>The hotswap deployment will only be used if all of the stack changes are hot-swappable.</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### Format of logs printed to your console.\n---\nAvailable options:\n- `fancy`: Logs are colorized and dynamically re-rendered.\n- `normal`: Logs are colorized but not dynamically re-rendered.\n- `basic`: Simple text only\n- `json`: Logs are printed as JSON objects",
+      allowedTypes: ["string"],
+      allowedValues: ["basic", "fancy", "json", "normal"],
+      alias: "lf",
+      required: false,
+      name: "logFormat",
+      shortDescription: "<p> Format of logs printed to your console.</p>\n",
+      longDescription:
+        "<p>Available options:</p>\n<ul>\n<li><code>fancy</code>: Logs are colorized and dynamically re-rendered.</li>\n<li><code>normal</code>: Logs are colorized but not dynamically re-rendered.</li>\n<li><code>basic</code>: Simple text only</li>\n<li><code>json</code>: Logs are printed as JSON objects</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### Level of logs that are being printed to the console.\n---\nAvailable options:\n- `info`: Prints basic information about everything that's happening.\n- `error`: Prints only errors.\n- `debug`: Prints detailed information about everything that's happening.",
+      allowedTypes: ["string"],
+      allowedValues: ["debug", "error", "info"],
+      alias: "ll",
+      required: false,
+      name: "logLevel",
+      shortDescription: "<p> Level of logs that are being printed to the console.</p>\n",
+      longDescription:
+        "<p>Available options:</p>\n<ul>\n<li><code>info</code>: Prints basic information about everything that&#39;s happening.</li>\n<li><code>error</code>: Prints only errors.</li>\n<li><code>debug</code>: Prints detailed information about everything that&#39;s happening.</li>\n</ul>\n"
+    },
+    {
+      description: "#### Disables usage of cached artifacts and deploys freshly built compute resources.",
+      allowedTypes: ["boolean"],
+      alias: "nc",
+      required: false,
+      name: "noCache",
+      shortDescription: "<p> Disables usage of cached artifacts and deploys freshly built compute resources.</p>\n"
+    },
+    {
+      description:
+        "#### Preserves temporary files that stacktape generates using the operation.\n---\n- Temp folder includes CloudFormation template, packaged compute resources and other files.\n- By default, these changes are saved to `.stacktape/[invocation-id]`.\n- Temp folder location is also printed to the console.",
+      allowedTypes: ["boolean"],
+      alias: "ptf",
+      required: false,
+      name: "preserveTempFiles",
+      shortDescription: "<p> Preserves temporary files that stacktape generates using the operation.</p>\n",
+      longDescription:
+        "<ul>\n<li>Temp folder includes CloudFormation template, packaged compute resources and other files.</li>\n<li>By default, these changes are saved to <code>.stacktape/[invocation-id]</code>.</li>\n<li>Temp folder location is also printed to the console.</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### AWS profile to use with the command\n---\n- You can manage AWS profiles on your system using `aws-profile:create`, `aws-profile:update` or `aws-profile:delete` command.\n- You can configure the default profile used with every Stacktape command using the `defaults:configure` command.",
+      allowedTypes: ["string"],
+      alias: "p",
+      required: false,
+      name: "profile",
+      shortDescription: "<p> AWS profile to use with the command</p>\n",
+      longDescription:
+        "<ul>\n<li>You can manage AWS profiles on your system using <code>aws-profile:create</code>, <code>aws-profile:update</code> or <code>aws-profile:delete</code> command.</li>\n<li>You can configure the default profile used with every Stacktape command using the <code>defaults:configure</code> command.</li>\n</ul>\n"
+    },
+    {
+      description: "#### Name of the Stacktape project relevant for this operation",
+      allowedTypes: ["string"],
+      alias: "prj",
+      required: false,
+      name: "projectName",
+      shortDescription: "<p> Name of the Stacktape project relevant for this operation</p>\n"
+    },
+    {
+      description:
+        "#### Include sensitive values in output when running stack-info or deploy command.\n---\n- By default sensitive values are not shown when running stack-info/deploy command.\n- By using this switch, sensitive data will be shown in stack-info/deploy output (or saved to stack-info file).\n- Be aware when using this switch. Mishandling sensitive data can lead to security issues.",
+      allowedTypes: ["boolean"],
+      alias: "ssv",
+      required: false,
+      name: "showSensitiveValues",
+      shortDescription: "<p> Include sensitive values in output when running stack-info or deploy command.</p>\n",
+      longDescription:
+        "<ul>\n<li>By default sensitive values are not shown when running stack-info/deploy command.</li>\n<li>By using this switch, sensitive data will be shown in stack-info/deploy output (or saved to stack-info file).</li>\n<li>Be aware when using this switch. Mishandling sensitive data can lead to security issues.</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### Id of the template to download\n---\n- The list of available templates is available on the [Config builder page](https://console.stacktape.com/templates)",
+      allowedTypes: ["string"],
+      alias: "ti",
+      required: false,
+      name: "templateId",
+      shortDescription: "<p> Id of the template to download</p>\n",
+      longDescription:
+        '<ul>\n<li>The list of available templates is available on the <a href="https://console.stacktape.com/templates" style="font-weight: bold;" target="_blank" rel="noreferrer" onclick="event.stopPropagation();">Config builder page</a></li>\n</ul>\n'
+    }
+  ]}
+/>

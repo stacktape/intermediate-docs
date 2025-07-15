@@ -1,0 +1,126 @@
+---
+title: "Authentication (Cognito)"
+order: 260
+---
+
+# Overview
+
+- Userpools securely store your users and provide sign-up, sign-in, and access control for your applications.
+
+- Userpools support OAuth 2.0, SAML 2.0, and OpenID Connect standards.
+
+- Userpools can be integrated with HTTP API Gateways using authorizers to provide access only for authenticated users.
+
+# When to use
+
+Userpools can be used almost anytime your application needs to authenticate and authorize users.
+
+<br />
+
+**Advantages**
+
+- **Pay-per-MAU** - You pay for Monthly Active Users.
+- **Free-tier** - There's a free tier of 50,000 MAUs for users who sign in directly to Cognito User Pools (not using
+  SAML or OIDC federation).
+- **Serverless** - You can seamlessly scale your userbase almost indefinitely.
+- **Secure by default** - Your users are securely stored by AWS.
+- **Compliant** - With userpools, you are HIPAA eligible and PCI DSS, SOC, ISO/IEC 27001, ISO/IEC 27017, ISO/IEC 27018,
+  and ISO 9001 compliant by default.
+
+**Disadvantages**
+
+- **Not cheap for large user bases** - When you have more than 50,000 MAUs or many users with SAML or OIDC federation,
+  can get expensive.
+- **Not easy to understand** - Similarly to almost everything related to authentication or OAUTH, understanding user
+  pool authentication flows can be complicated.
+
+<Divider />
+
+# Basic usage
+
+- Example: Lambda function connected to HTTP API Gateway with authorizer that allows only users authenticated using
+  `myUserPool` to access the configured path.
+
+```yml
+resources:
+  createPost:
+    type: function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: src/index.ts
+      events:
+        - type: http-api-gateway
+          properties:
+            httpApiGatewayName: myGateway
+            path: /post/create
+            method: POST
+            authorizer:
+              type: cognito
+              properties:
+                userPoolName: myUserPool
+
+  myUserPool:
+    type: user-auth-pool
+    properties:
+      userVerificationType: email-code
+      passwordPolicy:
+        minimumLength: 8
+```
+
+<Divider />
+
+# Using firewall
+
+-   You can use `web-app-firewall` to protect your resources from common web exploits that could affect application availability, compromise security, or consume excessive resources.
+-   Web app firewall protects your application by filtering dangerous requests coming to your app. You can read more about the firewall [in our docs](/security-resources/web-app-firewalls/).
+
+To lean more, check [web-app-firewall](/resources/web-app-firewalls/) documentation.
+
+```yml
+resources:
+  # {start-highlight}
+  myFirewall:
+    type: web-app-firewall
+    properties:
+      scope: regional
+  # {stop-highlight}
+  myUserPool:
+    type: user-auth-pool
+    properties:
+      userVerificationType: email-code
+      passwordPolicy:
+        minimumLength: 8
+      # {start-highlight}
+      useFirewall: myFirewall
+      # {stop-highlight}
+```
+
+# Pricing
+
+Work in progress
+
+# Referenceable parameters
+
+<ReferenceableParams resource="user-auth-pool" />
+
+# API reference
+
+<PropertiesTable definitionName="UserAuthPool" />
+
+<PropertiesTable definitionName="UserPoolHooks" searchForReferencesInDefinition="UserAuthPool" />
+
+<PropertiesTable definitionName="EmailConfiguration" searchForReferencesInDefinition="UserAuthPool" />
+
+<PropertiesTable definitionName="InviteMessageConfig" searchForReferencesInDefinition="UserAuthPool" />
+
+<PropertiesTable definitionName="UserVerificationMessageConfig" searchForReferencesInDefinition="UserAuthPool" />
+
+<PropertiesTable definitionName="MfaConfiguration" searchForReferencesInDefinition="UserAuthPool" />
+
+<PropertiesTable definitionName="PasswordPolicy" searchForReferencesInDefinition="UserAuthPool" />
+
+<PropertiesTable definitionName="AttributeSchema" searchForReferencesInDefinition="UserAuthPool" />
+
+<PropertiesTable definitionName="IdentityProvider" searchForReferencesInDefinition="UserAuthPool" />

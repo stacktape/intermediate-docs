@@ -1,0 +1,302 @@
+---
+title: "Domains and TLS certificates"
+order: 230
+---
+
+# Introduction
+
+This page introduces options for handling custom domains and TLS certificates in Stacktape.
+
+If you do not have a custom domain and want one, read the section [Registering domain](#registering-domain).
+
+If you already have an existing domain and you wish to use it with your app, there are two approaches:
+
+1. **Using AWS Route53 as your DNS provider** (Recommended) - If you are using Route53 in your AWS account as a DNS
+   provider, you can easily manage a domain (and its subdomains) using Stacktape. Stacktape will automatically generate
+   and renew TLS certificates for your domain and will be able to assign domains to your app during deployment. Refer to
+   the section [Managing domains with Stacktape](#managing-domains-with-stacktape). If you currently use 3rd party DNS
+   but want to start using Route53 for your existing domain, refer to the section
+   [Migrating existing domain](#migrating-existing-domain).
+2. **Using 3rd party DNS provider** - If you are using 3rd party DNS provider (Cloudflare, GoDaddy, etc.) and you wish
+   to keep using it, you can. This means you must manually manage DNS records (outside of Stacktape). You will also have
+   to create/import a custom TLS certificate for your domain in
+   [AWS console](https://console.aws.amazon.com/acm/home#/certificates/list). After that, you can reference this
+   certificate in your Stacktape config. Refer to the section [Using 3rd party DNS](#using-3rd-party-dns).
+
+# Managing domains with Stacktape
+
+If you already have a domain and you are using 3rd party DNS provider (other than Route53), refer to the section
+[Migrating existing domain](#migrating-existing-domain)
+
+If you are using Route53 in your AWS account as your DNS provider, use the `stacktape domain:add` command to prepare
+your domain for use with Stacktape. This command will interactively prompt you through creating TLS certificates and
+optionally configuring AWS SES with your domain.
+
+This command only needs to be run once per region per domain, and after the process is over, you will be able to use
+your domain and its subdomain in your Stacktape configuration.
+
+```bash
+stacktape domain:add --region <<region>>
+```
+
+After your domain is prepared, you should get output similar to this:
+
+```none
+$ stacktape domain:add --region eu-west-1
+✔ Domain name (example: mydomain.com) … stacktape.com
+[SUCCESS] Loading AWS credentials done in 0.5 sec. Loaded from Stacktape API.
+[SUCCESS] Loading user data done in 1.48 sec. User: Šimon Obetko. Organization: Stacktape.
+[SUCCESS] Fetching domain statuses done in 4.2 sec.
+[SUCCESS] Domain ownership validated successfully
+[SUCCESS] Certificates for the domain stacktape.com are created.
+[SUCCESS] Certificates validated successfully
+[SUCCESS] Fetching email info done in 0.45 sec.
+[SUCCESS] Domain is verified for using with AWS SES.
+[SUCCESS] Domain "stacktape.com" is prepared to be used in region eu-west-1.
+$
+```
+
+Now you can use your domain in Stacktape configuration. During deployment, stacktape will automatically assign required
+certificates create DNS record which will point your chosen domain to the resource.
+
+```yml
+resources:
+  apiService:
+    type: web-service
+    properties:
+      resources:
+        cpu: 2
+        memory: 2048
+      packaging:
+        type: stacktape-image-buildpack
+        properties:
+          entryfilePath: src/main.ts
+      # {start-highlight}
+      customDomains:
+        - domainName: api.mydomain.com
+      # {stop-highlight}
+
+  web:
+    type: hosting-bucket
+    properties:
+      uploadDirectoryPath: ./dist
+      hostingContentType: single-page-app
+      # {start-highlight}
+      customDomains:
+        - domainName: mydomain.com
+      # {stop-highlight}
+```
+
+# Migrating existing domain
+
+If you already have a domain which is currently managed by a 3rd party DNS provider, and you wish to manage your domains
+with Stacktape, you need to migrate to Route53 DNS provider. You can use `stacktape domain:add` command, to guide you
+through this process.
+
+<Warning>
+
+If your domain is actively in use in production and you prefer hands on manual migration, you should follow this
+[AWS tutorial](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/migrate-dns-domain-in-use.html), which will
+guide you through migrating your DNS to Route53 using controlled manual process. After you migrate your domain to
+Route53, refer to [Managing domains with Stacktape](#managing-domains-with-stacktape) section to finish the domain
+configuration.
+
+</Warning>
+
+Run the `stacktape domain:add` command. Confirm the prompt for creation of hosted zone.
+
+```bash
+stacktape domain:add --region <<region>>
+```
+
+You should get output similar to this
+
+```none
+$ stacktape domain:add --region eu-west-1
+✔ Domain name (example: mydomain.com) … simonobetko.net
+[SUCCESS] Loading AWS credentials done in 0.7 sec. Loaded from Stacktape API.
+[SUCCESS] Loading user data done in 1.98 sec. User: Šimon Obetko. Organization: Stacktape.
+[SUCCESS] Fetching domain statuses done in 1.18 sec.
+[INFO] To use domain simonobetko.net with Stacktape, DNS records must be in control of your AWS account.
+       DNS records for domains are managed in hosted zones. (Hosted zone is a "container" for storing DNS records of your domain.)
+
+[WARN] Currently, the domain simonobetko.net has no hosted zone created in your AWS account.
+       To continue Stacktape needs to create hosted zone for your domain.
+✔ Proceed with creating hosted zone for the domain simonobetko.net in your AWS account? … yes
+[INFO] Hosted zone for domain simonobetko.net is created. Name servers of the AWS hosted zone are:
+       - ns-1924.awsdns-48.co.uk
+       - ns-290.awsdns-36.com
+       - ns-913.awsdns-50.net
+       - ns-1274.awsdns-31.org.
+
+[INFO] You can finish adding your domain by:
+       1. Copying DNS records from your current DNS hosting, into hosted zone created in your AWS account here: https://console.aws.amazon.com/route53/v2/hostedzones?#ListRecordSets/Z0759875A1OGK3MWN61Y
+       2. Setting name server (NS) records at your current domain registrar. Name servers should point to the name servers of the hosted zone created in your AWS account(shown above).
+       After domain is migrated run stacktape domain:add again to finish preparations (creating and validating TLS certs).
+
+```
+
+As the command output suggest, there are two steps you need to do now:
+
+1. Copy existing DNS records from your current DNS hosting, into hosted zone created in your AWS account (the link is
+   provided in command output)
+2. After you copy DNS records: Set name server (NS) records at your current domain registrar. Name servers should point
+   to the name servers of the hosted zone created in your AWS account(name servers for the hosted zone are provided in
+   command output). This can be usually easily done in your domain registrar's console UI.
+
+<Info>
+
+**Make sure to migrate all your existing DNS records into your new hosted zone before changing name server records!**
+
+---
+
+Note that it can take up to multiple days until the change of nameservers is propagated.
+
+</Info>
+
+You can confirm that the DNS is migrated by running `stacktape domain:add` command again. After confirming the creation
+of TLS certificates (and optionally configuring domain to be used with AWS SES), you should get output like this:
+
+```none
+$ stacktape domain:add --region eu-west-1
+✔ Domain name (example: mydomain.com) … simonobetko.net
+[SUCCESS] Loading AWS credentials done in 0.5 sec. Loaded from Stacktape API.
+[SUCCESS] Loading user data done in 1.48 sec. User: Šimon Obetko. Organization: Stacktape.
+[SUCCESS] Fetching domain statuses done in 4.2 sec.
+[SUCCESS] Domain ownership validated successfully
+[SUCCESS] Certificates for the domain simonobetko.net are created.
+[SUCCESS] Certificates validated successfully
+[Salso allows you to configurene in 0.45 sec.
+[SUCCESS] Domain is verified for using with AWS SES.
+[SUCCESS] Domain "simonobetko.net" is prepared to be used in region eu-west-1.
+$
+```
+
+Now you can use your domain in Stacktape configuration. During deployment, stacktape will automatically assign required
+certificates create DNS record which will point your chosen domain to the resource.
+
+```yml
+resources:
+  apiService:
+    type: web-service
+    properties:
+      resources:
+        cpu: 2
+        memory: 2048
+      packaging:
+        type: stacktape-image-buildpack
+        properties:
+          entryfilePath: src/main.ts
+      # {start-highlight}
+      customDomains:
+        - domainName: api.mydomain.com
+      # {stop-highlight}
+
+  web:
+    type: hosting-bucket
+    properties:
+      uploadDirectoryPath: ./dist
+      hostingContentType: single-page-app
+      # {start-highlight}
+      customDomains:
+        - domainName: mydomain.com
+      # {stop-highlight}
+```
+
+{/* # Overview
+
+Stacktape allows you to connect your custom domain names to some of your resources (Web Service, Nextjs web, HTTP API Gateways, Application Load Balancers and Buckets with CDNs).
+
+Connecting a custom domain to the resource does 2 things:
+
+-   **Creates DNS records**:
+    -   If you use your custom domain with a resource, Stacktape automatically creates a DNS record (during deploy) pointing the specified domain name to the resource.
+-   **Adds TLS certificates**
+    -   If the origin resource (HTTP API Gateway, Application Load Balancer or CDN) uses HTTPS protocol, Stacktape takes care of issuing and attaching correct (free, AWS-managed) certificate to the resource. This means, you do not have to deal with TLS termination as it is handled by the connected resource.
+    -   If you want to use your own certificates, you can configure `customCertificateArns`.
+
+To manage a custom domain, it first needs to be added to your AWS account. This means that a [hosted zone](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/AboutHZWorkingWith.html) (collection of records managed together for a given domain) for your domain exists in your AWS account and your domain registrar's name servers are pointing to it. To learn more, refer to [Adding a domain guide](/other-resources/domains-and-certificates/#adding-domain).
+
+# Under the hood
+
+For managing domains and their DNS records, Stacktape uses [AWS Route 53](https://aws.amazon.com/route53/). You can also
+easily buy domain through
+[Route 53 AWS console](https://us-east-1.console.aws.amazon.com/route53/home#DomainRegistration:). SSL/TLS certificates
+for domains are generated using [AWS Certificate Manager(ACM)](https://aws.amazon.com/certificate-manager/)(free of
+charge). */}
+
+# Assigning custom domains to resources
+
+To assign the domain to a supported resource, use the `customDomains` property. During the deployment, Stacktape will
+create DNS record pointing to your resource/app.
+
+To learn more, refer to the docs of these resources:
+
+- [Web Services](/compute-resources/web-services/#custom-domain-names)
+- [Hosting Buckets](/resources/hosting-buckets/#custom-domain-names)
+- [HTTP Api Gateways](/resources/http-api-gateways/#custom-domain-names) (or with
+  [CDN](/resources/cdns/#custom-domain-names))
+- [Application Load Balancers](/resources/application-load-balancers/#custom-domain-names) (or with
+  [CDN](/resources/cdns/#custom-domain-names))
+- [Buckets with CDN](/resources/cdns/#custom-domain-names)
+
+# Using subdomains
+
+Stacktape also allows you to configure subdomains. You can connect your domain to any number of resources.
+
+The subdomain can also be interpolated, for example based on the the specified `stage`.
+
+```yml
+resources:
+  myHttpApi:
+    type: 'http-api-gateway'
+    properties:
+      # {start-highlight}
+      customDomains:
+        - domainName: $Format('{}.mydomain.com', $Stage())
+      # {stop-highlight}
+```
+
+# Registering domain
+
+You can buy and register domain directly in your
+[AWS console](https://us-east-1.console.aws.amazon.com/route53/domains/home?region=eu-west-1#/DomainSearch). Once you
+have registered the domain, refer to [Managing domains with Stacktape](#managing-domains-with-stacktape) section.
+
+# Using 3rd party DNS
+
+You can manage your DNS records outside of Stacktape and AWS in your DNS provider of choice. However, you will need to
+create/import a custom TLS certificate for your domain in
+[AWS console](https://console.aws.amazon.com/acm/home#/certificates/list)
+
+After you have created/imported the certificate you can reference it using ARN in the Stacktape configuration.
+
+Remember to disable DNS record creation, as in this setup your DNS records are not under Stacktape control.
+
+```yml
+resources:
+  apiService:
+    type: web-service
+    properties:
+      resources:
+        cpu: 2
+        memory: 2048
+      packaging:
+        type: stacktape-image-buildpack
+        properties:
+          entryfilePath: src/main.ts
+      # {start-highlight}
+      customDomains:
+        - domainName: mydomain.com
+          disableDnsRecordCreation: true
+          customCertificateArn: <<ARN_OF_YOUR_CERTIFICATE>>
+      # {stop-highlight}
+```
+
+After successful deployment, in your DNS provider, point your CNAME (or ALIAS if you are using apex of a domain) DNS
+record to the domain of the created resource. You can find the domain in the
+[stacktape console](https://console.stacktape.com/):
+
+- Navigate to **"Projects"** and select your project and stage
+- Click on the resource with the domain attached and you should see the detail including `domain` parameter which is the
+  domain name you are looking for

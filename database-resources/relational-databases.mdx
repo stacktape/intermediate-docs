@@ -1,0 +1,839 @@
+---
+title: "Relational (SQL) databases"
+order: 150
+---
+
+# Overview
+
+- Relational databases allow you to deploy a fully managed relational (SQL) database to your stack. You can choose from
+  multiple database types, such as **PostgreSQL**, **MySQL**, **MariaDB**, **Oracle Database** or **SQL Server**.
+
+- They are easy to set up, operate and scale. Capacity scaling, hardware & VM provisioning, database setup, patching,
+  logging, backups and more are provided out of the box.
+
+# Under the hood
+
+Under the hood, Stacktape uses [AWS RDS](https://aws.amazon.com/rds/) service to provision databases.
+
+3 engine categories, with different topology and scaling behavior are supported:
+
+- `Basic RDS engines`: default, cheapest, single-node database with optional read replicas for higher performance and
+  Multi AZ standby instances for increased resilience and fault tolerance. Basic engines include **PostgreSQL**,
+  **MySQL**, **MariaDB**, **Oracle Database** or **SQL Server**. For more information refer to
+  [AWS web](https://aws.amazon.com/rds/?nc=sn&loc=3&dn=1).
+- `Aurora engine`: multi-node, highly available database cluster with increased durability and fault tolerance. Database
+  requests are automatically balanced between available nodes resulting in higher performance. Supported engines are
+  **PostgreSQL**, **MySQL**. For more information refer to [AWS web](https://aws.amazon.com/rds/aurora/).
+- `Aurora serverless engine`: similar to Aurora engine, but with support for automatic usage-based scaling. Your
+  database compute capacity can scale up and down(within configured boundaries) depending on the load. The database can
+  be completely paused after configured time of inactivity, saving you the resources and money. Supported engines are
+  **PostgreSQL**, **MySQL**. For more information refer to [AWS web](https://aws.amazon.com/rds/aurora/).
+
+## Security
+
+Databases are always deployed within stack's VPC(Virtual Private Cloud) in your private network. You can
+[configure database accessibility](#accessibility), i.e whether the database is accessible from the internet or only
+available to other resources in VPC.
+
+# Basic usage
+
+- Relational databases require an active connection. To establish a connection, you typically need connection string.
+- You can use `connectTo` property on the resource which is connecting to automatically inject required variables.
+
+```yml
+resources:
+  myDatabase:
+    type: relational-database
+    properties:
+      credentials:
+        masterUserPassword: $Secret('database.password')
+      engine:
+        type: postgres
+        properties:
+          version: '16.2'
+          primaryInstance:
+            instanceSize: db.t3.micro
+
+  apiServer:
+    type: multi-container-workload
+    properties:
+      resources:
+        cpu: 1
+        memory: 1024
+      containers:
+        - name: api-container
+          packaging:
+            type: stacktape-image-buildpack
+            properties:
+              entryfilePath: src/main.ts
+      # {start-highlight}
+      connectTo:
+        - myDatabase
+      # {stop-highlight}
+```
+
+> Single-node Postgres database that uses RDS Engine
+
+```ts
+import express from 'express';
+import { Pool } from 'pg';
+
+const pgPool = new Pool({
+  connectionString: process.env.STP_MY_DATABASE_CONNECTION_STRING // env variable was automatically injected by Stacktape
+});
+
+const app = express();
+
+app.get('/time', async (req, res) => {
+  const result = await pgPool.query('SELECT NOW()');
+  const time = result.rows[0];
+
+  res.send(time);
+});
+
+app.listen(3000, () => {
+  console.info('Server running on port 3000');
+});
+```
+
+> Container workload connecting to the database
+
+# Database credentials
+
+- Configures credentials for the database master user.
+- You should not input these directly. The recommended way is using a [secret](/resources/secrets).
+
+```yml
+resources:
+  myRelationalDatabase:
+    type: relational-database
+    properties:
+      # {start-highlight}
+      credentials:
+        masterUserName: $File('.env').DB_USER_NAME # OPTIONAL
+        masterUserPassword: $Secret('dbCredentials.password')
+      # {stop-highlight}
+      engine:
+        type: postgres
+        properties:
+          version: '16.2'
+          port: 5432
+          primaryInstance:
+            instanceSize: db.t2.micro
+```
+
+<PropertiesTable
+  definitionName="RelationalDatabaseCredentials"
+  searchForReferencesInDefinition="RelationalDatabaseProps"
+/>
+
+# Engine
+
+Database engine determines the properties of your database, such as:
+
+- database type (PostgreSQL, MySQL...),
+- number of instances,
+- high availability capabilities,
+- redundancy,
+- performance,
+- scaling behavior,
+- pricing etc.
+
+Depending on the properties they provide, we group engine types into following groups:
+
+- [Rds Engine](#rds-engine) group - single node fully managed databases.
+  - Supported engines:
+    - **postgres**
+    - **mysql**
+    - **mariadb**
+    - **oracle-ee**
+    - **oracle-se2**
+    - **sqlserver-ee**
+    - **sqlserver-ex**
+    - **sqlserver-se**
+    - **sqlserver-web**
+- [Aurora Engine](#aurora-engine) group - multi node highly available cluster with replicated storage.
+  - Supported engines:
+    - **aurora-postgresql**
+    - **aurora-mysql**
+- [Aurora Serverless V2 Engine](#aurora-serverless-v2-engine) - serverless engine with replicated storage. Compute
+  resources scale based on actual demand.
+  - Supported engines:
+    - **aurora-postgresql-serverless-v2**
+    - **aurora-mysql-serverless-v2**
+- [Aurora Serverless V1 Engine](#aurora-serverless-engine) - old generation serverless engine. We recommend using V2
+  instead.
+  - Supported engines:
+    - **aurora-postgresql-serverless**
+    - **aurora-mysql-serverless**
+
+## Engine Version
+
+Depending on the engine type, you must choose one of the available engine versions. Here is the list of available
+versions.
+
+```yml
+resources:
+  myDatabase:
+    type: relational-database
+    properties:
+      credentials:
+        masterUserPassword: $Secret('dbPassword')
+      engine:
+        type: postgres
+        properties:
+          # {start-highlight}
+          version: '16.2'
+          # {stop-highlight}
+          port: 5432
+          primaryInstance:
+            instanceSize: db.t3.micro
+```
+
+### Available versions
+
+<EngineVersionsList resourceType="rds" />
+
+## Rds Engine
+
+- To use the RDS engine, set the `engine.type` property to `postgres`, `mysql`, `mariadb`, `oracle-ee`, `oracle-se2`,
+  `sqlserver-ee`, `sqlserver-ex`, `sqlserver-se` or `sqlserver-web`.
+- RDS engine is the default, cheapest, single-node, fully managed database engine.
+- RdsEngine is not highly available or fault-tolerant by default. However, Stacktape allows you to configure a standby
+  instance in a different AZ (Availability zone) to increase resilience or add
+  [read replicas](http://localhost:8000/resources/relational-databases/#read-replicas) to increase read performance.
+
+<PropertiesTable definitionName="RdsEngine" searchForReferencesInDefinition="RelationalDatabaseProps" />
+
+### Instance size
+
+-   Allows you to choose the database instance size. Each instance size offers different combination of CPU, memory, storage, and networking capacity.
+-   To see a list of available instances, refer to [AWS docs](https://aws.amazon.com/rds/instance-types/)
+
+-   Not every instance size is supported for every database engine, version or region.
+-   Be aware that some instance families (such as t3 or t4) are mostly meant for testing and not production workloads
+-   Refer to [AWS Docs](https://aws.amazon.com/rds/pricing/) for detailed breakdown of supported combinations.
+
+- Instance size can be configured for both primary instance and read replicas.
+
+```yml
+resources:
+  myDatabase:
+    type: relational-database
+    properties:
+      credentials:
+        masterUserPassword: $Secret('dbPassword')
+      engine:
+        type: postgres
+        properties:
+          version: '16.2'
+          port: 5432
+          primaryInstance:
+            # {start-highlight}
+            instanceSize: db.t3.micro
+          # {stop-highlight}
+```
+
+### MultiAz mode
+
+-   When enabled, the data is replicated to a standby instance in a different AZ (Availability Zone).
+-   If the default (primary) instance fails, the failover to the standby instance in another AZ is performed.
+-   The failover to the standby instance is synchronous (highly durable).
+-   The standby instance can not be directly accessed (doesn't have its own database endpoint).
+-   In contrast to using replicas, standby instance can fully take-over the responsibilities of the primary instance, while replicas can only be used for read operations.
+-   Reduces the impact of maintenance. The maintenance is performed on the standby instance first, promotes the standby instance to a primary instance, and then performs maintenance on the old primary instance which is now a standby replica.
+
+- Multi AZ (Availability zone) mode can be configured for both primary instances and read replicas.
+
+```yml
+resources:
+  myDatabase:
+    type: relational-database
+    properties:
+      credentials:
+        masterUserPassword: $Secret('dbPassword')
+      engine:
+        type: postgres
+        properties:
+          version: '16.2'
+          port: 5432
+          primaryInstance:
+            instanceSize: db.t2.micro
+            # {start-highlight}
+            multiAz: true
+            # {stop-highlight}
+```
+
+<PropertiesTable definitionName="RdsEnginePrimaryInstance" searchForReferencesInDefinition="RelationalDatabaseProps" />
+
+### Read replicas
+
+-   Read replicas help to decrease the load on the primary instance by serving a read-only database requests.
+-   Replication uses database's native asynchronous replication to update the read replicas whenever there is a change to the primary instance.
+-   Each read replica has its own database endpoint.
+
+```yml
+resources:
+  myDatabase:
+    type: relational-database
+    properties:
+      credentials:
+        masterUserPassword: $Secret('dbPassword')
+      engine:
+        type: postgres
+        properties:
+          version: '16.2'
+          port: 5432
+          primaryInstance:
+            instanceSize: db.t3.micro
+          # {start-highlight}
+          readReplicas:
+            - instanceSize: db.t3.micro
+            - instanceSize: db.t3.micro
+          # {stop-highlight}
+```
+
+<PropertiesTable definitionName="RdsEngineReadReplica" searchForReferencesInDefinition="RelationalDatabaseProps" />
+
+### Storage
+
+-   When you run out of free database space, your storage will automatically scale up.
+-   By default, scales between **20GB** and **200GB**.
+-   The scaling process happens when the following conditions are met:
+    -   Free available space\` is less than 10 percent of the allocated storage
+    -   The low-storage condition lasts at least five minutes.
+    -   At least six hours have passed since the last storage modification.
+-   To learn more about storage autoscaling, refer to [AWS Docs](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_PIOPS.StorageTypes.html#USER_PIOPS.Autoscaling)
+
+```yml
+resources:
+  myDatabase:
+    type: relational-database
+    properties:
+      credentials:
+        masterUserPassword: $Secret('dbPassword')
+      engine:
+        type: postgres
+        properties:
+          version: '16.2'
+          port: 5432
+          primaryInstance:
+            instanceSize: db.t3.micro
+          # {start-highlight}
+          storage:
+            initialSize: 40
+            maxSize: 400
+          # {stop-highlight}
+```
+
+<PropertiesTable definitionName="RdsEngineStorage" searchForReferencesInDefinition="RelationalDatabaseProps" />
+
+<Divider />
+
+## Aurora Engine
+
+- To use the Aurora engine, set the `engine.type` property to `aurora-postgresql` or `aurora-mysql`.
+- Fully-managed, AWS-developed engine with clustering support, high-availability, increased durability & performance.
+- Compute instances (nodes) run across multiple Availability Zones. Storage is automatically replicated 6-ways across 3
+  availability zones.
+- Automatically load-balances read operations between nodes.
+- Automatic failover - if a primary instance fails, one of the read replicas is elected as a new primary instance.
+- To learn more about the AuroraEngine, refer to
+  [AWS Docs](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/aurora-serverless.how-it-works.html)
+
+```yml
+resources:
+  auroraSlsPostgres:
+    type: relational-database
+    properties:
+      credentials:
+        masterUserPassword: $Secret('dbSecret.password')
+      # {start-highlight}
+      engine:
+        type: aurora-postgresql
+        properties:
+          version: '16.2'
+          instances:
+            - instanceSize: db.t3.medium
+          port: 5432
+      # {stop-highlight}
+```
+
+<PropertiesTable definitionName="AuroraEngine" searchForReferencesInDefinition="RelationalDatabaseProps" />
+
+<PropertiesTable definitionName="AuroraEngineInstance" searchForReferencesInDefinition="RelationalDatabaseProps" />
+
+<Divider />
+
+## Aurora Serverless V2 Engine
+
+- To use the Aurora engine, set the `engine.type` property to `aurora-postgresql-serverless-v2` or
+  `aurora-mysql-serverless-v2`.
+- Fully-managed AWS-developed engines (based on and compatible with either PostgreSQL or MySQL) with high-availability,
+  increased durability & performance.
+- Similar to Aurora Engines, but automatically scales based on usage. In comparison with Serverless V1, it is more
+  responsive, more granular, and less disruptive when scaling.
+- Scaling is done using ACUs (Aurora Compute units). Each ACU has ~2GB of RAM and 1 virtual CPU.
+- Can scale to 0 ACUs (database is paused, and you don't pay anything).
+- To learn more about Aurora Engines, refer to
+  [AWS Docs](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/aurora-serverless.how-it-works.html)
+
+<PropertiesTable definitionName="AuroraServerlessV2Engine" searchForReferencesInDefinition="RelationalDatabaseProps" />
+
+```yml
+resources:
+  myDatabase:
+    type: relational-database
+    properties:
+      credentials:
+        masterUserPassword: $Secret('dbSecret.password')
+      # {start-highlight}
+      engine:
+        type: aurora-postgresql-serverless-v2
+        properties:
+          version: '16.4'
+          maxCapacity: 8
+      # {stop-highlight}
+```
+
+<Divider />
+
+## Aurora Serverless Engine
+
+<Warning>
+
+We recommend using newer Aurora [Aurora Serverless V2 Engines](#aurora-serverless-v2-engine) instead of this one.
+
+</Warning>
+
+- To use the Aurora engine, set the `engine.type` property to `aurora-postgresql-serverless` or
+  `aurora-mysql-serverless`.
+- Fully-managed AWS-developed engines (based on and compatible with either PostgreSQL or MySQL) with high-availability,
+  increased durability performance.
+- Similar to Aurora Engines, but automatically scales based on usage.
+- Scaling is done using ACUs (Aurora Compute units). Each ACU has ~2GB of RAM and 1 virtual CPU.
+- Can scale to 0 ACUs (database is paused, and you don't pay anything).
+- To learn more about Aurora Engines, refer to
+  [AWS Docs](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/aurora-serverless.how-it-works.html)
+
+<PropertiesTable definitionName="AuroraServerlessEngine" searchForReferencesInDefinition="RelationalDatabaseProps" />
+
+```yml
+resources:
+  myDatabase:
+    type: relational-database
+    properties:
+      credentials:
+        masterUserPassword: $Secret('dbSecret.password')
+      # {start-highlight}
+      engine:
+        type: aurora-postgresql-serverless
+        properties:
+          version: '13.12'
+          minCapacity: 4
+          maxCapacity: 8
+          pauseAfterSeconds: 600
+      # {stop-highlight}
+```
+
+# Backups
+
+-   Databases are automatically backed up once a day.
+-   Maximum retention period is `35` days.
+-   You can disable automated backups by setting the value to 0 (works only for RDS engines).
+-   You can also take manual backup snapshots (in the console or using the API). The retention is not applied to manual backups.
+-   By default, backups are retained for 1 day.
+-   To learn more about RDS engine backups, refer to [RDS engine backups AWS Docs](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_WorkingWithAutomatedBackups.html).
+-   To learn more about Aurora engine backups, refer to [Aurora engine backups AWS Docs](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.Managing.Backups.html).
+
+```yml
+resources:
+  myDatabase:
+    type: relational-database
+    properties:
+      credentials:
+        masterUserPassword: my_secret_password
+      engine:
+        type: postgres
+        properties:
+          version: '16.2'
+          primaryInstance:
+            instanceSize: db.t3.micro
+      # {start-highlight}
+      automatedBackupRetentionDays: 5
+      # {stop-highlight}
+```
+
+# Logging
+
+-   By default, logging is enabled and logs are preserved for `90` days.
+-   Logged data depend on the used `engine`. You can log information about connections, disconnections, executed queries & much more.
+
+<PropertiesTable definitionName="RelationalDatabaseLogging" searchForReferencesInDefinition="RelationalDatabaseProps" />
+
+```yml
+resources:
+  myDatabase:
+    type: relational-database
+    properties:
+      credentials:
+        masterUserPassword: my_secret_password
+      engine:
+        type: postgres
+        properties:
+          version: '16.2'
+          primaryInstance:
+            instanceSize: db.t3.micro
+      # {start-highlight}
+      logging:
+        retentionDays: 30
+        engineSpecificOptions:
+          log_connections: true
+      # {stop-highlight}
+```
+
+## Forwarding logs
+
+It is possible to forward logs to the third party services/databases. See page
+[Forwarding logs](/configuration/log-forwarding/) for more information and examples.
+
+# Closing zombie connections
+
+- Connections initiated by resources that are no longer running (for example stopped containers) can result in so called
+  "zombie" connections.
+- Modern, cloud-native architectures usually include horizontally scalable, ephemeral (short-lived) resources. When
+  using these resources, you should have a strategy of dealing with zombie connections.
+
+## From container workloads
+
+- For connections initiated from container workloads, you shouldn't forget to close the connection before your container
+  exits. For example, ou can hook to a [sigterm signal](/compute-resources/multi-container-workloads/#shutdown).
+
+```ts
+const connectionPool = createConnectionPool();
+
+// remember to close the connection even on errors
+process
+  .on('uncaughtException', () => {
+    connectionPool.close();
+    process.exit(1);
+  })
+  .on('unhandledRejection', () => {
+    connectionPool.close();
+    process.exit(1);
+  });
+
+process.on('SIGTERM', () => {
+  connectionPool.close();
+  process.exit(0);
+});
+```
+
+> Example of closing
+
+## From batch jobs
+
+- For connections initiated from batch jobs, you shouldn't forget to close the connection before your batch job finishes
+  its job and your container exits.
+
+```ts
+const connectionPool = createConnectionPool();
+
+connectionPool.connect();
+
+// remember to close the connection even on errors
+process
+  .on('uncaughtException', () => {
+    connectionPool.close();
+    process.exit(1);
+  })
+  .on('unhandledRejection', () => {
+    connectionPool.close();
+    process.exit(1);
+  });
+
+doSomethingWithYourConnection();
+
+connectionPool.close();
+```
+
+## From lambda functions
+
+- For connections initiated from lambda functions, you have 2 options:
+
+<br />
+
+**<u>Initialize and close the connection INSIDE the function handler</u>**.
+
+- This way you can avoid having a zombie connection.
+- This approach is not optimal, because creating a database connection can be slow (can take 10s to 100s of
+  milliseconds). `embed:relational-databases/lambda-connection-inside.ts`
+
+<br />
+
+**<u>Initialize connections OUTSIDE the function handler</u>**
+
+- reuse it in every function invocation.
+- This WILL result in zombie connections, when the container running your function stops (you can't hook to a lambda
+  container `SIGTERM` signal to close it). In this case, you should do 2 things:
+
+  - lower your database connection timeout (using a database parameter based on the database used):
+
+    - for **Postgres**, set `idle_in_transaction_session_timeout` to something like `30min`, `tcp_keepalives_idle` to
+      `30min` and `tcp_keepalives_interval` to `1min`). This means inactive connections will be closed by the database.
+
+  - if a database request fails because of a closed connection, you should re-create it within your application code.
+```ts
+import { Client } from 'pg';
+
+const pgClient = new Client({
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  password: process.env.DB_PASSWORD,
+  port: process.env.DB_PORT
+});
+
+(async () => {
+  await pgClient.connect();
+})();
+
+const handler = async (event, context) => {
+  const result = await pgClient.query('SELECT NOW()');
+  const time = result.rows[0];
+
+  return { result: time };
+};
+
+export default handler;
+```
+
+# Accessibility
+
+- You can configure which resources and hosts can access your cluster.
+- To access your database, you always need to use your database user credentials.
+- On top of that, Stacktape allows your to restrict the accessibility of your database to only certain resources or
+  hosts.
+
+<PropertiesTable definitionName="DatabaseAccessibility" searchForReferencesInDefinition="RelationalDatabaseProps" />
+
+## Internet mode
+
+- Default mode.
+- Least restrictive. The database can be accessed from anywhere on the internet.
+
+## VPC mode
+
+- The database can be accessed only from resources within the [default VPC](/user-guides/vpcs/#default-vpc).
+- Any [function](/compute-resources/lambda-functions) (provided it has `joinDefaultVpc` set to true),
+  [batch job](/compute-resources/batch-jobs) or [container workload](/compute-resources/multi-container-workloads) or
+  services within your stack can access the database.
+- Additionally, IP addresses configured in `whitelistedIps` can also access the database (even from the internet). To
+  disable this behavior, and enforce database isolation ONLY to the VPC, you can set the `forceDisablePublicIp`
+  property.
+
+```yml
+resources:
+  myDatabase:
+    type: relational-database
+    properties:
+      credentials:
+        masterUserPassword: $Secret('dbPassword')
+      engine:
+        type: aurora-postgresql
+        properties:
+          version: '16.2'
+          instances:
+            - instanceSize: db.t3.medium
+          port: 5432
+      # {start-highlight}
+      accessibility:
+        accessibilityMode: vpc
+      # {stop-highlight}
+
+  myFunction:
+    type: function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: path/to/my/function.ts
+      joinDefaultVpc: true
+```
+
+## Scoping workloads in VPC mode
+
+- Similar to **vpc** mode, but even more restrictive. In addition to resource being in the VPC, any host or resource
+  trying to access your cluster must explicitly include the database in its `connectTo` list.
+- Additionally, IP addresses configured in `whitelistedIps` can also access the database (even from the internet). To
+  disable this behavior, and enforce database isolation, you can set the `forceDisablePublicIp` property.
+
+```yml
+resources:
+  myDatabase:
+    type: relational-database
+    properties:
+      credentials:
+        masterUserPassword: $Secret('dbPassword')
+      engine:
+        type: aurora-postgresql
+        properties:
+          version: '16.2'
+          instances:
+            - instanceSize: db.t3.medium
+          port: 5432
+      # {start-highlight}
+      accessibility:
+        accessibilityMode: scoping-workloads-in-vpc
+      # {stop-highlight}
+  myFunction:
+    type: function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: path/to/my/function.ts
+      joinDefaultVpc: true
+      # {start-highlight}
+      connectTo:
+        - myDatabase
+      # {stop-highlight}
+```
+
+## Whitelisted IPs only mode
+
+- The database can only be accessed from an IP addresses and CIDR blocks listed in the `whitelistedIps` list.
+
+```yml
+resources:
+  myDatabase:
+    type: relational-database
+    properties:
+      credentials:
+        masterUserPassword: $Secret('dbPassword')
+      engine:
+        type: aurora-postgresql
+        properties:
+          version: '16.2'
+          instances:
+            - instanceSize: db.t3.medium
+          port: 5432
+      # {start-highlight}
+      accessibility:
+        accessibilityMode: whitelisted-ips-only
+        whitelistedIps:
+          - '147.25.33.12'
+      # {stop-highlight}
+```
+
+# Maintenance window
+
+-   The maintenance window is the time period during which the database is available for maintenance.
+-   During this time, your database instance can be updated with modifications like OS patching or database engine version upgrades.
+-   The database might be unavailable for a short period of time during maintenance. To avoid service interruptions, you should use `multiAz` deployment for RDS engines or use an Aurora engine.
+-   The maintenance window is **specified in UTC**.
+-   The maintenance window is specified in the format of `day:time-day:time`. Example: `Sun:02:00-Sun:04:00`
+-   By default, the maintenance window is set to **Sunday 02:00 - Sunday 04:00** adjusted to the region's timezone (but does not account for daylight savings time). Examples:
+    -   In **us-east-1** the maintenance window is set to **Sunday 07:00 - Sunday 09:00 UTC** which translates to **Sunday 02:00 - Sunday 04:00** in the region's timezone
+    -   In **eu-west-1** the maintenance window is set to **Sunday 01:00 - Sunday 03:00 UTC** which translates to **Sunday 02:00 - Sunday 04:00** in the region's timezone
+
+```yml
+resources:
+  myDatabase:
+    type: relational-database
+    properties:
+      credentials:
+        masterUserPassword: my_secret_password
+      engine:
+        type: postgres
+        properties:
+          version: '16.2'
+          primaryInstance:
+            instanceSize: db.t3.micro
+      # {start-highlight}
+      preferredMaintenanceWindow: Sun:04:00-Sun:05:00
+      # {stop-highlight}
+```
+
+# Referenceable parameters
+
+<ReferenceableParams resource="relational-database" />
+
+# Pricing
+
+Pricing heavily depends on the engine used.
+
+<br />
+
+**RDS engines:**
+
+- Database server instance
+  - Price depends on the instance size and region. Allowed instances depend on the database type.
+    [Postgres instances](https://aws.amazon.com/rds/postgresql/pricing/)
+    [MySQL instances](https://aws.amazon.com/rds/mysql/pricing/),
+    [Maria db instances](https://aws.amazon.com/rds/mariadb/pricing/),
+    [Oracle db](https://aws.amazon.com/rds/oracle/pricing/),
+    [SQL server](https://aws.amazon.com/rds/sqlserver/pricing/).
+- Storage
+  - $0.115 - $0.238 per GB-month
+- Backups:
+  - For automated backups with default retention setting (where you never store more than 100% of your total database
+    storage), there is no additional charge.
+  - Additional backup storage is $0.095 per GB-month.
+
+**Aurora engines:**
+
+- Database server instance
+  - Price depends on the instance sizes and region. To see exact prices, refer to
+    [AWS pricing page](https://aws.amazon.com/rds/aurora/pricing/)
+  - Price starts at $0.073 / hour.
+- Storage
+  - $0.10 - $0.19 per GB-month
+- I/O Rate
+  - $0.20 - $0.28 per 1 million read/write operations
+- Backups
+  - For automated backups with default retention setting (where you never store more than 100% of your total database
+    storage), there is no additional charge.
+  - Additional backup storage is $0.021 - $0.037 per GB-month.
+
+**Aurora serverless:**
+
+- ACUs (Aurora capacity units)
+  - Each capacity unit has ~2GB of memory, ~1 Virtual CPU and corresponding network capabilities
+  - 1 ACU costs $0.06 - $0.10 (depending on region)
+  - Aurora Serverless databases can scale to 0 ACUs (with no costs)
+- Storage, I/O Rate and Backups cost the same amount as Aurora non-serverless.
+
+<br />
+
+**Data transfer charges** (same for all engines).
+
+- IN transfer: free
+- OUT to VPC (subnet in the same Availability zone): free
+- OUT to VPC (subnet in different Availability zone): $0.01 per GB ($0.02, because you are paying on both sides)
+- OUT to Internet: first 1 GB free, then $0.09 -$0.15 per GB
+
+<br />
+
+**FREE TIER** (eligible for first 12 months)
+
+- 750 Hours per month of db.t2.micro database usage (applicable DB engines)
+- 20 GB of General Purpose (SSD) database storage \
+- 20 GB of storage for database backups and DB Snapshots
+
+# API reference
+
+<PropertiesTable definitionName="RelationalDatabase" />
+
+<PropertiesTable definitionName="RdsEngineProperties" searchForReferencesInDefinition="RelationalDatabaseProps" />
+
+<PropertiesTable definitionName="AuroraEngineProperties" searchForReferencesInDefinition="RelationalDatabaseProps" />
+
+<PropertiesTable
+  definitionName="AuroraServerlessEngineProperties"
+  searchForReferencesInDefinition="RelationalDatabaseProps"
+/>
+
+<PropertiesTable definitionName="PostgresLoggingOptions" searchForReferencesInDefinition="RelationalDatabaseProps" />
+
+<PropertiesTable definitionName="MysqlLoggingOptions" searchForReferencesInDefinition="RelationalDatabaseProps" />

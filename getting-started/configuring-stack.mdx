@@ -1,0 +1,531 @@
+---
+title: "Configuring stack"
+order: 1
+---
+
+<br />
+<br />
+<br />
+
+Stacktape is an Infrastructure as a Code tool, building on top of the
+[many advantages](https://aws.amazon.com/what-is/iac/) of this approach.
+
+For people coming from a world of ClickOps (clicking in a GUI to create resources), this might seem inconvenient.
+
+This is why most of the Stacktape configuration can also be done using an interactive config editor (GUI). You will
+learn more about it on the next page.
+
+# 1. Configure resources
+
+Resources are defined within the `resources` section of the template.
+
+Every resource must have a unique name within the template. You can only use alphanumeric for the resource names.
+
+Every Stacktape resource translates to multiple underlying AWS CloudFormation resources.
+
+Example web service configuration:
+
+```yaml
+resources:
+  webService:
+    type: web-service
+    properties:
+      packaging:
+        type: stacktape-image-buildpack
+        properties:
+          entryfilePath: ./src/server.ts
+      resources:
+        cpu: 0.5
+        memory: 2048
+```
+
+# 2. Configure packaging
+
+For compute resources (the ones that run your code), you must configure how they will be packaged. Stacktape supports
+multiple packaging methods.
+
+<Info>
+
+Stacktape has built-in, content-aware hashing mechanism, that will only build and re-deploy your workloads if the
+application code or its dependencies have changed.
+
+</Info>
+
+## 2.1 Packaging containers
+
+### 2.1.1 Stacktape image buildpack
+
+<Info>
+
+For Node.js application, Stacktape buildpack is probably the fastest and most efficient build tool out there. It creates
+smallest possible images that only contain the code necessary for your application to work.
+
+Note that if your application also need other files (such as graphql schema file) in order to run, please explicitly
+specify them using `includeFiles`.
+
+</Info>
+
+Stacktape image buildpacks offer a heavily optimized way to package your applications directly from source code. You
+configure the entryfile of your application, and Stacktape will figure out how to create a Docker image out of it,
+including all of the application dependencies.
+
+Currently supported languages are: Javascript, Typescript, Python, Java and Go.
+
+```yaml
+resources:
+  webService:
+    type: web-service
+    properties:
+      # {start-highlight}
+      packaging:
+        type: stacktape-image-buildpack
+        properties:
+          entryfilePath: ./src/server.ts
+      # {stop-highlight}
+```
+
+### 2.1.2 External buildpack
+
+You can use any of the builders supported by [pack](https://paketo.io/docs/).
+
+For example, you can use builder `paketobuildpacks/builder-jammy-base`, which will automatically detect which
+[paketo buildpack](https://github.com/paketo-buildpacks/samples) to use.
+
+You can also use heroku builder `heroku/builder:22`, which will automatically detect which
+[heroku buildpack](https://devcenter.heroku.com/articles/buildpacks#officially-supported-buildpacks) to use.
+
+```yaml
+resources:
+  webService:
+    type: web-service
+    properties:
+      # {start-highlight}
+      packaging:
+        type: external-buildpack
+        properties:
+          builder: heroku/builder:22
+          sourceDirectoryPath: ./
+      # {stop-highlight}
+```
+
+### 2.1.3 Custom Dockerfile
+
+You can also use your own Dockerfile.
+
+```yaml
+resources:
+  webService:
+    type: web-service
+    properties:
+      # {start-highlight}
+      packaging:
+        type: custom-dockerfile
+        properties:
+          # All "COPY" instruction in the Dockerfile will be resolved relatively to this directory
+          buildContextPath: ./
+          # Path to the Dockerfile (relative to buildContextPath)
+          dockerfilePath: ./Dockerfile
+      # {stop-highlight}
+```
+
+### 2.1.4 Prebuilt image
+
+You can also use your own prebuilt image from the docker repository.
+
+```yaml
+resources:
+  webService:
+    type: web-service
+    properties:
+      # {start-highlight}
+      packaging:
+        type: prebuilt-image
+        properties:
+          # The format is {registryUri}/{repositoryName}:{tag}
+          image: repoUri/repoName:tag
+      # {stop-highlight}
+```
+
+## 2.2 Packaging lambda functions
+
+### 2.2.1 Stacktape lambda buildpack
+
+Stacktape can also automatically and very efficiently package your lambda functions (with all of their dependencies).
+
+Currently supported languages are: Javascript, Typescript, Python, Java and Go.
+
+```yaml
+resources:
+  webService:
+    type: web-service
+    properties:
+      # {start-highlight}
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: ./src/my-lambda.ts
+      # {stop-highlight}
+```
+
+### 2.2.2 Custom artifact
+
+If you build your lambda functions on your own, simply point Stacktape to the pre-built lambda artifact.
+
+```yaml
+resources:
+  webService:
+    type: web-service
+    properties:
+      # {start-highlight}
+      packaging:
+        type: custom-artifact
+        properties:
+          packagePath: ./my-artifact.zip
+      # {stop-highlight}
+```
+
+# 3. Connect resources
+
+Some Stacktape resources can be connected to other resources to allow interaction between them. Connecting resources
+does 2 things:
+
+- Injects environment variables required for connecting to a resource. The name of the injected environment variables is
+  formed as CONSTANT_CASE resource name, prefixed by `STP`
+- When needed, required _IAM_ and security group permissions are automatically added to allow communication between
+  resources.
+
+<br />
+
+For example, you can connect your Web service to a SQL database.
+
+This will:
+
+- inject environment variables `STP_MAIN_DATABASES_CONNECTION_STRING`, `STP_MAIN_DATABASES_HOST` and
+  `STP_MAIN_DATABASES_PORT` to the environment of **webService**
+
+```yaml
+resources:
+  webService:
+    type: web-service
+    properties:
+      packaging:
+        type: stacktape-image-buildpack
+        properties:
+          entryfilePath: ./src/server.ts
+      resources:
+        cpu: 0.5
+        memory: 2048
+      # {start-highlight}
+      connectTo:
+        - mainDatabase
+      # {stop-highlight}
+  mainDatabase:
+    type: relational-database
+    properties: ...more-properties...
+```
+
+Or to connect a lambda function to a DynamoDb table. This will:
+
+- inject environment variables `STP_DYNAMO_DB_NAME` and `STP_DYNAMO_DB_ARN` to the environment of **myLambda** function
+- add get / put / update / delete / scan / query _IAM_ permissions to the **myLambda** function
+
+```yml
+resources:
+  myLambda:
+    type: function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: ./src/my-lambda.ts
+      # {start-highlight}
+      connectTo:
+        - dynamoDb
+      # {stop-highlight}
+  dynamoDb:
+    type: dynamo-db-table
+    properties:
+      primaryKey:
+        partitionKey:
+          name: id
+          type: string
+```
+
+# 4. Configure scripts and hooks
+
+## 4.1 Scripts
+
+**Scripts** are used to specify and execute your custom scripts and commands. Scripts can be used for anything from
+testing and building your application to performing database migrations. Specifying a script in the Stacktape config can
+be beneficial for multiple reasons:
+
+- scripts will be easily reusable by all members of your team,
+- scripts can be executed automatically within lifecycle [hooks](#hooks) (before/after deploy/delete etc.) or manually
+  using [script:run command](https://docs.stacktape.com/cli/commands/script-run/),
+- you can use `connectTo` property to easily inject environment variables needed for connecting to resources of your
+  stack,
+- you can leverage bastion scripts and bastion tunneling to access resources which are only accessible within VPC.
+
+```yml
+# {start-highlight}
+scripts:
+  buildWeb:
+    type: local-script
+    properties:
+      executeCommand: npx gatsby build
+# {stop-highlight}
+
+resources:
+  webBucket:
+    type: hosting-bucket
+    properties:
+      uploadDirectoryPath: ./public
+      hostingContentType: gatsby-static-website
+```
+
+To learn more, refer to this [dedicated page about scripts](../configuration/scripts.mdx).
+
+## 4.2 Hooks
+
+- Hooks allow you to execute a custom command or script before or after stacktape command is executed.
+- Example use cases:
+  - build, validate, or lint your application before deployment
+  - run unit tests on your application before deployment
+  - execute database migration after deployment
+  - cleanup database before delete
+
+The following snippet shows an example script that executes database schema migration. The script is listed in the
+`afterDeploy` hooks to execute migration after each deployment.
+
+```yml
+# {start-highlight}
+scripts:
+  migrateDb:
+    type: local-script
+    properties:
+      executeCommand: npx prisma db push
+      connectTo:
+        - mainDatabase
+
+hooks:
+  afterDeploy:
+    - scriptName: migrateDb
+#{stop-highlight}
+
+resources:
+  mainDatabase:
+    type: relational-database
+    properties:
+      credentials:
+        masterUserName: admin_user
+        masterUserPassword: $Secret('my-pass')
+      engine:
+        type: postgres
+        properties:
+          primaryInstance:
+            instanceSize: db.t4g.micro
+          version: "15.5"
+```
+
+To learn more, refer to this [dedicated page about hooks](/configuration/hooks).
+
+# 5. Extend using CloudFormation
+
+You can use the `cloudformationResources` section to extend your Stacktape template with AWS _Cloudformation_ resources.
+This enables you to easily configure, manage, and interconnect Cloudformation resources with other resources in your
+stack. As a result, you can leverage **the full power of AWS in a single unit configuration**.
+
+```yml
+# stacktape resources
+resources:
+  myLambda:
+    type: function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: ./src/my-lambda.ts
+      environment:
+        name: MONITOR_ARN
+        # {start-highlight}
+        # passing value from Cloudformation resource
+        value: $CfResourceParam('AnomalyServiceMonitor', 'MonitorArn')
+        # {stop-highlight}
+
+# {start-highlight}
+# Cloudformation resources
+cloudformationResources:
+  AnomalyServiceMonitor:
+    Type: "AWS::CE::AnomalyMonitor"
+    Properties:
+      MonitorName: "MonitorName"
+      MonitorType: "DIMENSIONAL"
+      MonitorDimension: "SERVICE"
+# {stop-highlight}
+```
+
+# 6. Override properties
+
+Stacktape runs on top of _Cloudformation_. To make your life easier, Stacktape abstracts the complexities of
+Cloudformation configurations and only exposes the essential parts that you need to set up your application in AWS.
+
+However, when needed, Stacktape allows you to override the underlying Cloudformation resources to tweak and adjust low
+level configurations to your needs.
+
+In the following example, we are overriding (setting) `Description` property of underlying Cloudformation
+[AWS::Lambda::Function](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-lambda-function.html)
+resource.
+
+```yml
+resources:
+  myFunction:
+    type: function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: path/to/my/lambda.ts
+    # {start-highlight}
+    overrides:
+      MyFunctionFunction:
+        Description: "My overriden lambda function description"
+    # {stop-highlight}
+```
+
+# 7. Add dynamic behavior
+
+## 7.1 - Using directives
+
+Directives can be used to add dynamic behavior to your templates. To learn more about directives, refer to
+[directives docs](../configuration/directives.mdx).
+
+### 7.1.1 - Built-in directives
+
+Built-in directives are available for use within all of the Stacktape config files without any extra configuration.
+
+For example, you can use built-in directives to set domain names for your web services dynamically.
+
+```yaml
+resources:
+  myHttpApi:
+    type: http-api-gateway
+    properties:
+      customDomains:
+        # {start-highlight}
+        # When deploying to stage "staging", the domain will be "staging-api.mydomain.com"
+        - domainName: $Format('{}-{}', $Stage(), 'api.mydomain.com')
+        # {stop-highlight}
+```
+
+### 7.1.2 Custom directives
+
+You can use custom directives to further customize your templates. The following example shows how to adjust database
+instance size based on stage (environment).
+
+<br />
+
+1. **Write the directive code**
+
+```typescript
+export const getDbInstanceSize = (stage: string) => {
+  if (stage === "production") {
+    return "db.m5.xlarge";
+  }
+  return "db.t2.micro";
+};
+```
+
+2. **Register the directive**
+
+```yaml
+directives:
+  - name: getDbInstanceSize
+    filePath: directives.ts:getDbInstanceSize
+```
+
+3. **Use the directive**
+
+```yml
+resources:
+  myDatabase:
+    type: relational-database
+    properties:
+      engine:
+        type: postgres
+        properties:
+          primaryInstance:
+            # {start-highlight}
+            instanceSize: $getDbInstanceSize($Stage())
+            # {stop-highlight}
+      ...more properties...
+```
+
+<br />
+
+## 7.2 Using Javascript/Typescript configs
+
+Besides `YAML`, you can write your configuration in `Javascript` and `Typescript`.
+
+If you also want to have type safety for your configurations, install `@stacktape/sdk`.
+
+<CodeBlock
+  tabs={[
+    { lang: "bash", code: "npm install --dev @stacktape/sdk\n", label: "npm" },
+    { lang: "bash", code: "yarn add --dev @stacktape/sdk\n", label: "yarn" },
+    { lang: "bash", code: "pnpm add -D @stacktape/sdk\n", label: "pnpm" },
+    { lang: "bash", code: "bun add -D @stacktape/sdk\n", label: "bun" }
+]} />
+
+For javascript files, you can use it in the following way:
+
+```javascript
+/** @type {import('@stacktape/sdk').StacktapeConfig} */
+const config = {
+  // your config
+};
+
+export default config;
+```
+
+For typescript files:
+
+```typescript
+import { StacktapeConfig } from "@stacktape/sdk";
+
+const config: StacktapeConfig = {
+  // your config
+};
+
+export default config;
+```
+
+You can also access other stack parameters, if you export a `getConfig` function.
+
+The function receives an object containing stack parameters and must return a valid Stacktape configuration.
+
+The following example shows how to adjust container resources based on stage (environment).
+
+```typescript
+import type { GetConfigFunction } from '@stacktape/sdk';
+
+export const getConfig: GetConfigFunction = ({ stage }) => {
+  return {
+    resources: {
+      webService: {
+        type: "web-service",
+        properties: {
+          resources: {
+            cpu: stage === 'production' ? 0.5 : 2,
+            memory: stage === 'production' ? 512 : 4096
+          }
+        ...more properties...
+      },
+    }
+  }
+};
+```
+
+<PreviousNext
+  left={{ url: "/getting-started/basics/", title: "Basics" }}
+  right={{ url: "/getting-started/using-config-editor/", title: "Interactive config editor" }}
+/>

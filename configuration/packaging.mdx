@@ -1,0 +1,288 @@
+---
+title: "Packaging"
+order: 0
+---
+
+# Packaging Lambda functions
+
+## Stacktape-lambda-buildpack
+
+- Built-in, zero-config, heavily optimized buildpack that creates a lambda artifact from an entryfile path
+- Currently supported languages are: [Javascript](#javascript-and-typescript), [Typescript](#javascript-and-typescript),
+  [Python](#python), [Java](#java) and [Go](#go).
+- Your deployment packages are cached. Stacktape creates a digest (checksum) from all the necessary files (and your
+  package manager lockfiles). If a workload with the same digest is already deployed, the packaging and deployment is
+  skipped.
+- Lambda function packages are zipped and uploaded to a pre-created S3 bucket.
+- The upload uses S3 transfer acceleration - upload is done to the nearest AWS's edge location, and then routed to the
+  bucket using an Amazon backbone network. This is faster and more secure, but incurs additional transfer costs ($0.04
+  per GB). To disable this behavior, set `(config).deploymentConfig.useS3TransferAcceleration` to `false`.
+
+```yml
+resources:
+  myLambda:
+    type: function
+    properties:
+      # {start-highlight}
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: path/to/my-lambda.ts
+      # {stop-highlight}
+      timeout: 10
+      memory: 2048
+```
+
+> Example function using `stacktape-lambda-buildpack` packaging
+
+### Javascript and Typescript
+
+- Your source code is built into a single file with all of its external dependencies. This ensures you are shipping only
+  the minimum required code. Behind the scenes, Stacktape uses [esbuild](https://esbuild.github.io/).
+- Source-maps are automatically generated and includes in your deployment package. The generated code also includes the
+  [source map support library](https://github.com/evanw/node-source-map-support) to make them usable.
+- If your dependency uses dynamic `require()` and can't be statically built, it will be copied as-is instead.
+- If your dependency is dependent on a binary file, the dependency will be installed in a Docker container (based on the
+  runtime used) and copied to the deployment package. This ensures your binary dependencies are usable even when
+  deploying from a different OS (Windows or Mac).
+
+### Python
+
+- Your source code is packed into into a zip archive with all its defined dependencies using docker, so you don't need
+  to have python installed for deployment.
+- Supported versions are `3.7`, `3.8` and `3.9` (default).
+- Installing dependencies is supported using [pip](https://pip.pypa.io/en/stable/),
+  [pipenv](https://pipenv.pypa.io/en/latest/) or [poetry](https://python-poetry.org/).
+- If your source code dependencies are defined in non-standard file located outside root folder, you can specify it
+  using `packageManagerFile` and `packageManager` in `languageSpecificProperties`.
+
+### Java
+
+- Your source code is packed into into a zip archive with all its defined dependencies using docker, so you don't need
+  to have java installed for deployment.
+- Supported versions are `8`, `11` (default).
+- [Gradle](https://gradle.org/) (default) and [Maven](https://maven.apache.org/) projects are supported.
+- If your project uses **Maven**, configure `useMaven` property in the `languageSpecificProperties` configuration.
+  Stacktape will.
+  [convert your maven project to a gradle project](https://docs.gradle.org/current/userguide/migrating_from_maven.html)
+  and build it as a gradle project (which is 2-10x times faster than maven).
+
+### Go
+
+- Your source code is packed into into a zip archive with all its defined dependencies using docker, so you don't need
+  to have go installed for deployment.
+
+<PropertiesTable definitionName="StpBuildpackLambdaPackagingProps" />
+
+## Custom-artifact
+
+- You supply a path to your own, pre-created artifact.
+- If the specified path is a directory or an un-zipped file, Stacktape will zip it.
+- The zipped lambda package is then uploaded to a pre-created S3 bucket using S3 transfer acceleration.
+
+<PropertiesTable definitionName="CustomArtifactLambdaPackagingProps" />
+
+# Packaging containers
+
+Applies to [Web services](/compute-resources/web-services/), [Private services](/compute-resources/private-services/),
+[Worker services](/compute-resources/worker-services/),
+[Multi-container workloads](/compute-resources/multi-container-workloads/) and
+[Batch jobs](/compute-resources/batch-jobs/).
+
+## Stacktape-image-buildpack
+
+- Built-in, zero-config, heavily optimized buildpack that creates a runnable container image from your source-code.
+- Currently supported languages are: `Javascript`, `Typescript`, `Python`, `Java` and `Go`.
+- The image is uploaded to a pre-created (AWS ECR) container registry.
+
+### Javascript and Typescript
+
+- Your source code is built into a single file with all of its external dependencies. This ensures you are shipping only
+  the minimum required code. Behind the scenes, Stacktape uses [esbuild](https://esbuild.github.io/).
+- Source-maps are automatically generated and includes in your deployment package. The generated code also includes the
+  [source map support library](https://github.com/evanw/node-source-map-support) to make them usable.
+- If your dependency uses dynamic `require()` and can't be statically built, it will be copied as-is instead.
+- If your dependency is dependent on a binary file, the dependency will be installed in a Docker container using a
+  Docker [multi-stage build](https://docs.docker.com/develop/develop-images/multistage-build/).
+- The base image used is the latest LTS version of node.js.
+  - `node:18-alpine` in case your app doesn't require [glibc](https://www.gnu.org/software/libc/)-based binaries.
+  - `node:18` in case it does.
+
+### Python
+
+- Your source code is copied to docker container with all its defined dependencies.
+- Supported versions are `3.7`, `3.8` and `3.9` (default).
+- Installing dependencies is supported using [pip](https://pip.pypa.io/en/stable/),
+  [pipenv](https://pipenv.pypa.io/en/latest/) or [poetry](https://python-poetry.org/)
+- If your source code dependencies are defined in non-standard file located outside root folder, you can specify it
+  using `packageManagerFile` and `packageManager` in `languageSpecificProperties`
+- Base image used:
+  - `public.ecr.aws/docker/library/python:${pythonVersion}-alpine` in case your app doesn't require
+    [glibc](https://www.gnu.org/software/libc/)-based binaries.
+  - `public.ecr.aws/docker/library/python:${pythonVersion}` in case it does.
+
+### Java
+
+- Your source code is copied to docker container with all its defined dependencies.
+- Supported versions are `8`, `11` (default).
+- Gradle (default) and maven projects are supported.
+- If your project uses **Maven**, configure `useMaven` property in the `languageSpecificProperties` configuration.
+  Stacktape will
+  [convert your maven project to a gradle project](https://docs.gradle.org/current/userguide/migrating_from_maven.html)
+  and build it as a gradle project (which is 2-10x times faster than maven).
+- Base image used:
+  - `public.ecr.aws/docker/library/gradle:7.5.1-jdk${javaVersion}-alpine` in case your app doesn't require
+    [glibc](https://www.gnu.org/software/libc/)-based binaries.
+  - `public.ecr.aws/docker/library/gradle:7.5.1-jdk${javaVersion}` in case it does.
+
+### Go
+
+- Your source code is copied to docker container with all its defined dependencies.
+- Base image used:
+  - `public.ecr.aws/docker/library/golang-alpine` in case your app doesn't require
+    [glibc](https://www.gnu.org/software/libc/)-based binaries.
+  - `public.ecr.aws/docker/library/golang` in case it does.
+
+<PropertiesTable definitionName="StpBuildpackCwImagePackagingProps" />
+
+```yml
+resources:
+  webService:
+    type: web-service
+    properties:
+      # {start-highlight}
+      packaging:
+        type: stacktape-image-buildpack
+        properties:
+          entryfilePath: src/main.ts
+      # {stop-highlight}
+      resources:
+        cpu: 2
+        memory: 2048
+```
+
+## External-buildpack
+
+- The image is built using a zero-config [external buildpack](https://buildpacks.io/docs/).
+- You can find a buildpack for almost any language or framework. The default buildpack used is
+  `paketobuildpacks/builder:base`. You can configure the buildpack used by specifying the `buildpack` property.
+  {/* To show
+  a list of available buildpacks for a given language/framework combination, you can use the
+  [buildpack:suggest](/cli/commands/buildpack-suggest/) command. */}
+- The buildpack scans the specified source directory and automatically determines how the build the image for a given
+  application.
+- The image is uploaded to a pre-created (AWS ECR) container registry.
+
+<PropertiesTable definitionName="ExternalBuildpackCwImagePackagingProps" />
+
+```yml
+resources:
+  webService:
+    type: web-service
+    properties:
+      # {start-highlight}
+      packaging:
+        type: external-buildpack
+        properties:
+          sourceDirectoryPath: ./src
+          builder: heroku/buildpacks:20
+      # {stop-highlight}
+      resources:
+        cpu: 2
+        memory: 2048
+```
+
+## Nixpacks
+
+- The image is built using [nixpacks](https://nixpacks.com/docs).
+- In most cases, building and deploying an app with Nixpacks should just work with no configuration needed.
+  {/* To show
+  a list of available buildpacks for a given language/framework combination, you can use the
+  [buildpack:suggest](/cli/commands/buildpack-suggest/) command. */}
+- Nixpacks scans the specified source directory and automatically determining how the build the image for a given
+  application.
+- The image is uploaded to a pre-created (AWS ECR) container registry.
+
+<PropertiesTable definitionName="NixpacksCwImagePackagingProps" />
+
+```yml
+resources:
+  webService:
+    type: web-service
+    properties:
+      # {start-highlight}
+      packaging:
+        type: nixpacks
+        properties:
+          sourceDirectoryPath: ./src
+      # {stop-highlight}
+      resources:
+        cpu: 2
+        memory: 2048
+```
+
+## Custom-dockerfile
+
+- The image is built from your own [Dockerfile](https://docs.docker.com/engine/reference/builder/).
+- You need to configure `buildContextPath`. Stacktape will look for a Dockerfile in this directory (or use a Dockerfile
+  specified by `dockerfilePath`).
+- The image is uploaded to a pre-created (AWS ECR) container registry.
+
+<PropertiesTable definitionName="CustomDockerfileCwImagePackagingProps" />
+
+```yml
+resources:
+  webService:
+    type: web-service
+    properties:
+      # {start-highlight}
+      packaging:
+        type: custom-dockerfile
+        properties:
+          buildContextPath: ./server
+          dockerfilePath: Dockerfile
+      # {stop-highlight}
+      resources:
+        cpu: 2
+        memory: 2048
+```
+
+## Prebuilt-image
+
+- Pre-built image is used.
+- To use private images, you need to configure `repositoryCredentialsSecretArn`. The body of the secret should have the
+  following format: `{"username" : "<<privateRegistryUsername>>", "password" : "<<privateRegistryPassword>>"}`. Secrets
+  can be managed directly using Stacktape. For more information, refer to
+  [secrets docs](https://docs.stacktape.com/resources/secrets/).
+
+<PropertiesTable definitionName="PrebuiltImageCwPackagingProps" />
+
+```yml
+resources:
+  webService:
+    type: web-service
+    properties:
+      # {start-highlight}
+      packaging:
+        type: prebuilt-image
+        properties:
+          image: httpd:latest
+      # {stop-highlight}
+      resources:
+        cpu: 2
+        memory: 2048
+```
+
+# API reference
+
+<PropertiesTable definitionName="DockerBuildArg" />
+
+<PropertiesTable definitionName="EsLanguageSpecificConfig" />
+
+<PropertiesTable definitionName="PyLanguageSpecificConfig" />
+
+<PropertiesTable definitionName="JavaLanguageSpecificConfig" />
+
+<PropertiesTable definitionName="NixpacksPhase" />
+
+{/* <PropertiesTable definitionName="GoLanguageSpecificConfig" /> */}

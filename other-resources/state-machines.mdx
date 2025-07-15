@@ -1,0 +1,147 @@
+---
+title: "State machines (Step functions)"
+order: 290
+---
+
+# Overview
+
+State machines allow you to design and automate business processes and data pipelines by composing workloads
+([functions](/compute-resources/lambda-functions), [batch-jobs](/compute-resources/batch-jobs)) or other AWS services
+into workflows. State machines manage failures, retries, parallelization, service integrations, and observability so
+developers can focus on higher-value business logic.
+
+## When to use
+
+- **Extract, Transform, and Load (ETL) process** - state machines ensure that long-running, multiple ETL jobs execute in
+  order and complete successfully, instead of manually orchestrating those jobs or maintaining a separate application.
+
+- **Orchestrate microservices** - use state machines to combine multiple
+  [functions](/compute-resources/lambda-functions) into responsive serverless applications and microservices.
+
+<Divider />
+
+# Define states
+
+Definition of state machines is written using
+[Amazon states language](https://docs.aws.amazon.com/step-functions/latest/dg/concepts-amazon-states-language.html).
+
+Amazon states language syntax allows you to to specify any workflow from easy ones to most complex ones.
+
+The following example shows an order-payment flow made up of lambda functions:
+
+```yml
+resources:
+  checkAndHoldProduct:
+    type: function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: 'check-and-hold-product.ts'
+
+  billCustomer:
+    type: function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: 'bill-customer.ts'
+
+  shipmentNotification:
+    type: function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: 'shipment-notification.ts'
+
+  eshopBuyingProcessStateMachine:
+    type: 'state-machine'
+    properties:
+      # {start-highlight}
+      definition:
+        StartAt: 'checkAndHold'
+        States:
+          checkAndHold:
+            Type: Task
+            Resource: $ResourceParam('checkAndHoldProduct', 'arn')
+            Next: bill
+          bill:
+            Type: Task
+            Resource: $ResourceParam('billCustomer', 'arn')
+            Next: notify
+          notify:
+            Type: Task
+            Resource: $ResourceParam('shipmentNotification', 'arn')
+            Next: succeed
+          succeed:
+            Type: Succeed
+      # {stop-highlight}
+```
+
+<Divider />
+
+## Retry example
+
+The following example shows:
+
+- **generateReport** - batch-job which generates report.
+- **uploadReport** - function that uploads generated report.
+- **reportStateMachine** - state machines that ties above compute resources together.
+
+State machine definitions provide great flexibility. In this case, **reportStateMachine** only retries upload part of
+our workflow, since regenerating the report (in case of upload failure) would be costly and redundant.
+
+```yml
+resources:
+  uploadReport:
+    type: function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: 'upload-report.ts'
+
+  generateReport:
+    type: 'batch-job'
+    properties:
+      container:
+        packaging:
+          type: stacktape-image-buildpack
+          properties:
+            entryfilePath: generate-report.ts
+      resources:
+        cpu: 2
+        memory: 7800
+
+  reportStateMachine:
+    type: 'state-machine'
+    properties:
+      definition:
+        StartAt: 'generate'
+        States:
+          generate:
+            Type: Task
+            Resource: 'arn:aws:states:::batch:submitJob.sync'
+            Parameters:
+              JobDefinition: $ResourceParam('generateReport', 'jobDefinitionArn')
+              JobName: report-job
+              JobQueue: $Param('SHARED_GLOBAL', 'BatchOnDemandJobQueue::Arn')
+            Next: upload
+          upload:
+            Type: Task
+            Resource: $Param('uploadReport', 'LambdaFunction::Arn')
+            Next: succeed
+            # {start-highlight}
+            Retry:
+              - ErrorEquals:
+                  - 'State.ALL'
+                IntervalSeconds: 10
+            # {stop-highlight}
+          succeed:
+            Type: Succeed
+```
+
+# Referenceable parameters
+
+<ReferenceableParams resource="state-machine" />

@@ -1,0 +1,340 @@
+---
+title: "DynamoDb tables"
+order: 160
+---
+
+# Overview
+
+- Amazon DynamoDB is a NoSQL key-value datastore with support for JSON documents.
+- It can deliver single-digit millisecond performance at large scale.
+- DynamoDB is serverless and fully managed. It's easy to set up, operate and scale. You don't have to worry about
+  capacity scaling, hardware & VM provisioning, database setup, patching and more.
+- It's multi-active, replicated across multiple Availability Zones, durable and secure. It also supports in-memory
+  caching.
+- DynamoDB doesn't have it's own query language. Instead, you can use `aws-sdk` to access the database.
+
+# Under the hood
+
+Dynamo DB Table is an abstraction for [Amazon Dynamo DB](https://aws.amazon.com/dynamodb/) NoSQL database service.
+
+# When to use
+
+<NegativeMargin />
+
+## Advantages
+
+- **Performance at scale** - DynamoDB supports some of the world’s largest scale applications by providing consistent,
+  single-digit millisecond response times at any scale. You can build applications with virtually unlimited throughput
+  and storage.
+- **Auto-scalable** - DynamoDb has a support for auto-scaling of both read/write capacity and storage.
+- **IAM access** - You can manage the access to your DynamoDb database with AWS Identity and Access management rules.
+- **Connection-less** - You don't have to worry about connection pool exhaustion.
+- **Serverless** - DynamoDb supports "pay-as-you-go" pricing. If there's no database load, it's essentially free.
+
+## Disadvantages
+
+- **Relatively unmature** - Not as mature as relational (SQL) databases. It has a significantly less rich ecosystem.
+- **Proprietary** - DynamoDb is a proprietary AWS database.
+- **Not feature rich** - DynamoDb is more of a data-store, not a fully-featured database such as Postgres or MongoDb.
+  For a detailed comparison (even tho arguably slightly biased), refer to
+  [MongoDb comparison](https://www.mongodb.com/compare/mongodb-dynamodb).
+
+# Basic usage
+
+```yml
+resources:
+  myDynamoDbTable:
+    type: dynamo-db-table
+    properties:
+      primaryKey:
+        partitionKey:
+          name: id
+          type: string
+
+  myFunction:
+    type: function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: path/to/my/lambda.ts
+      environment:
+        - name: TABLE_NAME
+          value: $ResourceParam('myDynamoDbTable', 'name')
+      connectTo:
+        - myDynamoTable
+```
+
+> Lambda function connected to the DynamoDb table
+
+```ts
+import { DynamoDB } from '@aws-sdk/client-dynamodb';
+
+const dynamoDb = new DynamoDB({});
+
+export default async (event, context) => {
+  // Put item to the table
+  await dynamoDb.putItem({
+    Item: { id: { S: 'my_id_1' }, writeTimestamp: { S: new Date().toLocaleTimeString() } },
+    TableName: process.env.TABLE_NAME
+  });
+  // Get item from the table
+  const item = await dynamoDb.getItem({
+    Key: { id: { S: 'my_id_1' } },
+    TableName: process.env.TABLE_NAME
+  });
+};
+```
+
+> Lambda function written in typescript that accesses the DynamoDb table
+
+# Primary key
+
+-   Primary key uniquely identifies each item in the table
+-   Two different kinds of primary keys are supported:
+    -   **simple primary key** - you only specify `partitionKey`
+    -   **composite primary key** - you specify both `partitionKey` and `sortKey`
+-   Primary key specification cannot be modified during updates (after the table is created).
+-   The attribute must be top-level (not nested) field.
+-   Each document saved to the table must contain the primary key attribute(s).
+-   To learn more about primary keys, refer to [AWS docs](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.CoreComponents.html#HowItWorks.CoreComponents.PrimaryKey)
+
+<PropertiesTable definitionName="DynamoDbTablePrimaryKey" searchForReferencesInDefinition="DynamoDbTableProps" />
+
+<PropertiesTable definitionName="DynamoDbKeyAttribute" searchForReferencesInDefinition="DynamoDbTableProps" />
+
+```yml
+resources:
+  myDynamoTable:
+    type: dynamo-db-table
+    properties:
+      # {start-highlight}
+      primaryKey:
+        partitionKey:
+          name: this_attribute_will_be_partition_key
+          type: string
+        sortKey:
+          name: this_attribute_will_be_sort_key
+          type: number
+      # {stop-highlight}
+```
+
+> Example composite primary key.
+
+# Provisioned throughput
+
+-   When you specify `provisionedThroughput`, the table will run in the **provisioned** mode and you need to specify read and write throughput for your table.
+-   This can give you cost predictability and lower costs, but your table might not be able to handle an unpredictable load.
+-   If `provisionedThroughput` is not configured, the table runs and is billed in an **on-demand** mode. This means you are only paying for what you use.
+-   To learn more about differences between **provisioned** and **on-demand** modes, refer to [AWS docs](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadWriteCapacityMode.html)
+
+<PropertiesTable definitionName="DynamoDbProvisionedThroughput" searchForReferencesInDefinition="DynamoDbTableProps" />
+
+```yml
+resources:
+  myDynamoDbTable:
+    type: dynamo-db-table
+    properties:
+      primaryKey:
+        partitionKey:
+          name: this_attribute_will_be_id
+          type: string
+      # {start-highlight}
+      provisionedThroughput:
+        readUnits: 4
+        writeUnits: 4
+      # {stop-highlight}
+```
+
+## Scaling
+
+-   Even in provisioned mode, you can configure throughput scaling based on load.
+-   The table throughput scales up or down once the specified thresholds are met.
+-   Compared to **on-demand** mode (default, if you don't specify `provisionedThroughput`), you have more control of how your table will scale and can save costs. However, your table might not be able to scale enough for an unpredictable load.
+-   To learn more, refer to [this detailed AWS article](https://aws.amazon.com/blogs/database/amazon-dynamodb-auto-scaling-performance-and-cost-optimization-at-any-scale/)
+
+```yml
+resources:
+  myDynamoDbTable:
+    type: dynamo-db-table
+    properties:
+      primaryKey:
+        partitionKey:
+          name: this_attribute_will_be_id
+          type: string
+      provisionedThroughput:
+        readUnits: 4
+        writeUnits: 4
+        # {start-highlight}
+        readScaling:
+          minUnits: 4
+          maxUnits: 10
+          keepUtilizationUnder: 80
+        # {stop-highlight}
+```
+
+<PropertiesTable definitionName="DynamoDbReadScaling" searchForReferencesInDefinition="DynamoDbProvisionedThroughput" />
+
+<PropertiesTable
+  definitionName="DynamoDbWriteScaling"
+  searchForReferencesInDefinition="DynamoDbProvisionedThroughput"
+/>
+
+# Point-in-time recovery
+
+-   Point-in-time recovery enables you to restore table to any point in time during the last 35 days
+-   The point-in-time recovery process always restores the data to a new table. You can restore data to the same table.
+-   Enabling point-in-time recovery can result in additional charges. To learn more, refer to [AWS DynamoDB pricing](https://aws.amazon.com/dynamodb/pricing/on-demand/#DynamoDB_detailed_feature_pricing)
+
+```yml
+resources:
+  myDynamoDbTable:
+    type: dynamo-db-table
+    properties:
+      primaryKey:
+        partitionKey:
+          name: this_attribute_will_be_id
+          type: string
+      # {start-highlight}
+      enablePointInTimeRecovery: true
+      # {stop-highlight}
+```
+
+# Item-change streaming
+
+- DynamoDb allows you to stream item-level modifications in the table.
+- Item-change log is preserved for up to 24 hours.
+- Streams can be consumed by [functions](https://docs.stacktape.com/compute-resources/lambda-functions/#dynamo-db-event)
+  and [batch jobs](https://docs.stacktape.com/compute-resources/batch-jobs/#dynamo-db-event).
+- You must configure stream type. It determines what information is written to the stream for this table when the item
+  in the table is modified. Allowed values are:
+  - **KEYS_ONLY** - Only the key attributes of the modified item are written to the stream.
+  - **NEW_IMAGE** - The entire item, as it appears after it was modified, is written to the stream.
+  - **OLD_IMAGE** - The entire item, as it appeared before it was modified, is written to the stream.
+  - **NEW_AND_OLD_IMAGES** - Both the new and the old item images of the item are written to the stream.
+
+```yml
+resources:
+  myDynamoDbTable:
+    type: dynamo-db-table
+    properties:
+      primaryKey:
+        partitionKey:
+          name: this_attribute_will_be_id
+          type: string
+      # {start-highlight}
+      streamType: NEW_AND_OLD_IMAGES
+      # {stop-highlight}
+```
+
+# Access control
+
+- DynamoDb uses AWS IAM (Identity and Access Management) to control who can access the table.
+- To interact with the DynamoDb table, your resources must have the sufficient permissions. You can give these
+  permissions in 2 ways:
+  - listing table in `connectTo` list of your compute resource
+  - configuring `iamRoleStatements` on your compute resource
+
+```yml
+resources:
+  myDynamoDbTable:
+    type: dynamo-db-table
+    properties:
+      primaryKey:
+        partitionKey:
+          name: id
+          type: string
+
+  myFunction:
+    type: function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: path/to/my/lambda.ts
+      environment:
+        - name: TABLE_NAME
+          value: $ResourceParam('myDynamoDbTable', 'name')
+      # {start-highlight}
+      connectTo:
+        - myDynamoDbTable
+      # {stop-highlight}
+```
+
+```yml
+resources:
+  myDynamoDbTable:
+    type: dynamo-db-table
+    properties:
+      primaryKey:
+        partitionKey:
+          name: id
+          type: string
+
+  myFunction:
+    type: function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: path/to/my/lambda.ts
+      environment:
+        - name: TABLE_NAME
+          value: $ResourceParam('myDynamoDbTable', 'name')
+      # {start-highlight}
+      iamRoleStatements:
+        - Resource:
+            - $ResourceParam('myDynamoDbTable', 'Arn')
+          Effect: 'Allow'
+          Action:
+            - 'dynamodb:Get*'
+            - 'dynamodb:Query'
+            - 'dynamodb:Scan'
+            - 'dynamodb:Delete*'
+            - 'dynamodb:Update*'
+            - 'dynamodb:PutItem'
+      # {stop-highlight}
+```
+
+# Pricing
+
+You are charged for:
+
+- **Read and Write operations**:
+  - **PROVISIONED** mode:
+    - You configure how much read/write capacity table has at any moment:
+    - WCU (write capacity unit) - $0.00065 - $0.000975 per WCU per hour
+    - RCU (read capacity units - $0.00013 - $0.000195 per RCU per hour
+    - To learn more, refer to [AWS pricing page](https://aws.amazon.com/dynamodb/pricing/provisioned/)
+  - **ON DEMAND** mode
+    - Pay as you go
+    - $1.25 - $1.875 per million write request units
+    - $0.25- $0.375 per million read request units
+    - To learn more, refer to [AWS pricing page](https://aws.amazon.com/dynamodb/pricing/on-demand/)
+- **Storage**:
+  - First 25 GB stored per month is free
+  - $0.25 - $0.375 per GB-month thereafter
+- **Continuous backup**:
+  - Applies when point-in-time-recovery is enabled
+  - $0.20 -$0.30 per GB-month
+- **Data transfer**:
+  - IN transfer: free
+  - OUT to AWS services in the same region: free
+  - OUT to internet: first 1 GB free, then $0.09 -$0.15 per GB
+
+<br />
+
+**FREE TIER** (eligible for first 12 months):
+
+- 25 GB of Storage
+- 25 provisioned Write Capacity Units (WCU)
+- 25 provisioned Read Capacity Units (RCU)
+- Enough to handle up to ~200M requests per month.
+
+# Referenceable parameters
+
+<ReferenceableParams resource="dynamo-db-table" />
+
+# API Reference
+
+<PropertiesTable definitionName="DynamoDbTable" />

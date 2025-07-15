@@ -1,0 +1,600 @@
+---
+title: "Next.js website"
+order: 315
+---
+
+# Overview
+
+- Next.js website resource is a purpose-built resource for deploying [Next.js](https://nextjs.org/) app using AWS Lambda
+  (or AWS Lambda@Edge).
+- On the background, it creates multiple different AWS resources required to run your Next.js website as efficiently as
+  possible.
+
+```yml
+resources:
+  web:
+    type: nextjs-web
+    properties:
+      appDirectory: ./
+```
+
+> Basic use of `nextjs-web` resource
+
+# Under the hood
+
+- Stacktape uses open-source project [OpenNEXT](https://open-next.js.org/) to build your Next.js application so that it
+  is runnable in AWS Lambda function.
+- On the background Stacktape creates following resources to host your Next.js app:
+
+| **Component**               | **Type**                  | **Description**                                                                                    |
+| --------------------------- | ------------------------- | -------------------------------------------------------------------------------------------------- |
+| Server function             | `Lambda` or `Lambda@Edge` | Runs your Next.js server.                                                                          |
+| Bucket                      | `S3 bucket`               | Used for storing static assets and cache assets.                                                   |
+| Image optimization function | `Lambda`                  | Handles image optimization when Next.js `<Image>` component is used.                               |
+| Cloudfront distribution     | `Cloudfront CDN`          | Takes care of caching and web content distribution.                                                |
+| Revalidation function       | `Lambda`                  | Takes care of revalidation when using ISR.                                                         |
+| Revalidation queue          | `SQS Queue`               | Message queue that server function uses to notify revalidation function about needed revalidation. |
+| Revalidation table          | `DynamoDB table`          | Provides support for Next.js `revalidateTag`.                                                      |
+| Revalidation inserter       | `Lambda`                  | Used to populate revalidation table during app deployment.                                         |
+| Warmer function (OPTIONAL)  | `Lambda`                  | Mitigates server function cold starts by keeping it warm (does not work for Lambda@Edge).          |
+
+For more information refer to [OpenNext docs](https://open-next.js.org/inner_workings).
+
+![Architecture overview (credit: OpenNext)](../static/open-next/architecture.png)
+
+# Using edge
+
+You can use **Lambda@Edge** by specifying `useEdgeLambda` property.
+
+-   When using edge lambda functions, your server function is executed at the regional cache locations across the globe. This means that the function is executed closer to your user, which results in reduced response time.
+-   Downside of using lambda@edge are:
+    -   slower deployment times compared to using regular lambda,
+    -   you cannot use warmer (see `warmServerInstances` property) to keep server function warm.
+
+```yml
+resources:
+  web:
+    type: nextjs-web
+    properties:
+      appDirectory: ./
+      useEdgeLambda: true
+```
+
+# Using warmer
+
+You can specify amount of warm instances you want warmer to keep. By default, warmer is disabled.
+
+-   Server function may experience performance issues due to Lambda cold starts (slower response times).
+-   To mitigate cold start effects, the server function can be invoked periodically by warmer function. This is done using warmer function which periodically invokes server function to keep it warm.
+-   By default, warmer is disabled.
+
+At the moment warmer does not work when using lambda@edge for server function (see `useEdgeLambda` property)
+
+```yml
+resources:
+  web:
+    type: nextjs-web
+    properties:
+      appDirectory: ./
+      warmServerInstances: 5
+```
+
+# Using firewall
+
+You can use [web-app-firewall](/security-resources/web-app-firewalls/) resource to protect your Next.js application from
+common web exploits that could affect application availability, compromise security, or consume excessive resources.
+
+```yml
+resources:
+  web:
+    type: nextjs-web
+    properties:
+      appDirectory: ./
+      useFirewall: waf
+
+  waf:
+    type: web-app-firewall
+    properties:
+      scope: cdn
+```
+
+# Environment variables
+
+Injects environment variables into server function.
+
+Most commonly used types of environment variables:
+
+-   Static - string, number or boolean (will be stringified).
+-   Result of a [custom directive](/configuration/directives/#custom-directives).
+-   Referenced property of another resource (using **$ResourceParam** directive). To learn more, refer to [referencing parameters guide](/configuration/referencing-parameters/). If you are using environment variables to inject information about resources into your script, see also property [connectTo](/configuration/scripts/#connecting-to-resources) which simplifies this process.
+-   Value of a [secret](/resources/secrets/) (using [$Secret directive](/configuration/directives/#secret)).
+
+```yml
+resources:
+  web:
+    type: nextjs-web
+    properties:
+      appDirectory: ./
+      environment:
+        - name: STATIC_ENV_VAR
+          value: my-env-var
+        - name: DYNAMICALLY_SET_ENV_VAR
+          value: $MyCustomDirective('input-for-my-directive')
+        - name: DB_HOST
+          value: $ResourceParam('myDatabase', 'host')
+        - name: DB_PASSWORD
+          value: $Secret('dbSecret.password')
+```
+
+# Custom domain names
+
+Stacktape allows you to connect your custom domain names to some of your resources (Web Service, Nextjs web, HTTP API Gateways, Application Load Balancers and Buckets with CDNs).
+
+Connecting a custom domain to the resource does 2 things:
+
+-   **Creates DNS records**:
+    -   If you use your custom domain with a resource, Stacktape automatically creates a DNS record (during deploy) pointing the specified domain name to the resource.
+-   **Adds TLS certificates**
+    -   If the origin resource (HTTP API Gateway, Application Load Balancer or CDN) uses HTTPS protocol, Stacktape takes care of issuing and attaching correct (free, AWS-managed) certificate to the resource. This means, you do not have to deal with TLS termination as it is handled by the connected resource.
+    -   If you want to use your own certificates, you can configure `customCertificateArns`.
+
+To manage a custom domain, it first needs to be added to your AWS account. This means that a [hosted zone](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/AboutHZWorkingWith.html) (collection of records managed together for a given domain) for your domain exists in your AWS account and your domain registrar's name servers are pointing to it. To learn more, refer to [Adding a domain guide](/other-resources/domains-and-certificates/#adding-domain).
+
+<PropertiesTable definitionName="DomainConfiguration" searchForReferencesInDefinition="NextjsWeb" />
+
+```yml
+resources:
+  web:
+    type: nextjs-web
+    properties:
+      appDirectory: ./
+      customDomains:
+        - domainName: mydomain.com
+```
+
+# Accessing other resources
+
+- For most of the AWS resources, resource-to-resource communication is not allowed by default. This helps to enforce
+  security and resource isolation. Access must be explicitly granted using [IAM](https://aws.amazon.com/iam/) (Identity
+  and Access Management) permissions.
+
+- Access control of [Relational Databases](/resources/relational-databases) is not managed by IAM. These resources are
+  not "cloud-native" by design and have their own access control mechanism (connection string with username and
+  password). They are accessible by default, and you don't need to grant any extra IAM permissions. You can further
+  restrict the access to your relational databases by configuring their
+  [access control mode](/resources/relational-databases/#accessibility).
+
+- Stacktape automatically handles IAM permissions for the underlying AWS services that it creates (i.e. granting web
+  services permission to write logs to Cloudwatch, allowing web services to communicate with their event source and many
+  others).
+
+<br />
+
+If your compute resource (nextjs server function) needs to communicate with other infrastructure components, you need to
+add permissions manually. You can do this in 2 ways:
+
+## Using connectTo
+
+- List of resource names or AWS services that the nextjs server function will be able to access (basic IAM permissions
+  will be granted automatically). Granted permissions differ based on the resource.
+- Works only for resources managed by Stacktape in `resources` section (not arbitrary Cloudformation resources)
+- This is useful if you don't want to deal with IAM permissions yourself. Handling permissions using raw IAM role
+  statements can be cumbersome, time-consuming and error-prone. Moreover, when using `connectTo` property, Stacktape
+  **automatically injects information about resource** you are connecting to as environment variables into your
+  function.
+
+```yml
+resources:
+  web:
+    type: nextjs-web
+    properties:
+      appDirectory: ./
+      connectTo:
+        - myDatabase
+
+  myDatabase:
+    type: relational-database
+    properties:
+      engine:
+        type: aurora-postgresql
+        properties:
+          instances:
+            - instanceSize: db.t4g.medium
+```
+
+<br />
+
+By referencing resources (or services) in `connectTo` list, Stacktape automatically:
+
+-   configures correct compute resource's **IAM role permissions** if needed
+-   sets up correct **security group rules** to allow access if needed
+-   **injects relevant environment variables** containing information about resource you are connecting to into the compute resource's runtime
+    -   names of environment variables use upper-snake-case and are in form `STP_[RESOURCE_NAME]_[VARIABLE_NAME]`,
+    -   examples: `STP_MY_DATABASE_CONNECTION_STRING` or `STP_MY_EVENT_BUS_ARN`,
+    -   list of injected variables for each resource type can be seen below.
+
+  
+
+Granted permissions and injected environment variables are different depending on resource type:
+
+  
+
+`Bucket`
+
+-   **Permissions:**
+    -   list objects in a bucket
+    -   create / get / delete / tag object in a bucket
+-   **Injected env variables**: `NAME`, `ARN`
+
+  
+
+`DynamoDB table`
+
+-   **Permissions:**
+    -   get / put / update / delete item in a table
+    -   scan / query a table
+    -   describe table stream
+-   **Injected env variables**: `NAME`, `ARN`, `STREAM_ARN`
+
+  
+
+`MongoDB Atlas cluster`
+
+-   **Permissions:**
+    -   Allows connection to a cluster with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about MongoDB Atlas clusters accessibility modes, refer to [MongoDB Atlas cluster docs](/3rd-party-resources/mongo-db-atlas-clusters/#accessibility).
+    -   Creates access "user" associated with compute resource's role to allow for secure credential-less access to the the cluster
+-   **Injected env variables**: `CONNECTION_STRING`
+
+  
+
+`Relational(SQL) database`
+
+-   **Permissions:**
+    -   Allows connection to a relational database with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about relational database accessibility modes, refer to [Relational databases docs](/resources/relational-databases/#accessibility).
+-   **Injected env variables**: `CONNECTION_STRING`, `JDBC_CONNECTION_STRING`, `HOST`, `PORT` (in case of aurora multi instance cluster additionally: `READER_CONNECTION_STRING`, `READER_JDBC_CONNECTION_STRING`, `READER_HOST`)
+
+  
+
+`Redis cluster`
+
+-   **Permissions:**
+    -   Allows connection to a redis cluster with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about redis cluster accessibility modes, refer to [Redis clusters docs](/resources/redis-clusters/#accessibility).
+-   **Injected env variables**: `HOST`, `READER_HOST`, `PORT`
+
+  
+
+`Event bus`
+
+-   **Permissions:**
+    -   publish events to the specified Event bus
+-   **Injected env variables**: `ARN`
+
+  
+
+`Function`
+
+-   **Permissions:**
+    -   invoke the specified function
+    -   invoke the specified function via url (if lambda has URL enabled)
+-   **Injected env variables**: `ARN`
+
+  
+
+`Batch job`
+
+-   **Permissions:**
+    -   submit batch-job instance into batch-job queue
+    -   list submitted job instances in a batch-job queue
+    -   describe / terminate a batch-job instance
+    -   list executions of state machine which executes the batch-job according to its strategy
+    -   start / terminate execution of a state machine which executes the batch-job according to its strategy
+-   **Injected env variables**: `JOB_DEFINITION_ARN`, `STATE_MACHINE_ARN`
+
+  
+
+`User auth pool`
+
+-   **Permissions:**
+    -   full control over the user pool (`cognito-idp:*`)
+    -   for more information about allowed methods refer to [AWS docs](https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazoncognitouserpools.html)
+-   **Injected env variables**: `ID`, `CLIENT_ID`, `ARN`
+
+  
+  
+
+`SNS Topic`
+
+-   **Permissions:**
+    -   confirm/list subscriptions of the topic
+    -   publish/subscribe to the topic
+    -   unsubscribe from the topic
+-   **Injected env variables**: `ARN`, `NAME`
+
+  
+  
+
+`SQS Queue`
+
+-   **Permissions:**
+    -   send/receive/delete message
+    -   change visibility of message
+    -   purge queue
+-   **Injected env variables**: `ARN`, `NAME`, `URL`
+
+  
+
+`Upstash Kafka topic`
+
+-   **Injected env variables**: `TOPIC_NAME`, `TOPIC_ID`, `USERNAME`, `PASSWORD`, `TCP_ENDPOINT`, `REST_URL`
+
+  
+
+`Upstash Redis`
+
+-   **Injected env variables**: `HOST`, `PORT`, `PASSWORD`, `REST_TOKEN`, `REST_URL`, `REDIS_URL`
+
+  
+
+`Private service`
+
+-   **Injected env variables**: `ADDRESS`
+
+  
+
+`aws:ses`(Macro)
+
+-   **Permissions:**
+    -   gives full permissions to aws ses (`ses:*`).
+    -   for more information about allowed methods refer to [AWS docs](https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonses.html)
+
+## Using iamRoleStatements
+
+- List of raw IAM role statement objects. These will be appended to the nextjs server function's role.
+- Allows you to set granular control over your nextjs server function's permissions.
+- Can be used to give access to _any_ Cloudformation resource
+
+```yml
+resources:
+  web:
+    type: nextjs-web
+    properties:
+      appDirectory: ./
+      iamRoleStatements:
+        - Resource:
+            - $CfResourceParam('NotificationTopic', 'Arn')
+          Effect: 'Allow'
+          Action:
+            - 'sns:Publish'
+
+cloudformationResources:
+  NotificationTopic:
+    Type: AWS::SNS::Topic
+```
+
+# Known issues
+
+## Bundle size
+
+Next will incorrectly trace dev dependencies to be included in the output node_modules, which will significantly
+increase the lambda bundle. For example, the @swc/core-\* binary is ~33MB!
+
+Add this to your `next.config.js` to help minimize the lambda bundle size
+
+```js
+outputFileTracingExcludes: {
+      '*': [
+        '@swc/core',
+        'esbuild',
+        'uglify-js',
+        'watchpack',
+        'webassemblyjs',
+        'sharp'
+      ],
+    },
+```
+
+## Fetch behavior for ISR.
+
+**Only for next@13.5.1+**
+
+If you use ISR and fetch in your app, you may encounter a bug that makes your revalidate values inconsistent. The issue
+is that it revalidates using the lowest revalidate of all fetch calls in your page, regardless of their individual
+values. To fix this bug, you need to modify the fetch function in your root layout component with the following code
+snippet:
+
+```ts
+export default function RootLayout() {
+  const asyncStorage = require("next/dist/client/components/static-generation-async-storage.external");
+  //@ts-ignore
+  const staticStore = (fetch as any).__nextGetStaticStore?.() || asyncStorage.staticGenerationAsyncStorage;
+  const store = staticStore.getStore();
+  store.isOnDemandRevalidate = store.isOnDemandRevalidate && !(process.env.OPEN_NEXT_ISR === "true");
+  return <>...</>;
+}
+```
+
+# Pricing
+
+All of the resources used in the overall architecture are pay-per-use.
+
+<Info>
+
+If your website has low or no traffic, you have no costs.
+
+As the traffic increases, the costs get higher. Price highly depends on your specific Next.js app, but you will
+generally start seeing some costs only after you have tens of thousands of monthly visitors. The costs should still be
+much lower than those of Vercel (for example).
+
+</Info>
+
+## Breakdown of costs:
+
+### CloudFront
+
+CloudFront is used as CDN for caching responses and data in edge locations.
+
+<br />
+
+CloudFront pricing:
+
+- **~ $0.085 per GB outgoing traffic to the internet** (1 TB of data transfer out to the internet per month is free)
+- **~ $0.0085 per 10,000 HTTPS requests** (10,000,000 HTTPS Requests per month are free)
+
+For exact prices, refer to [AWS docs](https://aws.amazon.com/cloudfront/pricing/)
+
+### AWS Lambda
+
+The prices differ depending on whether you are using regional AWS Lambda or Lambda@Edge.
+
+#### Regional AWS Lambda:
+
+- **~ $0.0000000167 per millisecond** of execution (with default memory setting of 1024)
+- **$0,2 per million executions**
+
+#### Lambda@Edge:
+
+- **~ $0.00000005001 per millisecond** of execution (with default memory setting of 1024)
+- \*_$0,6 per million executions_
+
+For exact prices, refer to [AWS docs](https://aws.amazon.com/lambda/pricing/)
+
+### S3 storage
+
+S3 bucket (file storage) is used for storing static content,
+[fetch cache](https://nextjs.org/docs/app/building-your-application/data-fetching/fetching-caching-and-revalidating#caching-data)
+(when using AppRouter) and for
+[ISR](https://nextjs.org/docs/pages/building-your-application/data-fetching/incremental-static-regeneration) (when using
+PageRouter).
+
+<br />
+
+**ISR** (PageRouter) - In standalone mode, Next.js prebuilds the ISR cache during the build process. At runtime,
+NextServer expects this cache locally on the server. This is not possible in the Lambda environment due to its
+serverless nature. In a Lambda environment, the cache needs to be housed centrally in a location accessible by all
+server Lambda function instances. S3 serves as this central location.
+
+<br />
+
+**Fetch cache** (AppRouter) - Similar with ISR. Since Lambda execution environments are not durable, the fetch cache is
+stored in S3 bucket. The `fetch` function by default in next is cached and will be written to S3. You can disable the
+fetch cache by setting `cache` to` no-store` in the
+[fetch options](https://nextjs.org/docs/app/api-reference/functions/fetch#fetchurl-options).
+
+- Each `get` request to the cache will result in at least 1 `GetObject` to the S3 bucket.
+- Each `set` request to the cache will result in 1 `PutObject` into S3 bucket.
+
+<br />
+
+Prices for S3 requests:
+
+- `GetObject` - ~ $0.0004 per 1,000 requests
+- `PutObject` - ~ $0.005 per 1,000 requests
+
+For exact prices, refer to [AWS docs](https://aws.amazon.com/s3/pricing/)
+
+### DynamoDB
+
+The DynamoDB table is used to store Next.js cache tags.
+
+- Each `revalidateTag` request will result in 1 `Query` in DynamoDB and a `PutItem` for each path associated with the
+  tag. `PutItem` requests are grouped in batches of 25 using `BatchWriteItem` request.
+- Each `get` request will result in 1 `Query` in DynamoDB
+- Each `set` request will result in 1 `Query` in DynamoDB and a `PutItem` for each tag associated with the path not
+  present in DynamoDB. `PutItem` requests are grouped in batches of 25 using `BatchWriteItem` request.
+
+Prices for DynamoDB requests:
+
+- `Query` - $0.25 per 1,000,000 read request units
+- `BatchWriteItem` - $1.25 per 1,000,000 write request units
+
+For exact prices, refer to [AWS docs](https://aws.amazon.com/dynamodb/pricing/on-demand/)
+
+## Example pricing
+
+<Warning>
+
+The following example provides only a rough pricing estimate for a webpage with 300,000 visitors a month. The numbers
+could vary significantly depending on your caching strategy and how dynamic or API-intensive your specific application
+is.
+
+The primary goal of these calculations is to demonstrate that even production-grade webpages can be hosted at a
+relatively low cost.
+
+</Warning>
+
+### Assumptions
+
+Let's assume you have a website with 300k visitors a month:
+
+- **Page Views per Visitor**: Each visitor views an average of 3 pages per visit.
+- **Static and Dynamic Content**: Assuming that 50% of page views are served from the cache without hitting the server
+  directly, thanks to the effective use of a CDN.
+- **API Calls per Page**: Each dynamic page view results in an average of 2 API calls to the server for fetching dynamic
+  content or data.
+
+Which means:
+
+- **Total Page Views per Month**: `300,000 visitors * 3 pages/visitor = 900,000 page views`
+- **Page Views Hitting the Server (50% not served from cache)**: `900,000 page views * 50% = 450,000 page views`
+- **Total API Calls**: `450,000 server-hitting page views * 2 API calls/page = 900,000 API calls`
+
+**Total Server Requests**: `450,000 + 900,000 = 1,350,000 requests per month`
+
+### Calculations
+
+#### CloudFront Costs
+
+- **Data Transfer**: 900 GB total (`300,000 visitors * 3 pages/visitor * 1 MB/page`), with the first 1 TB free.
+
+  - $0 for data transfer as it's within the free tier.
+
+- **HTTPS Requests**: 1.35 million requests (`300,000 visitors * 3 pages/visitor * 1.5 requests/page`). The first 10
+  million requests are free, so $0 for HTTPS requests.
+
+#### AWS Lambda Costs (Regional)
+
+- **Execution Cost**: With a 50% cache hit rate, 675,000 requests to Lambda (`1.35 million * 50%`).
+
+  - `675,000 * $0.2 / 1,000,000 = $0.135`
+
+- **Compute Cost**:
+  - `675,000 * 100 ms * $0.0000000167 = $1.12725`
+
+#### S3 Storage Costs
+
+- **GetObject and PutObject**: Assuming 675,000 Lambda requests interact with S3:
+  - **GetObject**: `675,000 * $0.0004 / 1,000 = $0.27`
+  - **PutObject**: `675,000 * $0.005 / 1,000 = $3.375`
+
+#### DynamoDB Costs
+
+Given each Lambda request triggers 1 `Query` and 1 `BatchWriteItem`:
+
+- **Total DynamoDB Operations**: 675,000 of each type.
+
+- **Query Cost**:
+
+  - `675,000 * $0.25 / 1,000,000 = $0.16875`
+
+- **BatchWriteItem Cost**:
+  - `675,000 * $1.25 / 1,000,000 = $0.84375`
+
+#### Total Monthly Cost Estimate
+
+- **CloudFront**: within free tier limits for data transfer and HTTPS requests = `$0`
+- **AWS Lambda (Regional)**: $0.135 (executions) + $1.12725 (compute) = `$1.26225`
+- **S3 Storage**: $0.27 (GetObject) + $3.375 (PutObject) = `$3.645`
+- **DynamoDB**: $0.16875 (Query) + $0.84375 (BatchWriteItem) = `$1.0125`
+
+**Total**: $0 (CloudFront) + $1.26225 (Lambda) + $3.645 (S3) + $1.0125 (DynamoDB) = `**$5.92 per month**`
+
+# API reference
+
+<PropertiesTable definitionName="NextjsWeb" />
+<PropertiesTable definitionName="NextjsServerLambdaProperties" searchForReferencesInDefinition="NextjsWeb" />
+
+<PropertiesTable definitionName="LambdaFunctionLogging" searchForReferencesInDefinition="NextjsWeb" />
+
+<PropertiesTable definitionName="EnvironmentVar" searchForReferencesInDefinition="NextjsWeb" />
+
+<PropertiesTable definitionName="DirectoryUploadFilter" searchForReferencesInDefinition="NextjsWeb" />

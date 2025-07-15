@@ -1,0 +1,236 @@
+---
+title: "Bastion servers (Jump hosts)"
+order: 311
+---
+
+# Overview
+
+- Bastion server is a simple virtual machine used for accessing resources that are only accessible from within
+  [your VPC](/user-guides/vpcs/) (private network, not accessible from the internet). Some resources, such as
+  [relational databases](/resources/relational-databases), [redis clusters](/resources/redis-clusters), might not have
+  public endpoint, but you still need to access them from your scripts or to perform management tasks.
+- The connection from your system to the bastion server is securely established using
+  [SSM session manager](#ssm-sessions), leveraging your IAM permissions. This means that your bastion does NOT expose
+  any ports resulting in high security.
+
+# Usage
+
+```yml
+resources:
+  myBastion:
+    type: bastion
+```
+
+> Example config with bastion
+
+# Connecting to bastion (interactive session)
+
+You can connect to bastion server and start a shell session using command
+[bastion:session](/cli/commands/bastion-session/).
+
+```bash
+stacktape bastion:session --stage <<stage>> --region <<region>> --bastionResource <<bastionResourceName>>
+```
+
+The connection from your system to the bastion server is securely established using
+[SSM session manager](#ssm-sessions), leveraging your IAM permissions. This means that your bastion does NOT expose any
+ports resulting in high security.
+
+# Creating bastion tunnel
+
+Some resources, such as [relational databases](/resources/relational-databases),
+[redis clusters](/resources/redis-clusters), might not have public endpoint, but you still might want to access them
+from your local workstation.
+
+With [bastion:tunnel](/cli/commands/bastion-tunnel/) command, you can start a tunneling session to access resources
+protected in the VPC through your bastion.
+
+```bash
+stacktape bastion:tunnel --stage <<stage>> --region <<region>> --bastionResource <<bastionResourceName>> --resourceName <<nameOfTargetResource>>
+```
+
+Tunneling, is a technique that allows network traffic to be redirected from one network port to another. It establishes
+a secure pathway between a source and destination port, facilitating the transmission of data across networks.
+
+<br />
+
+When using Stacktape, pathway is created between target resource port (for example a port of your database) and local
+port on the local host (where Stacktape is running). Bastion resource is used as an intermediary between your local host
+and the target resource.
+
+<br />
+
+After tunnel is created, Stacktape prints the tunneled endpoint (which you can use for connecting to the resource) into
+terminal.
+
+## Tunnel example
+
+![Graphical overview of tunneling](../static/bastion/bastion-tunnel-manual.png)
+
+```yml
+resources:
+  myBastion:
+    type: bastion
+
+  myDatabase:
+    type: relational-database
+    properties:
+      # database is only accessible from withing VPC
+      accessibility:
+        accessibilityMode: vpc
+      engine:
+        type: postgres
+        properties:
+          version: '16.2'
+          primaryInstance:
+            instanceSize: db.t3.micro
+      credentials:
+        masterUserPassword: my_secret_pass
+```
+
+> Bastion with database accessible only in VPC
+
+Considering the config above, following command creates tunnel to the database:
+
+```bash
+stacktape bastion:tunnel --stage <<stage>> --bastionResource myBastion --resourceName myDatabase
+```
+
+After tunnel is created, Stacktape prints the tunneled endpoint (which you can use for connecting to the resource) into
+terminal.
+
+![Terminal output after starting tunnel](../static/bastion/tunnel-terminal.png)
+
+<Info>
+
+Bastion tunneling is supported for following resource types:
+
+- `relational-database`
+- `redis-cluster`
+- `application-load-balancer`
+- `private-service` (with loadBalancing type application-load-balancer)
+
+</Info>
+
+# Using bastion with scripts
+
+You can use bastion with the scripts specified in `scripts` section of your config.
+
+For more information refer to following doc pages:
+
+- [Using bastion-script](/configuration/scripts/#bastion-script)
+- [Using local-scripts-with-bastion-tunneling](/configuration/scripts/#local-script-with-bastion-tunneling)
+
+```yml
+scripts:
+  # {start-highlight}
+  migrateDb:
+    type: local-script-with-bastion-tunneling
+    properties:
+      executeScript: migrate.ts
+      connectTo:
+        - myDatabase
+  # {stop-highlight}
+
+hooks:
+  afterDeploy:
+    - scriptName: migrateDb
+
+resources:
+  myBastion:
+    type: bastion
+
+  myDatabase:
+    type: relational-database
+    properties:
+      # database is only accessible from withing VPC
+      accessibility:
+        accessibilityMode: vpc
+      engine:
+        type: postgres
+        properties:
+          version: '16.2'
+          primaryInstance:
+            instanceSize: db.t3.micro
+      credentials:
+        masterUserPassword: my_secret_pass
+```
+
+> Stacktape config using the migration script with tunneling
+
+# Instance size
+
+- Optionally, you can specify instance size of your bastion host. By default, `t3.micro` instance is used (free tier
+  eligible).
+
+- If you wish to use bigger instance for your bastion, you can specify `instanceSize` property.
+
+- To see full list of available instance sizes, refer to [AWS docs](https://aws.amazon.com/ec2/instance-types/).
+
+```yml
+resources:
+  myBastion:
+    type: bastion
+    properties:
+      # {start-highlight}
+      instanceSize: c5.large
+      # {stop-highlight}
+```
+
+# Custom commands on bastion launch
+
+You can use `runCommandsAtLaunch` property to run custom set of commands when the bastion is launched.
+
+<br />
+
+Running custom commands can be useful for installing dependencies or setting up your bastion in any other way:
+
+-   Commands are run as the root user (do not use sudo).
+-   Modifying this list after bastion was already created will force replacement of the bastion instance. This means that any data that was manually created on the old bastion instance will be lost.
+-   Use this if to install dependencies and packages that might be required for your bastion scripts
+
+```yml
+resources:
+  myBastion:
+    type: bastion
+    properties:
+      # {start-highlight}
+      runCommandsAtLaunch:
+        - yum update
+        - yum install postgresql.x86_64 -y
+      # {stop-highlight}
+```
+
+<Info>
+
+All bastion hosts are using latest [Amazon Linux 2023](https://aws.amazon.com/linux/amazon-linux-2023/) operating
+system.
+
+</Info>
+
+# SSM sessions
+
+With Stacktape, bastion hosts leverage
+[SSM session manager](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager.html).
+
+<br />
+
+SSM Session Manager is a service provided by AWS that enables secure and centralized management of instances without the
+need for direct access. Compared to traditional SSH, SSM Session Manager establishes a secure channel using AWS Systems
+Manager which eliminates the need for managing SSH keys, opening additional network ports, and dealing with potential
+security risks associated with SSH access - making it more secure.
+
+# Pricing
+
+Price of the bastion depends on the instance size used for your bastion.
+
+By default (if you do not specify instance size), `t3.micro` instance is used. This instance is free tier eligible. If
+you are not in a free tier, monthly cost of this instance is ~$7.5.
+
+# API reference
+
+<PropertiesTable definitionName="Bastion" />
+
+<PropertiesTable definitionName="BastionLoggingConfig" searchForReferencesInDefinition="Bastion" />
+
+<PropertiesTable definitionName="BastionLogging" searchForReferencesInDefinition="Bastion" />

@@ -1,0 +1,100 @@
+---
+title: "Interactive config editor"
+order: 2
+---
+
+<br />
+<br />
+
+Using the interactive config editor is the most convenient way to write your configuration.
+
+The editor wraps [monaco editor](https://microsoft.github.io/monaco-editor/) (the one used by VS code), and adds
+interactive capabilities, autocomplete, validation and more.
+
+# 1. Select a preset
+
+This will add a backbone of your configuration to the editor.
+
+![Select a preset](../static/getting-started/configuration/docs2.png)
+
+# 2. Configure resource details
+
+All of the capital, green words are interactive. Click on them to open a configuration modal.
+
+![Click on container resources](../static/getting-started/configuration/docs4.png)
+
+Configure details using a dropdown menu.
+
+![Configure resources using dropdown menu](../static/getting-started/configuration/docs5.png)
+
+# 3. View the built-in documentation
+
+Hover over any property in the configuration to view its documentation.
+
+![On-hover documentation](../static/getting-started/configuration/docs6.png)
+
+# 4. Price estimator
+
+After you configure enough properties for a resource, Stacktape will automatically calculate its estimated monthly
+costs.
+
+![Price estimator collapsed](../static/getting-started/configuration/docs9.3.png)
+
+![Price estimator expanded](../static/getting-started/configuration/docs9.4.png)
+
+# 5. Configure more properties
+
+You can configure many more properties on your resources. To view all of the properties and their meaning, go to the
+respective documentation for that resource, or you can even trigger autosuggest in the editor using `ctrl` + `space`
+(`fn` + `ctrl` + `space` on certain systems).
+
+![Autosuggest](../static/getting-started/configuration/docs11.png)
+
+# 6. View generated CloudFormation
+
+After you configure all of the required properties, click on the **Compiled CloudFormation** tab to see the generated
+template.
+
+<Info>
+
+Note that this template is not 100% correct, and the one that Stacktape uses for your application will slightly differ.
+
+</Info>
+
+![Compiled CloudFormation](../static/getting-started/configuration/docs15.png)
+
+# 7. Add more resources
+
+You can add more resources by clicking on the `+` button and selecting `New Stacktape resource`.
+
+![Plus button](../static/getting-started/configuration/docs12.1.png)
+
+![New Stacktape resource](../static/getting-started/configuration/docs10.1.png)
+
+![Select resource type](../static/getting-started/configuration/docs12.png)
+
+# 8. Extend using CloudFormation
+
+Stacktape templates can be extended using any
+[AWS CloudFormation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/Welcome.html) resource.
+
+![Plus button](../static/getting-started/configuration/docs12.1.png)
+
+![New CloudFormation resource](../static/getting-started/configuration/docs10.3.png)
+
+![Select CloudFormation resource type](../static/getting-started/configuration/docs14.png)
+
+# 9. Add deployment scripts
+
+You can also add a deployment script for tasks such as database migrations.
+
+![Plus button](../static/getting-started/configuration/docs12.1.png)
+
+![New script](../static/getting-started/configuration/docs10.2.png)
+
+![Configure script](../static/getting-started/configuration/docs13.png)
+
+<PreviousNext
+  left={{ url: "/getting-started/configuring-stack/", title: "Configuring stack" }}
+  right={{ url: "/getting-started/under-the-hood/", title: "Under the hood" }}
+/>

@@ -1,0 +1,208 @@
+---
+title: "EFS Filesystems"
+order: 225
+---
+
+# Overview
+
+- EFS Filesystems provide simple, scalable, elastic file storage.
+- They allow shared access to data using a traditional file sharing permissions model (POSIX) and hierarchical directory
+  structure via the NFSv4 protocol.
+- Files stored in the mounted EFS filesystem are persistent. They remain available even if the container instance is
+  replaced or a Lambda function execution finishes.
+- Filesystems can be attached concurrently to thousands of compute instances (like
+  [Lambda Functions](/compute-resources/lambda-functions) and container services -
+  [Web services](/compute-resources/web-services), [Worker services](/compute-resources/worker-services),
+  [Private services](/compute-resources/private-services) in your stack).
+- Filesystems are serverless. They grow and shrink automatically as you add and remove files, and you only pay for the
+  storage used.
+
+# Under the hood
+
+EFS Filesystems are an abstraction of [AWS Elastic File System (EFS)](https://aws.amazon.com/efs/).
+
+# When to use
+
+- EFS Filesystems are ideal for use cases requiring **shared file storage** accessible by multiple compute resources
+  simultaneously.
+- Use EFS when your applications need access to data using a **standard file system interface** (NFSv4) without needing
+  code changes.
+- Common use cases include: **web serving and content management**, **enterprise applications**, **media and
+  entertainment workflows**, **home directories**, **database backups**, **developer tools**, **container storage**, and
+  **big data analytics** requiring file system access.
+- It's suitable for **general purpose workloads** needing persistent, shared file storage.
+  [Source: BMC EFS Explained](https://www.bmc.com/blogs/aws-efs-elastic-file-system/)
+- For even more information about when to use refer to
+  [AWS EFS When to choose](https://aws.amazon.com/efs/when-to-choose-efs/)
+
+<NegativeMargin />
+
+## Advantages
+
+- **Shared Access** - Can be mounted concurrently by thousands containers/lambdas, across multiple Availability Zones.
+- **Standard File System Interface** - Uses the NFSv4 protocol, allowing seamless integration with applications
+  expecting a standard file system. No application rewrites needed.
+- **Serverless & Elastic** - Automatically scales storage capacity up or down based on usage, eliminating the need for
+  capacity planning. You pay only for what you use.
+- **Highly Available & Durable** - Data is stored redundantly across multiple Availability Zones (AZs) within a region.
+- **Performance** - Delivers low, consistent per-operation latency and high aggregate throughput (multiple GBs per
+  second), especially with parallelized workloads.
+- **Supports encryption** - Data is encrypted both in transit and at rest.
+
+## Disadvantages
+
+- **Latency** - While per-operation latency is low and consistent, it's generally higher than block storage like EBS due
+  to its distributed nature. Overall throughput depends on I/O size and parallelism.
+- **Cost** - Depending on the access patterns and storage class used, EFS can be more expensive than object storage (see
+  [buckets](/other-resources/buckets/)) or block storage (EBS) for certain workloads (e.g., workloads not requiring
+  shared, persistent access).
+- **Not Optimal for Lowest Latency Needs** - For applications requiring the absolute lowest latency block storage for a
+  single instance, EBS might be a better fit.
+
+# Usage
+
+Creating filesystem with default properties
+
+```yml
+resources:
+  myFileSystem:
+    type: efs-filesystem
+```
+
+# Mounting to resources
+
+You can mount efs-filesystem by specifying `volumeMounts` property on the resource. Stacktape automatically takes care
+of network and IAM permissions on the background.
+
+```yml
+resources:
+  myEfsFilesystem:
+    type: efs-filesystem
+
+  myService:
+    type: web-service
+    properties:
+      packaging:
+        type: stacktape-image-buildpack
+        properties:
+          entryfilePath: src/server.ts
+      resources:
+        cpu: 0.25
+        memory: 512
+      # {start-highlight}
+      volumeMounts:
+        - type: efs
+          properties:
+            efsFilesystemName: myEfsFilesystem
+            mountPath: /mnt/my-mounted-system
+      # {stop-highlight}
+```
+
+> Mounting filesystem to web-service
+
+You can access the mounted directory on the `mountPath` just like any other directory within your compute resource's
+filesystem.
+
+```typescript
+// Simplest example: Writing and reading from the mounted volume
+import * as fs from "fs";
+import * as path from "path";
+
+const mountPath: string = "/mnt/my-mounted-system";
+const testFile: string = path.join(mountPath, "test.txt");
+
+// Write a file
+fs.writeFileSync(testFile, "Hello from EFS!");
+
+// Read the file
+const data: string = fs.readFileSync(testFile, "utf8");
+// Variable 'data' now holds the content "Hello from EFS!"
+```
+
+> Snippet of the code from `src/server.ts`
+
+# Throughput mode
+
+Optionally, depending on your needs, you can set a throughput mode. Various throughput modes have various use cases, but
+in general, we recommend `elastic` mode (default).
+
+-   **elastic** (Recommended): Best for unpredictable or spiky workloads
+    
+    -   Ideal for workloads using high throughput ≤5% of the time
+    -   Perfect for web apps, CI/CD pipelines, or occasional data analytics
+    -   Automatically scales up/down based on demand
+-   **provisioned**: Best for steady, predictable workloads
+    
+    -   Ideal when using high throughput >5% of the time
+    -   Suitable for media streaming, production databases
+    -   Requires setting `provisionedThroughputInMibps`
+-   **bursting**: Scales with storage size
+    
+    -   Provides baseline of 50 KiB/s per GiB of storage
+    -   Good for small dev environments and team file shares
+    -   Can hit limits if burst credits are depleted
+    -   Consider switching if consistently using >80% throughput
+
+```yml
+resources:
+  myFileSystem:
+    type: efs-filesystem
+    properties:
+      # {start-highlight}
+      throughputMode: provisioned
+      provisionedThroughputInMibps: 1000 # when setting throughput mode to 'provisioned', you must also set a throughput value
+      # {stop-highlight}
+```
+
+# Backup
+
+You can optionally enable daily backup to be able to restore files in case of accidental deletion etc.
+
+-   Uses AWS Backup with default settings of daily backups and 35-day retention period
+-   Performs incremental backups - only changed, added, or removed files are copied after initial backup
+-   Backs up data from all storage classes (Standard, IA, Archive) without data access charges
+-   Restored data is always placed in the Standard storage class
+-   Default backup plan and vault are automatically created and managed by AWS
+
+```yml
+resources:
+  myFileSystem:
+    type: efs-filesystem
+    properties:
+      # {start-highlight}
+      backupEnabled: true
+      # {stop-highlight}
+```
+
+# Limit access (root directory)
+
+You can specify root directory during mounting to limit access of the resource to the filesystem.
+
+-   Specifies which directory in the EFS filesystem should be used as the root for this mount
+-   Only this directory and its subdirectories will be accessible to the function
+-   If not specified, the entire filesystem will be accessible
+
+```yml
+resources:
+  myEfsFilesystem:
+    type: efs-filesystem
+
+  myFunction:
+    type: function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: lambdas/read-write-efs.ts
+      joinDefaultVpc: true
+      volumeMounts:
+        - type: efs
+          properties:
+            efsFilesystemName: myEfsFilesystem
+            mountPath: /mnt/my-mounted-system
+            # {start-highlight}
+            rootDirectory: /my/root/directory
+            # {stop-highlight}
+```
+
+> Lambda with limited access to filesystem

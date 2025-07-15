@@ -1,0 +1,462 @@
+---
+title: ""
+order: 220
+---
+
+# Overview
+
+- Buckets allow you to persistently store files.
+- A Bucket is a collection of **"objects"**. An object is a file and any metadata (headers, tags,...) that describes
+  that file.
+- Buckets are easy to use, reliable, durable and highly available. They are powered by AWS S3 object storage service.
+- Buckets are serverless. They scale automatically to meet your needs and you are paying only for the files saved (not
+  unused capacity).
+- Buckets have a flat structure instead of a hierarchy like you would find in a file system. However, you can simulate a
+  "folder hierarchy" by using a common prefix. For example, all objects stored with a name that starts with `photos/`
+  prefix will be shown in the same "folder" in the AWS console.
+
+# Under the hood
+
+Buckets are abstraction of [AWS S3 Buckets](https://aws.amazon.com/s3/).
+
+# When to use
+
+- Buckets can be used to **host websites** (see also [hosting-bucket](/other-resources/hosting-buckets/)), **store
+  user-generated content**, **store data for Big data analytics**, serve as **data lakes**, **backup and restore**,
+  **archives**, etc.
+
+- Because of performance reasons, object storage in general is not optimal for use-cases that require very low
+  read/write latency.
+
+<NegativeMargin />
+
+## Advantages
+
+- **Easy to use** - AWS S3 has a simple, HTTP-based API. You can also easily manipulate your objects using an AWS SDK.
+
+- **Serverless** - Bucket automatically scales to meet your needs. You don't have to worry about scaling your storage
+  size and are paying only for the files saved.
+
+- **Reliable & highly available** - S3 Buckets are designed for 99.999999999% (11 9’s) of data durability. Files
+  (objects) are stored across multiple physical locations (Availability zones).
+
+- **Storage flexibility** - You can store your files in multiple storage classes. Different storage classes have
+  different latencies, pricing and durability.
+
+- **Access control** - You can easily control which compute resources can access your bucket.
+
+- **Supports encryption** - Supports server-side encryption.
+
+- **Integrations** - You can easily trigger a [function](/compute-resources/lambda-functions#s3-event) or a
+  [batch-job](/compute-resources/batch-jobs#s3-event) in a reaction to a bucket event.
+
+## Disadvantages
+
+- **Performance** - Compared to using a block storage (physical disk attached to a machine), reading/write operations
+  are significantly slower.
+
+# Basic usage
+
+```yml
+resources:
+  myBucket:
+    type: bucket
+
+  myFunction:
+    type: function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: path/to/my/lambda.ts
+      environment:
+        - name: BUCKET_NAME
+          value: $ResourceParam('myBucket', 'arn')
+      connectTo:
+        - myBucket
+```
+
+> Lambda function connected to a bucket
+
+```ts
+import { S3 } from '@aws-sdk/client-s3';
+
+const s3 = new S3({});
+
+// getObject returns a readable stream, so we need to transform it to string
+const streamToString = (stream) => {
+  const chunks = [];
+  return new Promise((resolve, reject) => {
+    stream.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+    stream.on('error', (err) => reject(err));
+    stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+  });
+};
+
+const handler = async (event, context) => {
+  await s3.putObject({
+    Bucket: process.env.BUCKET_NAME,
+    Key: 'my-file.json',
+    Body: JSON.stringify({ message: 'hello' }) // or fs.createReadStream('my-source-file.json')
+  });
+
+  const res = await s3.getObject({
+    Bucket: process.env.BUCKET_NAME,
+    Key: 'my-file.json'
+  });
+  const body = await streamToString(res.Body);
+};
+
+export default handler;
+```
+
+> Lambda function that uploads and downloads a file from a bucket
+
+# Directory upload
+
+-   After the upload is finished, your bucket will contain the contents of the local folder.
+-   Files are uploaded using parallel, multipart uploads.
+
+Existing contents of the bucket will be deleted and replaced with the contents of the local directory. You should not use `directoryUpload` for buckets with application-generated or user-generated content.
+
+```yml
+resources:
+  myBucket:
+    type: bucket
+    properties:
+      # {start-highlight}
+      directoryUpload:
+        directoryPath: ../public
+      # {stop-highlight}
+```
+
+> Uploads the `public` folder to the bucket on every deployment
+
+<PropertiesTable definitionName="DirectoryUpload" searchForReferencesInDefinition="BucketProps" />
+
+## Adding metadata
+
+- You can add metadata to uploaded files. You can configure `headers` and `tags`.
+- Filters allow you to configure properties of files (objects) that match the filter pattern.
+- Configurable properties:
+  - `headers`: when a client makes a request for an object, these headers will be added to the HTTP response. If you are
+    using a [CDN](#cdn), all headers will be forwarded. If you are using the bucket to host a website, this can be for
+    example used to add cache-control headers on a per-file basis (different cache behavior for different file types).
+  - `tags`: can be used to filter specific objects, for example in [Lifecycle rules](#object-lifecycle-rules).
+
+<PropertiesTable definitionName="DirectoryUploadFilter" searchForReferencesInDefinition="BucketProps" />
+
+# Encryption
+
+- If enabled, all objects uploaded to the bucket will be server-side encrypted using the AES256 algorithm.
+
+```yml
+resources:
+  myBucket:
+    type: bucket
+    properties:
+      # {start-highlight}
+      encryption: true
+      # {stop-highlight}
+```
+
+# Cors
+
+-   Web browsers use CORS (Cross-Origin Resource Sharing) to block the website from making requests to a different origin (server) than the one the website is served from. This means that if you make a request from a website served from `https://my-website.s3.eu-west-1.amazonaws.com/` to `https://my-api.my-domain.com`, the request will fail.
+    
+-   If you enable CORS and do not specify any cors rules, the default rule with following configuration is used:
+    
+    -   AllowedMethods: `GET`, `PUT`, `HEAD`, `POST`, `DELETE`
+    -   AllowedOrigins: '\*'
+    -   AllowedHeaders: `Authorization`, `Content-Length`, `Content-Type`, `Content-MD5`, `Date`, `Expect`, `Host`, `x-amz-content-sha256`, `x-amz-date`, `x-amz-security-token`
+-   When the bucket receives a preflight request from a browser, it evaluates the CORS configuration for the bucket and uses the first CORS rule that matches the incoming browser request to enable a cross-origin request. For a rule to match, the following conditions must be met:
+    
+    -   The request's Origin header must match one of allowedOrigins element.
+    -   The request method (for example, `GET` or `PUT`) or the `Access-Control-Request-Method` header in case of a preflight `OPTIONS` request must be one of the allowedMethods.
+    -   Every header listed in the request's `Access-Control-Request-Headers` header on the preflight request must match one of headers allowedHeaders.
+
+```yml
+resources:
+  myBucket:
+    type: bucket
+    properties:
+      # {start-highlight}
+      cors:
+        enabled: true
+      # {stop-highlight}
+```
+
+<PropertiesTable definitionName="BucketCorsConfig" searchForReferencesInDefinition="BucketProps" />
+
+<PropertiesTable definitionName="BucketCorsRule" searchForReferencesInDefinition="BucketProps" />
+
+# Versioning
+
+-   If enabled, bucket keeps multiple variants of an object.
+-   This can help you to recover objects from an accidental deletion/overwrite, or to store multiple objects with the same name.
+
+```yml
+resources:
+  myBucket:
+    type: bucket
+    properties:
+      # {start-highlight}
+      versioning: true
+      # {stop-highlight}
+```
+
+# CDN
+
+You can use CDN with **bucket**.
+
+By putting CDN in front of a bucket, you can distribute content of the bucket to hundreds of edge locations all around
+the world.
+
+<br />
+
+This is useful in cases if you want to for example serve a **static website** from your bucket.
+
+<br />
+
+Stacktape can:
+
+- automatically upload your content (e.g. static website) to the bucket
+- configure CDN and deliver your content with minimal latency across the world
+
+For information about using CDN refer to our [CDN docs](/resources/cdns).
+
+```yml
+resources:
+  myBucket:
+    type: bucket
+    properties:
+      directoryUpload:
+        directoryPath: my-web/build
+        headersPreset: static-website
+      cdn:
+        enabled: true
+```
+
+> Bucket with CDN and directory upload enabled
+
+<Info>
+
+If you wish to deploy/serve static content (frontend/website) see also [hosting bucket](/resources/hosting-buckets)
+resource, which is a bucket pre-configured for these use-cases.
+
+</Info>
+
+<Divider />
+
+# Object lifecycle rules
+
+- Lifecycle rules allow you to configure what happens to your objects after a configured period of time.
+- They can be deleted, transitioned to another storage class, etc.
+- These rules can be applied to only a subset of objects in the bucket using **path prefix** and **object tags**.
+
+## Storage class transition
+
+-   By default, all objects are in the standard (general purpose) class.
+-   Depending on your access patterns, you can transition your objects to a different storage class to save costs.
+-   To better understand differences between storage classes, refer to [AWS Docs](https://aws.amazon.com/s3/storage-classes/)
+-   To learn more about storage class transitions, refer to [AWS Docs](https://docs.aws.amazon.com/AmazonS3/latest/userguide/lifecycle-transition-general-considerations.html)
+
+```yml
+resources:
+  myBucket:
+    type: bucket
+    properties:
+      # {start-highlight}
+      lifecycleRules:
+        - type: class-transition
+          properties:
+            daysAfterUpload: 90
+            storageClass: 'GLACIER'
+      # {stop-highlight}
+```
+
+> Bucket configured to transfer all objects to GLACIER storage class 90 days after being uploaded
+
+<PropertiesTable definitionName="ClassTransition" searchForReferencesInDefinition="BucketProps" />
+
+<Divider />
+
+## Expiration
+
+Allows you to delete objects from the bucket after the specified amount of days after upload.
+
+<PropertiesTable definitionName="Expiration" searchForReferencesInDefinition="BucketProps" />
+
+This can be useful in cases if objects become irrelevant for you after some time. These objects can be deleted, thus
+saving you storage costs.
+
+The following example shows:
+
+- All uploaded objects are transferred to <b>GLACIER</b> storage class 90 days after upload.
+- After 365 days, objects are completely deleted.
+
+```yml
+resources:
+  myBucket:
+    type: bucket
+    properties:
+      lifecycleRules:
+        - type: class-transition
+          properties:
+            daysAfterUpload: 90
+            storageClass: 'GLACIER'
+        # {start-highlight}
+        - type: expiration
+          properties:
+            daysAfterUpload: 365
+        # {stop-highlight}
+```
+
+<Divider />
+
+## Non-current version class transition
+
+Allows you to transition versioned objects into a different storage class.
+
+<PropertiesTable definitionName="NonCurrentVersionClassTransition" searchForReferencesInDefinition="BucketProps" />
+
+Same as [class transition rule](#storage-class-transition) but applied to old versions of objects. This can be useful
+when you want to archive old versions of an object after some time to save you costs.
+
+The following example shows:
+
+- all versioned objects are transferred to <b>GLACIER</b> storage class 10 days after they are versioned (become
+  non-current version).
+
+```yml
+resources:
+  myBucket:
+    type: bucket
+    properties:
+      versioning: true
+      # {start-highlight}
+      lifecycleRules:
+        - type: non-current-version-class-transition
+          properties:
+            daysAfterVersioned: 10
+            storageClass: 'DEEP_ARCHIVE'
+      # {stop-highlight}
+```
+
+<Divider />
+
+## Non-current version expiration
+
+Allows you to delete old versions of objects from the bucket after the specified amount of days after they are
+versioned.
+
+<PropertiesTable definitionName="NonCurrentVersionExpiration" searchForReferencesInDefinition="BucketProps" />
+
+This can be useful if you only need to keep older versions of objects for some time and then they can be deleted thus
+saving you storage costs.
+
+The following example shows:
+
+- all versioned objects are deleted ten days after being version (become non-current version).
+
+```yml
+resources:
+  myBucket:
+    type: bucket
+    properties:
+      versioning: true
+      # {start-highlight}
+      lifecycleRules:
+        - type: non-current-version-expiration
+          properties:
+            daysAfterVersioned: 10
+      # {stop-highlight}
+```
+
+<Divider />
+
+## Abort incomplete multipart upload
+
+Allows you to stop multipart uploads that do not complete within a specified number of days after being initiated.
+
+<PropertiesTable definitionName="AbortIncompleteMultipartUpload" searchForReferencesInDefinition="BucketProps" />
+
+When a multipart upload is not completed within the time-frame, it becomes eligible for an abort operation, and Amazon
+S3 stops the multipart upload (and deletes the parts associated with the multipart upload, thus saving you costs).
+
+The following example shows:
+
+- all incomplete uploads are stopped (and parts deleted) 5 days after initiation of multipart upload.
+
+```yml
+resources:
+  myBucket:
+    type: bucket
+    properties:
+      # {start-highlight}
+      lifecycleRules:
+        - type: abort-incomplete-multipart-upload
+          properties:
+            daysAfterInitiation: 5
+      # {stop-highlight}
+```
+
+# Accessibility
+
+- Configures who can access the bucket.
+
+<PropertiesTable definitionName="BucketAccessibility" searchForReferencesInDefinition="BucketProps" />
+
+## Accessibility modes
+
+-   Allows you to easily configure the most commonly used access patterns.
+-   Available modes:
+    -   `public-read-write` - Everyone can read from and write to the bucket.
+    -   `public-read` - Everyone can read from the bucket. Only compute resources and entities with sufficient IAM permissions can write to the bucket.
+    -   `private` - (default) Only compute resources and entities with sufficient IAM permissions can read from or write to the bucket.
+-   For functions, batch jobs and container workloads, you can grant required IAM permissions to read/write from the bucket using `allowsAccessTo` or `iamRoleStatements` in their configuration.
+
+## Access policy statements
+
+- For a more fine-grained access control, you can configure **accessPolicyStatements**.
+- Using these requires knowledge of [AWS IAM Docs](https://aws.amazon.com/iam/).
+- You can find a list of example bucket policies in
+  [AWS Docs](https://docs.aws.amazon.com/AmazonS3/latest/userguide/example-bucket-policies.html).
+
+```yml
+resources:
+  myBucket:
+    type: bucket
+    properties:
+      # {start-highlight}
+      accessibility:
+        accessibilityMode: private
+        accessPolicyStatements:
+          - Resource:
+              - $ResourceParam('myBucket', 'arn')
+            Action:
+              - 's3:ListBucket'
+            Principal: '*'
+      # {stop-highlight}
+```
+
+<PropertiesTable definitionName="BucketPolicyIamRoleStatement" searchForReferencesInDefinition="BucketProps" />
+
+<Divider />
+
+# Referenceable parameters
+
+<ReferenceableParams resource="bucket" />
+
+# API reference
+
+<PropertiesTable definitionName="TagFilter" searchForReferencesInDefinition="BucketProps" />
+
+<PropertiesTable definitionName="KeyValuePair" searchForReferencesInDefinition="BucketProps" />
+
+<PropertiesTable
+  definitionName="Bucket"
+  rewriteLinksForReferencedCompositeTypes={{
+    BucketCdnConfiguration: "#cdn"
+  }}
+/>

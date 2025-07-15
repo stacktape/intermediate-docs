@@ -1,0 +1,102 @@
+---
+title: "Deploy Web API"
+order: 1
+---
+
+## 1 - Select Preset
+
+To start writing faster, select one of the template presets.
+
+This tutorial uses `API running in container with SQL database` preset.
+
+![Selecting preset](../static/getting-started/first-deploy/docs5.2.png)
+
+When hovering over sections of the template, you can see the docs relevant to the sections.
+
+Also, notice that there is a **cost estimator** in the bottom right corner of the config editor. Estimated costs will
+appear once you configure sections that influence the price
+
+![Docs on hover and estimator](../static/getting-started/first-deploy/docs6.1.png)
+
+## 2 - Configure Container
+
+After selecting the preset, we need to configure a few sections.
+
+Continue by configuring container resources (by clicking `CLICK_TO_CONFIGURE_CONTAINER_RESOURCES`).
+
+In this tutorial, we use `1 vCPU` and `1024 MB` memory.
+
+![Configuring container resources](../static/getting-started/first-deploy/docs7.png)
+
+Next, configure container packaging (by clicking `CLICK_TO_CONFIGURE_CONTAINER_PACKAGING`).
+
+Packaging section is used to specify the container image. Select the option that suits your needs.
+
+In this tutorial, we use `Stacktape native builder`. With this packaging type, we only need to specify an entry point of
+the application, and Stacktape will build the image from the source code during deployment.
+
+![Configuring container image](../static/getting-started/first-deploy/docs8.png)
+
+Next, configure container environment variables (by clicking `CLICK_TO_CONFIGURE_ENVIRONMENT`).
+
+We add an environment variable `DB_CONNECTION_STRING` - the value is a parameter referenced from the SQL database
+`mainDatabase` specified in the template. This parameter will be resolved during deployment.
+
+<Info>
+
+Since the `webService` references database `mainDatabase` in `connectTo` list, **parameters of the database are
+automatically injected into the container**.
+
+For demonstration, we have assigned the database connection string to `DB_CONNECTION_STRING` variable. However, the
+connection string is also injected as `STP_MAIN_DATABASE_CONNECTION_STRING` variable.
+
+</Info>
+
+![Configuring environment variables](../static/getting-started/first-deploy/docs9.png)
+
+## 3 - Configure Database
+
+First, we configure the database password.
+
+We recommend creating a [secret](https://docs.stacktape.com/security-resources/secrets/) and referencing it in the
+template for enhanced security of sensitive information. You can create and manage secrets in the
+[Stacktape console](https://console.stacktape.com/secrets).
+
+To simplify this tutorial, we use a plain string to specify the password.
+
+![Configuring database password](../static/getting-started/first-deploy/docs10.png)
+
+Next, configure the database's compute resources by specifying the size of the primary instance.
+
+We use the `db.t4g.small` instance.
+
+![Configuring database primary instance size](../static/getting-started/first-deploy/docs11.png)
+
+## 4 - Configure Migration Script
+
+In this step, we add a script to our config. Scripts are used to specify actions (custom script or command) to be
+executed during the deployment lifecycle.
+
+Scripts can be used for anything but are most commonly used for:
+
+- triggering application build before deployment
+- seeding database data after deployment
+- triggering database migration after deployment
+
+In this tutorial, we create a script that performs the database migration command after each deployment.
+
+![Adding script](../static/getting-started/first-deploy/docs18.1.png)
+
+Configuring script:
+
+1. **Script name** - an arbitrary name for the script. We use `databaseMigration`,
+2. **Script trigger** - a hook that will determine when the script is executed (we use `After deploy`),
+3. **Script type** - we use `Local script`. To see other types of scripts, refer to
+   [our docs](https://docs.stacktape.com/configuration/scripts/),
+4. **Command** - the command to be executed. We use `npx prisma db push` as our application uses Prisma d,
+5. **Current working directory** - working directory for the script execution relative to the project root. By default,
+   a project's root directory is the working directory,
+6. **Connect to** - we use `connect to` to automatically inject environment variables (such as database connection
+   string) into our script.
+
+![Configuring script](../static/getting-started/first-deploy/docs19.png)

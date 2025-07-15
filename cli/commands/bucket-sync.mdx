@@ -1,0 +1,216 @@
+---
+title: "bucket:sync"
+order: 26
+nestedTo: /cli/commands
+---
+
+# Overview and basic usage
+
+Synchronizes the contents of a specified directory to the specified bucket.
+
+<br />
+
+You have 2 options to sync the bucket:
+
+- using stacktape configuration, you must supply both stage and resourceName. Bucket id is then determined from the
+  deployed stack and directory to sync from stacktape configuration file.
+- When syncing using bucket id, you must specify valid bucketId (AWS physical resource id, or "name" of the bucket) and
+  sourcePath. Specified directory is then synced to the specified bucket. If the bucket is deployed using Stacktape, you
+  can get bucketId using `stack:info` command.
+- Existing files that are not present in the source will be removed from the bucket.
+
+{/* WRITE ONLY BELOW THIS LINE */}
+
+{/* WRITE ONLY ABOVE THIS LINE */}
+
+```bash
+stacktape bucket:sync --region <<region>>
+```
+
+# API reference
+
+<CliCommandsApiReference
+  command="bucket:sync"
+  sortedArgs={[
+    {
+      description: "#### AWS region to use for the current operation.\n---\n",
+      allowedTypes: ["string"],
+      allowedValues: [
+        "af-south-1",
+        "ap-east-1",
+        "ap-northeast-1",
+        "ap-northeast-2",
+        "ap-northeast-3",
+        "ap-south-1",
+        "ap-southeast-1",
+        "ap-southeast-2",
+        "ca-central-1",
+        "eu-central-1",
+        "eu-north-1",
+        "eu-south-1",
+        "eu-west-1",
+        "eu-west-2",
+        "eu-west-3",
+        "me-south-1",
+        "sa-east-1",
+        "us-east-1",
+        "us-east-2",
+        "us-west-1",
+        "us-west-2"
+      ],
+      alias: "r",
+      required: true,
+      name: "region",
+      shortDescription: "<p> AWS region to use for the current operation.</p>\n",
+      longDescription: ""
+    },
+    {
+      description:
+        "#### Stage used for the operation.\n---\n- Example stages are `production`, `staging`, `testing` or `dev-john`.\n- You can configure the default stage used with every Stacktape command using the `defaults:configure` command.\n- Maximum allowed length is 12 characters.",
+      allowedTypes: ["string"],
+      alias: "s",
+      required: true,
+      name: "stage",
+      shortDescription: "<p> Stage used for the operation.</p>\n",
+      longDescription:
+        "<ul>\n<li>Example stages are <code>production</code>, <code>staging</code>, <code>testing</code> or <code>dev-john</code>.</li>\n<li>You can configure the default stage used with every Stacktape command using the <code>defaults:configure</code> command.</li>\n<li>Maximum allowed length is 12 characters.</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### Name of the AWS account used to perform the operation\n---\n- The account must be first connected in the [Stacktape console](https://console.stacktape.com/aws-accounts)",
+      allowedTypes: ["string"],
+      alias: "aa",
+      required: false,
+      name: "awsAccount",
+      shortDescription: "<p> Name of the AWS account used to perform the operation</p>\n",
+      longDescription:
+        '<ul>\n<li>The account must be first connected in the <a href="https://console.stacktape.com/aws-accounts" style="font-weight: bold;" target="_blank" rel="noreferrer" onclick="event.stopPropagation();">Stacktape console</a></li>\n</ul>\n'
+    },
+    {
+      description: '#### Identifier (AWS physical resource id, or "name") of the destination bucket.',
+      allowedTypes: ["string"],
+      alias: "bi",
+      required: false,
+      name: "bucketId",
+      shortDescription:
+        "<p> Identifier (AWS physical resource id, or &quot;name&quot;) of the destination bucket.</p>\n"
+    },
+    {
+      description:
+        "#### Path to your stacktape configuration file.\n---\n- Relative to CWD (current working directory).",
+      allowedTypes: ["string"],
+      alias: "cp",
+      required: false,
+      name: "configPath",
+      shortDescription: "<p> Path to your stacktape configuration file.</p>\n",
+      longDescription: "<ul>\n<li>Relative to CWD (current working directory).</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### Current working directory for the current operation.\n---\n- Every file path in your config will be resolved relatively to specified cwd.\n- By default, directory containing the configuration file is used.",
+      allowedTypes: ["string"],
+      alias: "cwd",
+      required: false,
+      name: "currentWorkingDirectory",
+      shortDescription: "<p> Current working directory for the current operation.</p>\n",
+      longDescription:
+        "<ul>\n<li>Every file path in your config will be resolved relatively to specified cwd.</li>\n<li>By default, directory containing the configuration file is used.</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### Configures HTTP headers of uploaded files to be optimized for selected preset\n---\nAvailable presets:\n- **static-website**:\n  - sets `cache-control` header value for all uploaded files to `public, max-age=0, s-maxage=31536000, must-revalidate`.\n  - this setup caches all the content on the CDN but never caches files in the browser.\n- **gatsby-static-website**:\n  - optimized for static websites built using [Gatsby](https://www.gatsbyjs.com/)\n  according to [Gatsby caching recommendations](https://www.gatsbyjs.com/docs/caching/).\n- **single-page-app**:\n  - optimized for a [Single page application](https://en.wikipedia.org/wiki/Single-page_application)\n  - `index.html` is never cached (so that when you re-deploy your website, your users always get the latest content)\n  - All other assets (.js, .css, etc.) are cached indefinitely. You should **ALWAYS** add a content hash to the filename,\n    so that your users always get a new version of your website after you deploy it. To learn how to add a content hash\n    to your files, refer to the docs of your bundler, for example [webpack docs](https://webpack.js.org/guides/caching/).",
+      allowedTypes: ["string"],
+      allowedValues: ["gatsby-static-website", "single-page-app", "static-website"],
+      alias: "hp",
+      required: false,
+      name: "headersPreset",
+      shortDescription: "<p> Configures HTTP headers of uploaded files to be optimized for selected preset</p>\n",
+      longDescription:
+        '<p>Available presets:</p>\n<ul>\n<li><strong>static-website</strong>:<ul>\n<li>sets <code>cache-control</code> header value for all uploaded files to <code>public, max-age=0, s-maxage=31536000, must-revalidate</code>.</li>\n<li>this setup caches all the content on the CDN but never caches files in the browser.</li>\n</ul>\n</li>\n<li><strong>gatsby-static-website</strong>:<ul>\n<li>optimized for static websites built using <a href="https://www.gatsbyjs.com/" style="font-weight: bold;" target="_blank" rel="noreferrer" onclick="event.stopPropagation();">Gatsby</a>\naccording to <a href="https://www.gatsbyjs.com/docs/caching/" style="font-weight: bold;" target="_blank" rel="noreferrer" onclick="event.stopPropagation();">Gatsby caching recommendations</a>.</li>\n</ul>\n</li>\n<li><strong>single-page-app</strong>:<ul>\n<li>optimized for a <a href="https://en.wikipedia.org/wiki/Single-page_application" style="font-weight: bold;" target="_blank" rel="noreferrer" onclick="event.stopPropagation();">Single page application</a></li>\n<li><code>index.html</code> is never cached (so that when you re-deploy your website, your users always get the latest content)</li>\n<li>All other assets (.js, .css, etc.) are cached indefinitely. You should <strong>ALWAYS</strong> add a content hash to the filename,\nso that your users always get a new version of your website after you deploy it. To learn how to add a content hash\nto your files, refer to the docs of your bundler, for example <a href="https://webpack.js.org/guides/caching/" style="font-weight: bold;" target="_blank" rel="noreferrer" onclick="event.stopPropagation();">webpack docs</a>.</li>\n</ul>\n</li>\n</ul>\n'
+    },
+    {
+      description:
+        "#### Shows help for the command\n---\n- If specified, the command won't perform any action besides printing help.",
+      allowedTypes: ["string"],
+      alias: "h",
+      required: false,
+      name: "help",
+      shortDescription: "<p> Shows help for the command</p>\n",
+      longDescription:
+        "<ul>\n<li>If specified, the command won&#39;t perform any action besides printing help.</li>\n</ul>\n"
+    },
+    {
+      description: "#### Invalidates cache of the CDN connected to the bucket",
+      allowedTypes: ["boolean"],
+      alias: "icc",
+      required: false,
+      name: "invalidateCdnCache",
+      shortDescription: "<p> Invalidates cache of the CDN connected to the bucket</p>\n"
+    },
+    {
+      description:
+        "#### Format of logs printed to your console.\n---\nAvailable options:\n- `fancy`: Logs are colorized and dynamically re-rendered.\n- `normal`: Logs are colorized but not dynamically re-rendered.\n- `basic`: Simple text only\n- `json`: Logs are printed as JSON objects",
+      allowedTypes: ["string"],
+      allowedValues: ["basic", "fancy", "json", "normal"],
+      alias: "lf",
+      required: false,
+      name: "logFormat",
+      shortDescription: "<p> Format of logs printed to your console.</p>\n",
+      longDescription:
+        "<p>Available options:</p>\n<ul>\n<li><code>fancy</code>: Logs are colorized and dynamically re-rendered.</li>\n<li><code>normal</code>: Logs are colorized but not dynamically re-rendered.</li>\n<li><code>basic</code>: Simple text only</li>\n<li><code>json</code>: Logs are printed as JSON objects</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### Level of logs that are being printed to the console.\n---\nAvailable options:\n- `info`: Prints basic information about everything that's happening.\n- `error`: Prints only errors.\n- `debug`: Prints detailed information about everything that's happening.",
+      allowedTypes: ["string"],
+      allowedValues: ["debug", "error", "info"],
+      alias: "ll",
+      required: false,
+      name: "logLevel",
+      shortDescription: "<p> Level of logs that are being printed to the console.</p>\n",
+      longDescription:
+        "<p>Available options:</p>\n<ul>\n<li><code>info</code>: Prints basic information about everything that&#39;s happening.</li>\n<li><code>error</code>: Prints only errors.</li>\n<li><code>debug</code>: Prints detailed information about everything that&#39;s happening.</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### AWS profile to use with the command\n---\n- You can manage AWS profiles on your system using `aws-profile:create`, `aws-profile:update` or `aws-profile:delete` command.\n- You can configure the default profile used with every Stacktape command using the `defaults:configure` command.",
+      allowedTypes: ["string"],
+      alias: "p",
+      required: false,
+      name: "profile",
+      shortDescription: "<p> AWS profile to use with the command</p>\n",
+      longDescription:
+        "<ul>\n<li>You can manage AWS profiles on your system using <code>aws-profile:create</code>, <code>aws-profile:update</code> or <code>aws-profile:delete</code> command.</li>\n<li>You can configure the default profile used with every Stacktape command using the <code>defaults:configure</code> command.</li>\n</ul>\n"
+    },
+    {
+      description: "#### Name of the Stacktape project relevant for this operation",
+      allowedTypes: ["string"],
+      alias: "prj",
+      required: false,
+      name: "projectName",
+      shortDescription: "<p> Name of the Stacktape project relevant for this operation</p>\n"
+    },
+    { allowedTypes: ["string"], alias: "rn", required: false, name: "resourceName", shortDescription: "" },
+    {
+      description:
+        "#### Path to the directory to synchronize to the bucket\n---\n- Can be absolute, or relative to the current working directory.",
+      allowedTypes: ["string"],
+      alias: "sp",
+      required: false,
+      name: "sourcePath",
+      shortDescription: "<p> Path to the directory to synchronize to the bucket</p>\n",
+      longDescription: "<ul>\n<li>Can be absolute, or relative to the current working directory.</li>\n</ul>\n"
+    },
+    {
+      description:
+        "#### Id of the template to download\n---\n- The list of available templates is available on the [Config builder page](https://console.stacktape.com/templates)",
+      allowedTypes: ["string"],
+      alias: "ti",
+      required: false,
+      name: "templateId",
+      shortDescription: "<p> Id of the template to download</p>\n",
+      longDescription:
+        '<ul>\n<li>The list of available templates is available on the <a href="https://console.stacktape.com/templates" style="font-weight: bold;" target="_blank" rel="noreferrer" onclick="event.stopPropagation();">Config builder page</a></li>\n</ul>\n'
+    }
+  ]}
+/>

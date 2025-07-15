@@ -1,0 +1,391 @@
+---
+title: "Deploying - using 3rd party CI"
+order: 7
+---
+
+# Overview
+
+Using Stacktape in your CI/CD pipeline is very straightforward.
+
+Generally, you need to add `STACKTAPE_API_KEY` as a secret and a short workflow/pipeline config to your repository. The
+config generally contains these two steps:
+
+1. Install Stacktape
+   - `curl -L https://installs.stacktape.com/linux.sh | bash` for Linux platform
+   - `curl -L https://installs.stacktape.com/alpine.sh | bash` for alpine Linux platform.
+2. Deploy using `stacktape deploy --projectName <<projectName>> --stage <<stage>> --region <<region>>`.
+
+This guide contains step by step tutorials for these CI/CD environments:
+
+1. [Github Actions](#1-using-github-actions)
+2. [Gitlab CI/CD](#2-using-gitlab-ci-cd)
+3. [Bitbucket CI/CD](#3-using-bitbucket-ci)
+
+# Prerequisites
+
+1. **Stacktape account**. If you don't have an account, please [sign up](https://console.stacktape.com/sign-up)
+
+2. **AWS account connected** to your Stacktape organization. Connecting your account takes ~2 minutes. You can connect
+   it on [AWS accounts page in the console](https://console.stacktape.com/aws-accounts)
+
+3. **Empty Stacktape project** - If you do not have a project, you can create it on
+   [projects page in the console](https://console.stacktape.com/projects?createNewProject=true).
+
+4. **Stacktape API key** - To authenticate your CI system with Stacktape, you need an API key. You can get it on
+   [API keys page in the console](https://console.stacktape.com/api-keys/).
+
+5. **Stacktape config** - your repository must contain `stacktape.yml` or `stacktape.ts` config. To create it, you have
+   multiple options:
+
+   1. **(Recommended)** Use the [interactive config editor](https://console.stacktape.com/template-editor). To learn
+      about how to use it, head over to [using the config editor](/getting-started/using-config-editor).
+
+   2. Use a [starter projects](/getting-started/starter-project) with a pre-configured Stacktape configuration.
+
+   3. Follow one of the step-by-step tutorials. Currenctly available tutorials are
+      [Fullstack Next.js T3 app](/tutorials/t3-nextjs-app) and [Web API](/tutorials/web-api).
+
+   4. Write the config manually. To make this process easier, you can install
+      [Stacktape VScode extension](https://marketplace.visualstudio.com/items?itemName=stacktape.vscode-stacktape).
+
+# 1. Using Github Actions
+
+## 1.1 Create repository secret
+
+- The deployment pipeline requires Stacktape credentials - `STACKTAPE_API_KEY`.
+- Hard-coding API key into the pipeline file is unsafe, and you should use **Action secrets** instead.
+- Action secrets are securely stored and accessible to all your workflows(actions) using the
+  `${{ secrets.<<secret-name>> }}` syntax.
+
+To create a secret, navigate to your Github repository's **Settings** tab and choose **Secrets and variables ->
+Actions**. Create your API key secret by clicking on **New repository secret**.
+
+![Navigate to repository secrets](../static/github-actions/secrets-1.png)
+
+Fill in the secret name `STACKTAPE_API_KEY` and your API key (you can get it in
+[API keys page in the console](https://console.stacktape.com/api-keys/)) as a secret, then add the secret.
+
+![Add the secret](../static/github-actions/secrets-2.png)
+
+## 1.2 Add workflow config
+
+Create your Github action workflow configuration at `.github/workflows/<<your-workflow-name>>.yml` in your project root
+directory.
+
+The workflow configuration file is used to configure automated continuous integration and deployment workflows within
+Github Actions. It specifies a **series of commands** that Github executes automatically to build, test, and deploy code
+changes based on defined triggers.
+
+**In your case, you will be installing and executing Stacktape in the workflow.**
+
+Stacktape offers two ways to execute the deployment from within the workflow:
+
+- Option A - Using codebuild:deploy
+- Option B - Using deploy
+
+### Option A - Using codebuild:deploy
+
+When you use `stacktape codebuild:deploy` command, CLI executes the deployment remotely inside the Codebuild in your AWS
+account. This means that the CLI that runs in the Github Actions container merely monitors the deployment - all the
+packaging, uploading of the artifacts, and other operations are executed strictly within your AWS account (in
+Codebuild). It also means you do not need any dependencies (such as Docker or Nodejs) installed in your Github Actions
+container image since the CLI in the pipeline only oversees the deployment.
+
+```yml
+name: Deploy application using Stacktape
+on:
+  push:
+    branches:
+      - main
+jobs:
+  deploy-app:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Stacktape
+        run: curl -L https://installs.stacktape.com/linux.sh | bash
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Deploy the stack
+        run: stacktape codebuild:deploy --stage <<stage>> --region <<region>> --projectName <<projectName>>
+        env:
+          STACKTAPE_API_KEY: ${{ secrets.STACKTAPE_API_KEY }}
+```
+
+> Example Github Actions workflow config using `stacktape codebuild:deploy`
+
+### Option B - Using deploy
+
+When you use `stacktape deploy` command, all of the operations, such as packaging and uploading artifacts, are executed
+inside the Github Actions directly. When using this option, you must make sure to use a container image that already has
+dependencies (namely Docker and NodeJS) installed. For example, you can use
+`public.ecr.aws/codebuild/amazonlinux2-x86_64-standard:5.0` container image (which is also used in Codebuild and
+contains all the dependencies). However, using a large custom image can prolong the execution time because the image
+must be downloaded every time the workflow executes.
+
+```yml
+name: Deploy application using Stacktape
+on:
+  push:
+    branches:
+      - main
+jobs:
+  deploy-app:
+    runs-on: ubuntu-latest
+    container:
+      image: public.ecr.aws/codebuild/amazonlinux2-x86_64-standard:5.0
+    steps:
+      - name: Install Stacktape
+        run: curl -L https://installs.stacktape.com/linux.sh | bash
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Deploy the stack
+        run: stacktape deploy --stage <<stage>> --region <<region>> --projectName <<projectName>>
+        env:
+          STACKTAPE_API_KEY: ${{ secrets.STACKTAPE_API_KEY }}
+```
+
+> Example Github Actions workflow config using `stacktape deploy`
+
+## 1.3 Push to the Github repository
+
+The pipeline is triggered when you push to the main branch of your Github repository.
+
+1. `git commit -m "setup Stacktape deployments"`
+2. `git push -u origin main`
+
+## 1.4 Monitor deployment
+
+To monitor the deployment progress, navigate to your Github repository and select **Actions** tab.
+
+![Inspecting ongoing actions](../static/github-actions/monitor-1.png)
+
+In the workflow execution overview, you can find logs from the execution, along with other details. After the execution
+succeeds, you can navigate to the Stacktape console using the link printed at the end of the logs to find more
+information about your newly deployed project stage.
+
+![Inspecting workflow execution](../static/github-actions/monitor-2.png)
+
+# 2. Using Gitlab CI
+
+## 2.1 Create CI/CD variable
+
+- The deployment pipeline requires Stacktape credentials - `STACKTAPE_API_KEY`.
+- Hard-coding API key into the pipeline file is unsafe, and you should use **Gitlab CI/CD variables** instead.
+- Gitlab CI/CD variables are securely stored and accessible in your pipeline.
+
+To create a Gitlab CI/CD variable, in your repository navigate to **Settings -> CI/CD**. Create the API key variable by
+clicking **Add variable**.
+
+![Navigating in CI/CD page](../static/gitlab-cicd/vars-1.png)
+
+When filling in the variable info:
+
+- remember to use "Masked" variable to avoid potential exposure
+- fill in the key - `STACKTAPE_API_KEY`
+- fill in the value - your Stacktape API key (you can get it in
+  [API keys page in the console](https://console.stacktape.com/api-keys/))
+
+![Creating variable](../static/gitlab-cicd/vars-2.png)
+
+## 2.2 Add pipeline config
+
+Create your Gitlab pipeline configuration file `.gitlab-ci.yml` in the root directory of your project.
+
+The pipeline configuration file is used to configure automated continuous integration and deployment pipelines within
+Gitlab CI/CD. It specifies a **series of commands** that Gitlab executes automatically to build, test, and deploy code
+changes based on defined triggers.
+
+**In your case, you will be installing and executing Stacktape in the pipeline.**
+
+Stacktape offers two ways to execute the deployment from within the pipeline:
+
+- Option A - Using codebuild:deploy
+- Option B - Using deploy
+
+### Option A - Using codebuild:deploy
+
+When you use `stacktape codebuild:deploy` command, CLI executes the deployment remotely inside the Codebuild in your AWS
+account. This means that the CLI that runs in the Gitlab CI/CD container merely monitors the deployment - all the
+packaging, uploading of the artifacts, and other operations are executed strictly within your AWS account (in
+Codebuild). It also means you do not need any dependencies (such as Docker or Nodejs) installed in your Gitlab CI/CD
+container image since the CLI in the pipeline only oversees the deployment.
+
+```yml
+deploy-app:
+  image: node:latest
+  rules:
+    # only execute job on push to the master/main
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    # install Stacktape
+    - curl -L https://installs.stacktape.com/linux.sh | bash
+    # set PATH so that we can use the "stacktape" and "stp" aliases for the binary
+    - export PATH=$PATH:/root/.stacktape/bin
+    # deploy the stack
+    - stacktape codebuild:deploy --stage glb --region eu-west-1 --projectName test-mess
+```
+
+> Example Gitlab `.gitlab-ci.yml` using `stacktape codebuild:deploy`
+
+### Option B - Using deploy
+
+When you use `stacktape deploy` command, all of the operations, such as packaging and uploading artifacts, are executed
+inside the Gitlab CI/CD container directly. When using this option, you must make sure to use a container image that
+already has dependencies installed (Docker if you use container compute resources, and NodeJS if you use stacktape
+buildpacks). However, using a large custom image can prolong the execution time because it must be downloaded every time
+the pipeline executes.
+
+```yml
+deploy-app:
+  image: node:latest
+  rules:
+    # only execute job on push to the master/main
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    # install Stacktape
+    - curl -L https://installs.stacktape.com/linux.sh | bash
+    # set PATH so that we can use the "stacktape" and "stp" aliases for the binary
+    - export PATH=$PATH:/root/.stacktape/bin
+    # deploy the stack
+    - stacktape deploy --stage glb --region eu-west-1 --projectName test-mess
+```
+
+> Example Gitlab `.gitlab-ci.yml` config using `stacktape deploy`
+
+## 2.3 Push to the Gitlab repository
+
+The pipeline is triggered when you push to the main branch of your Gitlab repository.
+
+1. `git init --initial-branch=main`
+2. `git commit -m "setup stacktape project"`
+3. `git remote add origin git@gitlab.com:<<namespace-name>>/<<repo-name>>.git` (replace with your gitlab repository)
+4. `git push -u origin main`
+
+## 2.4 Monitor deployment
+
+To monitor the deployment progress, navigate to your Gitlab project and select **Jobs** (in the **Build** section).
+
+![Inspecting pipeline jobs](../static/gitlab-cicd/monitor-1.png)
+
+In the pipeline execution overview, you can find logs from the execution, along with other details. After the execution
+succeeds, you can navigate to the Stacktape console using the link printed at the end of the logs to find more
+information about your newly deployed project stage.
+
+![Pipeline execution logs](../static/gitlab-cicd/monitor-2.png)
+
+# 3. Using Bitbucket CI
+
+## 3.1 Create repository variable
+
+- The deployment pipeline requires Stacktape credentials - `STACKTAPE_API_KEY`.
+- Hard-coding API key into the pipeline file is unsafe, and you should use **Bitbucket repository variables** instead.
+- Bitbucket repository variables are securely stored and accessible in your pipeline.
+
+To create a Repository variable, in your repository navigate to **Repository settings**
+
+![Inspecting pipelines](../static/bitbucket-pipelines/repovar-1.png)
+
+In the repository settings find **Repository variables** in the pipelines section.
+
+Fill in the variable info and add the variable:
+
+- remember to use "Secured" variable to avoid potential exposure
+- fill in the key - `STACKTAPE_API_KEY`
+- fill in the value - your Stacktape API key (you can get it in
+  [API keys page in the console](https://console.stacktape.com/api-keys/))
+
+![Creating variable](../static/bitbucket-pipelines/repovar-2.png)
+
+## 3.2 Add pipeline config
+
+The `bitbucket-pipelines.yml` file is used to configure automated continuous integration and deployment pipelines within
+Bitbucket's repository. It specifies a **series of commands** that Bitbucket executes automatically to build, test, and
+deploy code changes based on defined triggers.
+
+**In your case, you will be installing and executing Stacktape in the pipeline.**
+
+Stacktape offers two ways to execute the deployment from within the pipeline:
+
+- Option A - Using codebuild:deploy
+- Option B - Using deploy
+
+### Option A - Using codebuild:deploy
+
+When you use `stacktape codebuild:deploy` command, CLI executes the deployment remotely inside the Codebuild in your AWS
+account. This means that the CLI that runs in the Bitbucket pipeline container merely monitors the deployment - all the
+packaging, uploading of the artifacts, and other operations are executed strictly within your AWS account (in
+Codebuild). It also means you do not need any dependencies (such as Docker or Nodejs) installed in your pipeline
+container image since the CLI in the pipeline only oversees the deployment.
+
+```yml
+image: atlassian/default-image:4
+
+pipelines:
+  default:
+    - step:
+        name: "Deploy"
+        deployment: production
+        script:
+          # install stacktape
+          - curl -L https://installs.stacktape.com/linux.sh | sh
+          - export PATH="/root/.stacktape/bin:\\$PATH"
+          # run stacktape
+          - stacktape codebuild:deploy --projectName my-project-1 --stage production --region eu-west-1
+```
+
+> Example `bitbucket-pipelines.yml` using `stacktape codebuild:deploy`
+
+### Option B - Using deploy
+
+When you use `stacktape deploy` command, all of the operations, such as packaging and uploading artifacts, are executed
+inside the pipeline container directly. When using this option, you must make sure to use a container image that already
+has dependencies installed. For example, you can use `public.ecr.aws/codebuild/amazonlinux2-x86_64-standard:5.0`
+container image (which is also used in Codebuild and contains all the dependencies). However, using a large custom image
+can prolong the pipeline execution time because the image must be downloaded every time the pipeline executes.
+
+```yml
+image: public.ecr.aws/codebuild/amazonlinux2-x86_64-standard:5.0
+
+pipelines:
+  default:
+    - step:
+        name: "Deploy"
+        deployment: production
+        script:
+          # install stacktape
+          - curl -L https://installs.stacktape.com/linux.sh | sh
+          - export PATH="/root/.stacktape/bin:\\$PATH"
+          # run stacktape
+          - stacktape deploy --projectName my-project-1 --stage production --region eu-west-1
+```
+
+> Example `bitbucket-pipelines.yml` using `stacktape deploy`
+
+## 3.3 Push to the Bitbucket repository
+
+The pipeline is triggered when you push to the main branch of your Bitbucket repository.
+
+1. `git init --initial-branch=main`
+2. `git commit -m "setup stacktape project"`
+3. `git remote add origin https://<<bitbucket-usernme>>@bitbucket.org/<<project>>/<<repository>>.git` (replace with your
+   Bitbucket repository information)
+4. `git push -u origin main`
+
+## 3.4 Monitor deployment
+
+After you push the `bitbucket-pipelines.yml` file, the first deployment will automatically start.
+
+To monitor the deployment progress, navigate to your Bitbucket repository and select **Pipelines**.
+
+![Inspecting pipelines](../static/bitbucket-pipelines/pipelines.png)
+
+In the pipeline execution overview, you can find logs from the execution, along with other details. After the execution
+succeeds, you can navigate to the Stacktape console using the link printed at the end of the logs to find more
+information about your newly deployed project stage.
+
+![Overview of pipeline deployment](../static/bitbucket-pipelines/6.png)
+
+<PreviousNext
+  left={{ url: "/getting-started/deploying-using-GitOps/", title: "Deploying using GitOps" }}
+  right={{ url: "/getting-started/starter-projects/", title: "Starter projects" }}
+/>

@@ -1,0 +1,352 @@
+---
+title: "HTTP API Gateways"
+order: 200
+---
+
+# Overview
+
+- HTTP API gateways represent entry-points to your application from an outer internet. They route traffic to your
+  application and integrate easily with compute resources of your stack:
+  [functions](/compute-resources/lambda-functions/#http-api-event),
+  [batch-jobs](/compute-resources/batch-jobs/#http-api-event) or
+  [multi-container-workloads](/compute-resources/multi-container-workloads/#http-api-event).
+- HTTP API gateways are used to communicate with your compute resources using the HTTP protocol.
+- Each api gateway is secured by TLS by default.
+- You can easily configure custom domain names, CORS, or put CDN in front of your gateway.
+
+# When to use
+
+HTTP API gateway is a great fit for any modern web app. Whether you only need "front door" to your lightweight
+application or you are building powerful API backend with authorization, access control and API monitoring, HTTP API
+gateway can meet your needs.
+
+<NegativeMargin />
+
+## Advantages
+
+- **Pay-per-use** - You are NOT paying for **http-api-gateway** being deployed. You are only paying for the number of
+  requests processed by the gateway. AWS charges from $0.90 to $1.00 per million requests.
+- **Scaling** - Gateway scales with your needs. It can process thousands of requests per second. Moreover, rate limit
+  can be increased upon request.
+- **Security** - Each gateway is secured using TLS by default.
+- **Availability** - Monthly Uptime Percentage of at least 99.95% for each AWS region, during any monthly billing cycle.
+- **Ease of use** - Integrate with compute resources of your stack with 3 lines of config
+
+## Disadvantages
+
+- HTTP API gateway only supports path-based routing, i.e developers can configure which resources will receive incoming
+  API requests based on the URL requested by the client. In comparison,
+  [application load balancers](/resources/application-load-balancers) also support routing based on query parameters, ip
+  address or HTTP headers in the request.
+
+<Divider />
+
+# Basic usage
+
+<PropertiesTable
+  definitionName="HttpApiGateway"
+  rewriteLinksForReferencedCompositeTypes={{
+    CdnConfiguration: "#cdn"
+  }}
+/>
+
+By default http-api-gateway does not need to have any properties defined.
+
+```yml
+resources:
+  myHttpApi:
+    type: 'http-api-gateway'
+```
+
+<Divider />
+
+# Integrating with compute resources
+
+By creating event integration on a workload(**multi-container-workload**, **function**, **batch-job**), you are telling
+http-api-gateway to forward requests to the workload.
+
+Each integration must specify:
+
+- `httpApiGatewayName` - name of the http-api-gateway that will forward requests to the integration
+- `path`
+  - path pattern that a request must match to be forwarded to the compute resource (wildcards and greedy paths
+    possible).
+  - if multiple integrations match the request, http-api-gateway **selects the most specific match**.
+- `method` - method of the request (**GET**, **POST**, **DELETE**, etc.) that a request must match to be forwarded to
+  the workload
+- for more information see [function](/compute-resources/lambda-functions/#http-api-event) or
+  [multi-container-workload](/compute-resources/multi-container-workloads#http-api-event) docs.
+
+<br />
+
+Following example shows:
+
+- integration attached to **mySingleContainer** which forwards all requests (greedy path `/{proxy+}` and ANY method `*`)
+  to the multi-container-workload.
+- integration attached to **myFunction** which forwards requests with URL path `/invoke-my-function` and method `GET` to
+  the function.
+- since the integration on **myFunction** is more specific than the integration on **mySingleContainer**: if a
+  `GET /invoke-my-function` request comes, **myFunction** integration is proritized.
+
+```yml
+resources:
+  myHttpApi:
+    type: http-api-gateway
+
+  myFunction:
+    type: function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: 'path/to/my-lambda.ts'
+      # {start-highlight}
+      events:
+        - type: http-api-gateway
+          properties:
+            httpApiGatewayName: 'myHttpApi'
+            path: '/invoke-my-function'
+            method: 'GET'
+      # {stop-highlight}
+
+  mySingleContainer:
+    type: 'multi-container-workload'
+    properties:
+      containers:
+        - name: 'myAppContainer'
+          packaging:
+            type: stacktape-image-buildpack
+            properties:
+              entryfilePath: '_example-configs/containers/ts-container.ts'
+          environment:
+            - name: port
+              value: 80
+          # {start-highlight}
+          events:
+            - type: 'http-api-gateway'
+              properties:
+                httpApiGatewayName: 'myHttpApi'
+                containerPort: 80
+                path: /{proxy+} # greedy path
+                method: '*'
+          # {stop-highlight}
+      resources:
+        cpu: 0.25
+        memory: 512
+```
+
+> HTTP API gateway with function and multi-container-workload integrations.
+
+More information on integrating compute resources with HTTP API can be found:
+
+- [integrate functions with HTTP API gateway](/compute-resources/lambda-functions/#http-api-event).
+- [integrate multi-container-workloads with HTTP API gateway](/compute-resources/multi-container-workloads#http-api-event).
+
+<Divider />
+
+# CORS
+
+[Cross-origin resource sharing (CORS)](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS) is a browser security
+feature that restricts cross-origin HTTP requests that are initiated from scripts running in the browser.
+
+A **cross-origin HTTP request** is a request that is made to a different domain or a different subdomain than the one
+browser is currently on.
+
+<br />
+
+Example: If your website has domain **mydomain.com** and it communicates with your `http-api-gateway` which has domain
+**api.mydomain.com** then the browser must perform cross origin request when communicating with this `http-api-gateway`.
+
+<br />
+
+There are two types of **cross-origin requests**:
+
+1. Simple requests
+
+   - requests that do not require CORS preflight.
+   - To understand what is considered a simple request refer to
+     [Mozilla docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS#Simple_requests).
+   - You **do not need to configure CORS** on your gateway for these types of requests. However, responses from your
+     application should still include `Access-Control-Allow-Origin` header where the value of the header key is set to
+     `*`(any origin) or is set to the origins allowed to access that resource. Refer to
+     [Mozilla docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS#Simple_requests) for more information.
+
+2. NON-simple (preflighted) requests
+
+   - all cross origin requests that are not considered simple are NON-simple and require
+     [preflight requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS#preflighted_requests).
+   - If you send NON-simple CORS requests from browser to your API, **you need to enable CORS** which takes care of
+     preflight requests.
+
+<br />
+
+If you need to use NON-simple cross origin requests **you need to enable CORS**. CORS can be enabled with a single line.
+
+<Warning>
+
+If you are handling CORS within your application, it is unnecessary to enable it within configuration.
+
+</Warning>
+
+```yml
+resources:
+  myHttpApi:
+    type: 'http-api-gateway'
+    properties:
+      # {start-highlight}
+      cors:
+        enabled: true
+      # {stop-highlight}
+```
+
+> http-api-gateway with CORS enabled
+
+You can additionally configure CORS headers by setting properties in cors configuration.
+
+If you do not specify any additional properties, default CORS configuration is used:
+
+-   `AllowedMethods`: Inferred from methods used by integrations associated with the api gateway
+-   `AllowedOrigins`: `*`
+-   `AllowedHeaders`: `Content-Type`, `X-Amz-Date`, `Authorization`, `X-Api-Key`, `X-Amz-Security-Token`, `X-Amz-User-Agent`
+
+<PropertiesTable definitionName="HttpApiCorsConfig" searchForReferencesInDefinition="HttpApiGatewayProps" />
+
+<Divider />
+
+# Custom domain names
+
+If you do not have a custom domain and want one, read the section
+[Registering domain](/other-resources/domains-and-certificates/#registering-domain) on the _Domains and TLS
+certificates_ page.
+
+If you already have an existing domain and you wish to use it with your app, there are two approaches:
+
+1. [Using Stacktape to manage domains and certs](#using-stacktape-to-manage-domain-and-certs) - you must use Route53 in
+   your AWS account as your DNS.
+2. [Using 3rd party DNS provider](#using-3rd-party-dns) - such as GoDaddy, Cloudflare etc. You must handle domains and
+   generate certificates yourself.
+
+For more information about domain management options, refer to
+[Domains and TLS certificates](/other-resources/domains-and-certificates/) page.
+
+## Using Stacktape to manage domains and certs
+
+Stacktape allows you to connect your custom domain names to some of your resources (Web Service, HTTP API Gateways, Application Load Balancers and Buckets with CDNs).
+
+Connecting a custom domain to the resource does 2 things:
+
+-   **Creates DNS records**:
+    -   If you use your custom domain with a resource, Stacktape automatically creates a DNS record (during deploy) pointing the specified domain name to the resource.
+-   **Adds TLS certificates**
+    -   If the origin resource (HTTP API Gateway, Application Load Balancer or CDN) uses HTTPS protocol, Stacktape takes care of issuing and attaching correct (free, AWS-managed) certificate to the resource. This means, you do not have to deal with TLS termination as it is handled by the connected resource.
+    -   If you want to use your own certificates, you can configure `customCertificateArns`.
+
+To manage a custom domain, it first needs to be added to your AWS account. This means that a [hosted zone](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/AboutHZWorkingWith.html) (collection of records managed together for a given domain) for your domain exists in your AWS account and your domain registrar's name servers are pointing to it. To learn more, refer to [Adding a domain guide](/other-resources/domains-and-certificates/#adding-domain).
+
+<PropertiesTable
+  definitionName="DomainConfiguration"
+  searchForReferencesInDefinition="HttpApiGateway"
+  rewriteLinksForReferencedCompositeTypes={{
+    CdnConfiguration: "#cdn"
+  }}
+/>
+
+```yml
+resources:
+  myHttpApi:
+    type: 'http-api-gateway'
+    properties:
+      # {start-highlight}
+      customDomains:
+        - domainName: whatever.mydomain.com
+      # {stop-highlight}
+```
+
+# Using 3rd party DNS
+
+To use 3rd party provider follow these steps:
+
+1. Create/import a custom TLS certificate for your domain in
+   [AWS console](https://console.aws.amazon.com/acm/home#/certificates/list). Copy certificate ARN; you will need it in
+   the next step.
+2. After the certificate is validated (_Issued_), assign your domain to your resource:
+   - use the ARN of your certificate as customCertificateArn
+   - disable DNS record creation (because you are using third party DNS)
+
+```yml
+resources:
+  myWebsite:
+    type: http-api-gateway
+    properties:
+      # {start-highlight}
+      customDomains:
+        - domainName: mydomain.com
+          disableDnsRecordCreation: true
+          customCertificateArn: <<ARN_OF_YOUR_CERTIFICATE>>
+      # {stop-highlight}
+```
+
+3. After you deploy your API gateway, you can find the domain name in
+   [Stacktape console](https://console.stacktape.com/projects) in:
+
+   _Your project and stage_ > _Click on your API Gateway resource to see its domain_
+
+   Once you have the domain name, you can point DNS record to this domain using your DNS provider:
+
+   - Use **ALIAS** record type for root domains (i.e _mydomain.com_)
+   - Use **CNAME** record type for subdomains (i.e _www.mydomain.com_ or _staging.mydomain.com_
+
+<Divider />
+
+# Access logs
+
+Access logs contain basic information about requests coming to your `http-api-gateway`. They can be useful in case of
+audit and are many times needed for compliance reasons.
+
+-   Stored properties are: `requestId`, `ip`, `requestTime`, `httpMethod`, `routeKey`, `status`, `protocol` and `responseLength`.
+-   You can configure log format. Supported values are `CLF`, `JSON`, `XML` and `CSV`.
+-   You can browse your logs in 2 ways:
+    -   go to the log group page in the AWS CloudWatch console. You can use `stacktape stack-info` command to get a direct link.
+    -   use [stacktape logs command](/cli/commands/logs/) to print logs to the console
+
+<br />
+
+Stacktape enables access logging by default, with retention time set to 30 days.
+
+<PropertiesTable definitionName="HttpApiAccessLogsConfig" searchForReferencesInDefinition="HttpApiGatewayProps" />
+
+```yml
+resources:
+  myHttpApi:
+    type: 'http-api-gateway'
+    properties:
+      # {start-highlight}
+      logging:
+        format: CSV
+      # {stop-highlight}
+```
+
+<Divider />
+
+# CDN
+
+You can configure AWS Cloudfront CDN (Content Delivery Network) to be in front of your **http-api-gateway**.
+
+-   CDN is a globally distributed network that can cache responses from your HTTP API Gateway at the edge - close to your users.
+-   AWS Cloudfront has 205 edge locations on 6 continents.
+-   The CDN is used to:
+    -   reduce latency & improve load times
+    -   reduce bandwidth costs
+    -   reduce the amount of traffic coming to the origin
+    -   improve security
+-   The "origin" is the resource (HTTP API Gateway) to which CDN is attached. CDN caches responses from the origin at the edge for specified amount of time.
+-   If the content requested by the client is in the CDN cache, the CDN immediately returns it to the client without making a request to the origin.
+-   If the content is NOT in the cache, the CDN makes a request to the Origin. The response from the origin is then forwarded to the client, and cached at the edge.
+
+For information about using CDN refer to our [CDN docs](/resources/cdns).
+
+<Divider />
+
+# Referenceable parameters
+
+<ReferenceableParams resource="http-api-gateway" />

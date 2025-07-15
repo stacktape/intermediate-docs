@@ -1,0 +1,246 @@
+---
+title: "Web App Firewalls"
+order: 235
+---
+
+# Overview
+
+- Web app firewall is a service that protects your internet-connected applications from common web exploits that can
+  affect application availability, compromise security, or consume excessive resources.
+
+- To put it simple, it is a list of rules and defined actions based on the result of the rule evaluation.
+
+- With web app firewall can:
+
+  - Use managed rule groups(containing predefined, ready-to-use rules maintained by experts for you), or use your own
+    custom rule groups that protect resources from malicious traffic.
+  - Easily specify rate based rules, to prevent overloading of your resources.
+
+- It is commonly placed between your web application and public internet (untrusted network) to filter the traffic.
+
+- Following Stacktape resources can be used with Web app firewall:
+
+  - [Application load balancer](/resources/application-load-balancers/#using-firewall)
+  - [Web Service](/compute-resources/web-services/#using-firewall)
+  - [User Pool](/resources/userpools-and-authentication/#using-firewall)
+  - [Content Delivery Network (CDN)](/resources/cdns/#using-firewall)
+
+# Basic usage
+
+```yml
+resources:
+  # {start-highlight}
+  myFirewall:
+    type: web-app-firewall
+    properties:
+      scope: regional
+  # {stop-highlight}
+  webService:
+    type: web-service
+    properties:
+      packaging:
+        type: stacktape-image-buildpack
+        properties:
+          entryfilePath: index.ts
+      resources:
+        cpu: 0.25
+        memory: 512
+      loadBalancing:
+        type: application-load-balancer
+      # {start-highlight}
+      useFirewall: myFirewall
+      # {stop-highlight}
+```
+
+> Example firewall config used with web service
+
+# Scope
+
+Scope determines whether you wish to use web app firewall with a regional resource or a cdn:
+
+-   Use `cdn` if you wish to use firewall with CDN - CDN can be enabled on resources such as HTTP API Gateway, Bucket, Application load balancer or Web Service.
+-   Use `regional` if you wish to use firewall directly with one of the following resources: Application load balancer, User Pool or Web Service
+
+<Warning>
+  Scope can't be changed after the firewall is created. If you need to change the scope, you will need to delete old
+  `web-app-firewall` and create a new one.
+</Warning>
+
+# Rules
+
+All requests coming to the resources protected by `web-app-firewall` are evaluated against the specified rules.
+
+Rule can be a reference to **managed-rule-group** or user defined **custom-rule-group** or **rate-based-rule**.
+
+-   **managed-rule-group**
+    -   references rule group pre-created by AWS or other vendors for specific use cases.
+    -   referenced by `name` and `vendorName`,
+    -   For more information refer to [AWS Docs](https://docs.aws.amazon.com/waf/latest/developerguide/aws-managed-rule-groups-list.html)
+-   **custom-rule-group**
+    -   references custom rule group created by you.
+    -   referenced by rule group's `arn`
+-   **rate-based-rule**
+    -   tracks the rate of requests for each originating IP address, and triggers the rule action when the rate exceeds a limit that you specify on the number of requests in any 5-minute time span
+    -   you can use this to put a temporary block on requests from an IP address that is sending excessive requests.
+    -   For more information refer to [AWS Docs](https://docs.aws.amazon.com/waf/latest/APIReference/API_RateBasedStatement.html)
+
+## Default rules
+
+- When there are no rules specified, Web app firewall will use default set of rules that will protect your resources
+  from the most common attacks and exploits. Specifically it will use two managed rule groups provided by AWS:
+
+  - **Common rule set** rule group (AWSManagedRulesCommonRuleSet)
+    - Contains rules that are generally applicable to web applications
+    - Provides protection against exploitation of a wide range of vulnerabilities, including some of the high risk and
+      commonly occurring vulnerabilities described in OWASP publications such as
+      [OWASP Top 10](https://owasp.org/www-project-top-ten/)
+  - **Known bad inputs** rule group (AWSManagedRulesKnownBadInputsRuleSet)
+    - Contains rules to block request patterns that are known to be invalid and are associated with exploitation or
+      discovery of vulnerabilities
+    - This can help reduce the risk of a malicious actor discovering a vulnerable application
+
+- You can find more information about these rule groups in the
+  [AWS documentation](https://docs.aws.amazon.com/waf/latest/developerguide/aws-managed-rule-groups-baseline.html).
+
+## Managed rule groups
+
+- Managed rule groups are predefined sets of rules that are maintained by AWS or third-party vendors. They are updated
+  on a regular basis to keep up with the latest threats.
+
+- Rule groups managed by AWS are usually free of charge (although each referenced rule group counts as one rule, so it
+  adds to the total costs), but some third-party vendors might charge extra for their rule groups.
+
+- You can find more information about managed rule groups in the
+  [AWS documentation](https://docs.aws.amazon.com/waf/latest/developerguide/waf-managed-rule-groups.html).
+
+```yml
+resources:
+  regionalFirewall:
+    type: web-app-firewall
+    properties:
+      scope: regional
+      # {start-highlight}
+      rules:
+        - type: managed-rule-group
+          properties:
+            name: AWSManagedRulesCommonRuleSet
+            vendorName: AWS
+            priority: 0
+        # {stop-highlight}
+```
+
+> Example reference to managed rule group
+
+<PropertiesTable definitionName="ManagedRuleGroupProps" searchForReferencesInDefinition="WebAppFirewallProps" />
+
+## Custom rule groups
+
+- Most common use case for using custom rule group is when you or your organization already have a set of rules you want
+  to use across multiple applications.
+
+- You can also manage custom rule groups using Stacktape, but you will need to use custom CloudFormation resources to
+  achieve this.
+
+- To use existing custom rule group, just specify its ARN in the configuration
+
+```yml
+resources:
+  regionalFirewall:
+    type: web-app-firewall
+    properties:
+      scope: regional
+      # {start-highlight}
+      rules:
+        - type: custom-rule-group
+          properties:
+            name: CustomRuleGroup
+            arn: <<ARN of existing rule group>>
+            priority: 0
+        # {stop-highlight}
+```
+
+> Example reference to custom rule group
+
+<PropertiesTable definitionName="CustomRuleGroupProps" searchForReferencesInDefinition="WebAppFirewallProps" />
+
+## Rate based rules
+
+- tracks the rate of requests for each originating IP address, and triggers the rule action when the rate exceeds a
+  limit that you specify on the number of requests in any 5-minute time span
+- you can use this to put a temporary block on requests from an IP address that is sending excessive requests.
+
+- There are two ways of aggregation:
+
+-   `IP` - Aggregate the request counts based on the IP addresses of the requests.
+-   `FORWARDED_IP` - Aggregate the request counts based on the IP addresses in the specified header
+    -   If you choose this option, you can also specify the `headerName` and `fallbackBehavior` in the `forwardedIPConfig` property.
+    -   If you don't specify these properties the default values are `X-Forwarded-For` and `NO_MATCH` respectively. For more information about rate-based rules refer to [AWS Docs](https://docs.aws.amazon.com/waf/latest/APIReference/API_RateBasedStatement.html)
+
+```yml
+resources:
+  regionalFirewall:
+    type: web-app-firewall
+    properties:
+      scope: regional
+      # {start-highlight}
+      rules:
+        - type: rate-based-rule
+          properties:
+            name: RateRule
+            limit: 100
+            aggregateBasedOn: IP
+            priority: 0
+        # {stop-highlight}
+```
+
+> Example rate-based rule
+
+<PropertiesTable definitionName="RateBasedStatementProps" searchForReferencesInDefinition="WebAppFirewallProps" />
+
+# Monitoring
+
+- Each rule and firewall itself can be monitored using AWS CloudWatch or inside AWS WAF console.
+
+- **Default behavior** is, that collection of metrics and sampled requests is **enabled for the firewall** as a whole,
+  but **disabled for the individual rules**. This behavior can be changed by specifying `metricsEnabled` and
+  `sampledRequestsEnabled` inside rule or firewall properties.
+
+- Both metrics and sampled requests can be viewed in the AWS WAF console. In addition, metrics can be viewed in the
+  CloudWatch console as well.
+- Stacktape will automatically create a link to the AWS WAF console and CloudWatch metrics dashboard (if some metrics
+  are enabled) in the Stacktape management console
+
+- You can learn more about
+  [metrics](https://docs.aws.amazon.com/waf/latest/developerguide/web-acl-testing-view-metrics.html) and
+  [sampled requests](https://docs.aws.amazon.com/waf/latest/developerguide/web-acl-testing-view-sample.html) in the AWS
+  documentation
+
+# Pricing
+
+You are charged for:
+
+- **Firewall** (WebACL)
+  - $5.00 per month (prorated hourly)
+- **Rule** or referenced rule group
+  - $1.00 per month (prorated hourly)
+- **Requests**
+  - $0.60 per 1 million requests
+
+Additional costs might be charged when using paid managed rule groups from third-party vendors.
+
+**For example** - firewall without any `rules` specified will cost:
+
+- $5.00 for WebACL resource + $2.00 for 2 default managed rule groups used
+- Together $7.00 plus $0.60 for every million requests
+
+To learn more, refer to [AWS WAF pricing](https://aws.amazon.com/waf/pricing/)
+
+# Referenceable parameters
+
+<ReferenceableParams resource="web-app-firewall" />
+
+# API reference
+
+<PropertiesTable definitionName="WebAppFirewallProps" />
+
+<PropertiesTable definitionName="ForwardedIPConfig" searchForReferencesInDefinition="WebAppFirewallProps" />

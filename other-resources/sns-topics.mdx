@@ -1,0 +1,131 @@
+---
+title: "SNS Topics"
+order: 274
+---
+
+# Overview and basic concepts
+
+SNS topic provides high-throughput, push-based, many-to-many messaging between distributed systems, microservices, and
+event-driven serverless applications.
+
+SNS topic can be easily used for both A2A(application to application) and A2P(application to person) notifications by
+easily integrating with lambda functions, HTTPS endpoints, emails, or sending SMS.
+
+# Under the hood
+
+SNS topic is an abstraction for [Amazon Simple Notification Service (SNS)](https://aws.amazon.com/sns/).
+
+# When to use
+
+Stacktape offers 3 types of AWS managed resources intended for messaging/communication(all use "pay per use" model and
+scale automatically):
+
+1. [AWS SNS topic](/resources/sns-topics/)
+2. [AWS SQS queue](/resources/sqs-queues/)
+3. [AWS EventBridge bus](/resources/event-buses/)
+
+<br />
+
+Depending on you use case you might choose to use:
+
+**Use SNS topic when**
+
+- You want to publish messages to MANY different subscribers with a single action.
+- Require high throughput and reliability for publishing and delivery to consumers.
+- Have many subscribers.
+
+**Use SQS queue when**
+
+- You are looking for reliable 1:1 asynchronous communication to decouple your applications from one another
+- You want to rate limit your consumption of messages (in case of SQS consumer fetches the messages so you can control
+  the rate)
+
+**Use Event bus when**
+
+- You want to publish messages to many subscribers, and use the event data itself to match targets interested certain
+  patterns (with even bus, you can filter which messages should be delivered to the subscriber based on message content)
+- You want integration with other SaaS providers such as Shopify, Datadog, Pagerduty, or others.
+
+# Basic usage
+
+By default sns-topic does not need to have any properties defined.
+
+```yml
+resources:
+  mainTopic:
+    type: sns-topic
+```
+
+<PropertiesTable definitionName="SnsTopic" />
+
+# Integrating with workloads
+
+You can invoke [function](/compute-resources/lambda-functions/#sns-event) or a
+[batch-job](/compute-resources/batch-jobs/#sns-event) every time message is delivered to sns-topic. This can be done
+simply by creating event integration.
+
+```yml
+resources:
+  myLambda:
+    type: function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: path/to/my-lambda.ts
+      # {start-highlight}
+      events:
+        - type: sns
+          properties:
+            snsTopicName: mySnsTopic
+      # {stop-highlight}
+
+  mySnsTopic:
+    type: sns-topic
+```
+
+> Lambda function with SNS topic integration
+
+# Publishing messages
+
+You can use [AWS SDK](https://aws.amazon.com/developer/tools/#SDKs) to publish messages to the topic.
+
+```javascript
+import { PublishCommand, SNSClient } from "@aws-sdk/client-sns";
+
+const sqsClient = new SNSClient({});
+
+sqsClient
+  .send(new PublishCommand({ Message: "Hello from the other side.", TopicArn: process.env.STP_MY_TOPIC_ARN }))
+  .catch((err) => {
+    console.info(`Sending message failed: ${err}`);
+  });
+```
+
+# Enabling FIFO
+
+You can enable **FIFO**(First in First Out) for your SNS topic, ensuring ordering of events.
+
+-   FIFO (First-In-First-Out) topics have all the capabilities of the standard topics, but are designed to enhance messaging between applications when the order of operations and events is critical, or where duplicates can't be tolerated.
+-   For more information on FIFO topics refer to [AWS docs](https://docs.aws.amazon.com/sns/latest/dg/sns-fifo-topics.html)
+    
+    When using FIFO, each message should contain `MessageDeduplicationId` or **contentBasedDeduplication** must be enabled.
+
+```yml
+resources:
+  mainTopic:
+    type: sns-topic
+    properties:
+      fifoEnabled: true
+```
+
+## Content based deduplication
+
+**Deduplication explained:**
+
+-   During the deduplication interval(five-minute), topic treats messages identifies duplicates and delivers only one copy of the message
+-   Duplicate messages are recognized based on `MessageDeduplicationId`:
+    -   You may provide a `MessageDeduplicationId` explicitly.
+    -   If you do not provide `MessageDeduplicationId`, content-based deduplication is used(if enabled) - this means Amazon SNS uses a SHA-256 hash to generate the `MessageDeduplicationId` using the body of the message (but not the attributes of the message).
+        
+        FIFO must be enabled in order to use this feature

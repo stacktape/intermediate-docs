@@ -1,0 +1,165 @@
+---
+title: ""
+order: 270
+---
+
+# Overview
+
+Event bus makes it easier to build event-driven applications at scale. An event bus is fully serverless. There are no
+servers to provision, patch, and manage. It automatically scales based on the number of events ingested, and you pay
+only for events published into your event bus. Events can be published from your custom apps. It is also possible for
+event bus to
+[receive events from SaaS partner applications and services](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-saas.html).
+
+# Under the hood
+
+Event bus is an abstraction for [Amazon EventBridge](https://aws.amazon.com/eventbridge/) service.
+
+# When to use
+
+Stacktape offers 3 types of AWS managed resources intended for messaging/communication(all use "pay per use" model and
+scale automatically):
+
+1. [AWS SNS topic](/resources/sns-topics/)
+2. [AWS SQS queue](/resources/sqs-queues/)
+3. [AWS EventBridge bus](/resources/event-buses/)
+
+<br />
+
+Depending on you use case you might choose to use:
+
+**Use SNS topic when**
+
+- You want to publish messages to MANY different subscribers with a single action.
+- Require high throughput and reliability for publishing and delivery to consumers.
+- Have many subscribers.
+
+**Use SQS queue when**
+
+- You are looking for reliable 1:1 asynchronous communication to decouple your applications from one another
+- You want to rate limit your consumption of messages (in case of SQS consumer fetches the messages so you can control
+  the rate)
+
+**Use Event bus when**
+
+- You want to publish messages to many subscribers, and use the event data itself to match targets interested certain
+  patterns (with even bus, you can filter which messages should be delivered to the subscriber based on message content)
+- You want integration with other SaaS providers such as Shopify, Datadog, Pagerduty, or others.
+
+# Basic usage
+
+<PropertiesTable definitionName="EventBus" />
+
+No properties need to be specified when creating event-bus.
+
+```yml
+resources:
+  myEventBus:
+    type: 'event-bus'
+```
+
+<Divider />
+
+# Integrating with compute resources
+
+Events published into event-bus can easily trigger:
+
+- batch-job - [see integration](/compute-resources/batch-jobs#event-bus-event)
+- function - [see integration](/compute-resources/lambda-functions#event-bus-event)
+
+Events can be published from any workload: [function](/compute-resources/lambda-functions),
+[batch-job](/compute-resources/batch-jobs) or [multi-container-workloads](/compute-resources/multi-container-workloads)
+with sufficient rights granted.
+
+Following example shows:
+
+- **myEventBus** - event-bus, which is used as a bridge between **myPublisherFunction** and **myConsumerBatchJob**
+- **myHttpApi** - http-api-gateway, which is integrated with and triggers **myPublisherFunction**
+- **myPublisherFunction** - function, which receives events (requests) from **myHttpApi** and decides whether to publish
+  _BUDGET_ANALYSIS_ event to **myEventBus**
+- **myConsumerBatchJob** - batch-job, which is integrated with **myEventBus** and is triggered by _BUDGET_ANALYSIS_
+  event (published by **myPublisherFunction**)
+
+```yml
+variables:
+  eventName: 'BUDGET_ANALYSIS'
+
+resources:
+  myEventBus:
+    type: 'event-bus'
+
+  myPublisherFunction:
+    type: 'function'
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: 'lambdas/event-bus-publisher.ts'
+      environment:
+        - name: EVENT_NAME
+          value: $Var().eventName
+        - name: EVENT_BUS_NAME
+          value: $Param('myEventBus', 'EventBus::Name')
+      # {start-highlight}
+      # granting access for function to publish events into myEventBus
+      connectTo:
+        - myEventBus
+      # {stop-highlight}
+      events:
+        - type: http-api-gateway
+          properties:
+            httpApiGatewayName: 'myHttpApi'
+            method: 'GET'
+            path: '/budget-analysis'
+
+  myConsumerBatchJob:
+    type: batch-job
+    properties:
+      container:
+        packaging:
+          type: stacktape-image-buildpack
+          properties:
+            entryfilePath: 'batch-jobs/event-bus-consumer'
+      resources:
+        cpu: 1
+        memory: 200
+      # {start-highlight}
+      # batch-job is triggered if myEventBus receives event that matches the specified eventPattern
+      events:
+        - type: event-bus
+          properties:
+            eventBusName: myEventBus
+            eventPattern:
+              detail:
+                EventName:
+                  - '$Var().eventName'
+      # {stop-highlight}
+
+  myHttpApi:
+    type: 'http-api-gateway'
+```
+
+<Divider />
+
+# Archivation
+
+- Event buses support event archiving.
+- The archive can be at any time replayed into the event-bus.
+- This can be helpful when a problem occurs in the system and you want to replay events after the problem is fixed.
+
+```yml
+resources:
+  myBus:
+    type: event-bus
+    properties:
+      # {start-highlight}
+      archivation:
+        enabled: true
+      # {stop-highlight}
+```
+
+<PropertiesTable definitionName="EventBusArchivation" searchForReferencesInDefinition="EventBusProps" />
+
+# Referenceable parameters
+
+<ReferenceableParams resource="event-bus" />

@@ -1,0 +1,333 @@
+---
+title: "OpenSearch (Elastic)"
+order: 312
+---
+
+# Overview
+
+- Opensearch is designed to provide scalable search, offering capabilities like full-text search and distributed search
+  across multiple nodes.
+- OpenSearch is particularly popular among businesses and developers who require a reliable and flexible search solution
+  without being locked into a proprietary software ecosystem.
+- It supports a variety of use cases, including log analytics, real-time application monitoring, and website search
+  functionality.
+
+# Under the hood
+
+Under the hood, we are using [AWS OpenSearch Service](https://aws.amazon.com/opensearch-service/), previously known as
+Amazon Elasticsearch Service - a fully managed service that makes it easy to deploy, operate, and scale OpenSearch
+clusters in the AWS Cloud.
+
+# Set Up a Basic OpenSearch Domain
+
+-   Cluster config determines size, number and type of instances used in your OpenSearch domain cluster.
+-   If you do not specify `clusterConfig`, cluster will only contain single `m4.large.search` node.
+
+```yaml
+resources:
+  myOpenSearch:
+    type: open-search-domain
+    properties:
+      version: "2.17"
+```
+
+# Connecting to OpenSearch Domain
+
+Depending on your [accessibility setup](#restrict-access-to-opensearch-domain) you can connect to your
+`open-search-domain` from anywhere on the internet or only from the resources in your stack's VPC.
+
+In both cases, you need valid IAM credentials to connect to the domain. You can grant valid IAM credentials to the
+resources of your stack using `connectTo` property.
+
+```yaml
+resources:
+  myOpenSearch:
+    type: open-search-domain
+    properties:
+      accessibility:
+        accessibilityMode: vpc
+
+  webService:
+    type: web-service
+    properties:
+      packaging:
+        type: stacktape-image-buildpack
+        properties:
+          entryfilePath: src/main.ts
+      resources:
+        cpu: 2
+        memory: 2048
+      # {start-highlight}
+      connectTo:
+        - myOpenSearch
+      # {stop-highlight}
+```
+
+> Web service connected to open search domain
+
+```ts
+import { Client, Connection } from "@opensearch-project/opensearch";
+import { defaultProvider } from "@aws-sdk/credential-provider-node";
+import aws4 from "aws4";
+
+// Set the OpenSearch domain endpoint from environment variables
+const host = `https://${process.env.STP_MY_OPEN_SEARCH_DOMAIN_ENDPOINT}`;
+
+/**
+ * Creates a custom AWS connector for signing OpenSearch requests.
+ * @param {Object} credentials - AWS credentials for signing requests.
+ * @param {string} region - AWS region where the OpenSearch domain is hosted.
+ * @returns {Object} Custom connection class for OpenSearch client.
+ */
+const createAwsConnector = (credentials, region) => {
+  class AmazonConnection extends Connection {
+    buildRequestObject(params) {
+      const request = super.buildRequestObject(params) as any;
+      request.service = "es";
+      request.region = region;
+      request.headers = request.headers || {};
+      request.headers["host"] = request.hostname;
+
+      return aws4.sign(request, credentials);
+    }
+  }
+  return {
+    Connection: AmazonConnection
+  };
+};
+
+/**
+ * Initializes and returns an OpenSearch client.
+ * @returns {Promise<Client>} An instance of the OpenSearch client.
+ */
+const getClient = async () => {
+  const credentials = await defaultProvider()();
+  return new Client({
+    ...createAwsConnector(credentials, "eu-west-1"),
+    node: host
+  });
+};
+
+/**
+ * Example function to demonstrate usage of the OpenSearch client.
+ * Creates a new index in the OpenSearch cluster.
+ */
+async function search() {
+  const client = await getClient();
+  await client.indices.create({
+    index: "test-index"
+  });
+}
+```
+
+> Example code for connecting to OpenSearch domain
+
+# Configure Instance Type and Count of Data Nodes
+
+-   Specify `instanceCount` together with `instanceType` to configure data nodes in your cluster.
+-   Data nodes handle data storage, indexing, and query processing in the cluster.
+-   For production setups, it's best to pair data nodes with dedicated master nodes to improve cluster stability.
+-   Check [AWS Docs](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/supported-instance-types.html) for the list of supported instance types.
+
+```yaml
+resources:
+  myOpenSearch:
+    type: open-search-domain
+    properties:
+      clusterConfig:
+        # {start-highlight}
+        instanceType: r6g.large.search
+        instanceCount: 3
+        # {stop-highlight}
+```
+
+# Configure OpenSearch Version
+
+-   Explicitly specify open-search-domain version to lock it and prevent potential problems when default version changes.
+-   Currently, default version is `2.17` but this can change with later Stacktape releases.
+
+```yaml
+resources:
+  myOpenSearch:
+    type: open-search-domain
+    properties:
+      version: "2.17"
+```
+
+# Configure Dedicated Master Nodes for Production Stability
+
+-   Specify `dedicatedMasterCount` together with `dedicatedMasterType` if you wish to use dedicated master nodes in your cluster.
+-   Dedicated master nodes manage cluster state and coordinate node activities but do not store data or serve queries.
+-   Dedicated masters are recommended for clusters with 3+ nodes to improve stability and prevent split-brain scenarios.
+-   Master instance type must be appropriately sized based on the number of nodes and shards in the cluster ([see AWS guidelines](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/managedomains-dedicatedmasternodes.html#dedicatedmasternodes-instance)).
+-   Number of masters should always be odd (3, 5, or 7) for quorum-based fault tolerance.
+-   Adds to cluster cost but improves reliability for larger or mission-critical setups.
+-   To check recommendations and best practices for dedicated master nodes, see [AWS Docs](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/managedomains-dedicatedmasternodes.html).
+
+```yaml
+resources:
+  myOpenSearch:
+    type: open-search-domain
+    properties:
+      version: "2.17"
+      clusterConfig:
+        instanceType: r6g.large.search
+        instanceCount: 3
+        # {start-highlight}
+        dedicatedMasterType: r6g.large.search
+        dedicatedMasterCount: 3
+        # {stop-highlight}
+```
+
+# Set Up Warm Nodes for Cost-Effective Storage
+
+-   Specify `warmType` and `warmCount` properties if you wish to use UltraWarm storage instances for your cluster.
+-   Warm nodes store infrequently accessed or older data, optimizing costs for time-series or log data.
+-   Data on warm nodes remains searchable but with higher query latency compared to hot nodes.
+-   Use Case: Ideal for retaining historical data without impacting the performance of frequently accessed data.
+-   To learn more about UltraWarm storage and check prerequisites and best practices for dedicated master nodes, see [AWS Docs](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ultrawarm.html).
+
+```yaml
+resources:
+  myOpenSearch:
+    type: open-search-domain
+    properties:
+      version: "2.17"
+      clusterConfig:
+        instanceType: r6g.large.search
+        instanceCount: 3
+        # {start-highlight}
+        warmType: ultrawarm1.medium.search
+        warmCount: 2
+        # {stop-highlight}
+```
+
+# Enable Multi-AZ Clusters with Standby AZ
+
+-   When enabled, this option ensures high availability and consistent performance by enforcing several best practices such as:
+    -   The nodes and data copies are distributed across three AZs with one of the AZs serving only as a backup. This ensures that during failure, the standby AZ can jump in without causing re-balancing and availability issues.
+    -   OpenSearch version 1.3 or above
+    -   Auto-Tune enabled on the domain
+    -   Three dedicated master nodes and data nodes
+    -   Only GP3 or SSD-backed instances and a subset of instance types are currently supported.
+-   To learn more about Multi-AZ with Standby, see [AWS Docs](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/managedomains-multiaz.html).
+
+```yaml
+resources:
+  myOpenSearch:
+    type: open-search-domain
+    properties:
+      version: "2.17"
+      clusterConfig:
+        instanceType: r6g.large.search
+        instanceCount: 3
+        dedicatedMasterType: r6g.large.search
+        dedicatedMasterCount: 3
+        # {start-highlight}
+        standbyEnabled: true
+        # {stop-highlight}
+```
+
+# Restrict Access to OpenSearch Domain
+
+-   Use `accessibility` and `accessibilityMode` properties if you wish to restrict access to the domain.
+-   By default, the domain is accessible from anywhere on the internet (but still protected using IAM).
+-   You can further restrict this access by making domain available only to resources in your stack's VPC.
+
+Note that If you launch a new domain with accessibility mode set to `vpc` or `scoping-workloads-in-vpc`, you can't later switch it to mode `internet`. The reverse is also true: If you create a domain with accessibility mode `internet`, you can't later place it within a VPC. Instead, you must create a new domain and migrate your data.
+
+The following modes are supported:
+
+-   **internet** - Least restrictive mode. The domain can be accessed from anywhere on the internet.
+-   **vpc** - The domain can be accessed only from resources within your VPC. This means any [function](/compute-resources/lambda-functions/) (provided it has `joinDefaultVpc` set to true), [batch job](/compute-resources/batch-jobs/), [container workload](/compute-resources/multi-container-workloads/) or container service within your stack can access the cluster (if it also has required credentials).
+-   **scoping-workloads-in-vpc** - similar to **vpc** mode, but even more restrictive. In addition to being in the same VPC, the resources of your stack accessing the cluster must also have sufficient security group permissions (for functions, batch jobs and container services, these permissions can be granted together with IAM permissions using `connectTo` in their configuration).
+
+To learn more about VPCs, refer to [VPC Docs](/user-guides/vpcs/).
+
+```yaml
+resources:
+  myOpenSearch:
+    type: open-search-domain
+    properties:
+      accessibility:
+        accessibilityMode: vpc
+```
+
+# Enable Log Collection and Monitoring
+
+-   Stacktape will automatically create required log groups and policies for you.
+-   You can set custom retention period for the individual log types or disable log collection completely.
+-   To learn more about log collection, see [AWS Docs](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/createdomain-configure-slow-logs.html).
+
+<PropertiesTable definitionName="OpenSearchLogConfiguration" searchForReferencesInDefinition="OpenSearchDomainProps" />
+
+<PropertiesTable
+  definitionName="OpenSearchLogRetentionSettings"
+  searchForReferencesInDefinition="OpenSearchDomainProps"
+/>
+
+```yaml
+resources:
+  myOpenSearch:
+    type: open-search-domain
+    properties:
+      logging:
+        errorLogs:
+          retentionDays: 30
+        searchSlowLogs:
+          retentionDays: 14
+        indexSlowLogs:
+          disabled: true
+```
+
+# Optimize Storage with EBS Configuration
+
+-   Storage configuration only supported for instances supporting EBS storage (not with dedicated storage).
+-   Setting `iops` and `throughput` is only allowed for instances with `gp3` storage type (most new generation instances are `gp3`).
+
+<PropertiesTable definitionName="OpenSearchStorage" searchForReferencesInDefinition="OpenSearchDomainProps" />
+
+```yaml
+resources:
+  myOpenSearch:
+    type: open-search-domain
+    properties:
+      clusterConfig:
+        instanceType: r6g.large.search
+        instanceCount: 3
+      # {start-highlight}
+      storage:
+        size: 100
+        iops: 3000
+        throughput: 200
+      # {stop-highlight}
+```
+
+# Disable MultiAZ awareness
+
+-   By default Multi AZ awareness is enabled for any cluster with more than one node. This means that OpenSearch Service allocates the nodes and replica index shards across multiple AZs to prevent data loss and minimize downtime in the event of node or data center failure.
+-   Multi AZ awareness only takes effect for clusters with more than one data node.
+-   Setting `multiAzDisabled` to `true` and disabling zone awareness for your cluster is **not recommended**.
+-   To learn more about multi AZ cluster, see [AWS Docs](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/managedomains-multiaz.html).
+
+```yml
+resources:
+  myOpenSearch:
+    type: open-search-domain
+    properties:
+      version: "2.17"
+      clusterConfig:
+        instanceType: r6g.large.search
+        instanceCount: 3
+        # {start-highlight}
+        multiAzDisabled: true
+        # {stop-highlight}
+```
+
+# API Reference
+
+<PropertiesTable definitionName="OpenSearchDomain" />
+
+<PropertiesTable definitionName="OpenSearchClusterConfig" searchForReferencesInDefinition="OpenSearchDomainProps" />
+
+<PropertiesTable definitionName="OpenSearchAccessibility" searchForReferencesInDefinition="OpenSearchDomainProps" />

@@ -1,0 +1,210 @@
+---
+title: "SQS Queues"
+order: 276
+---
+
+# Overview and basic concepts
+
+Amazon Simple Queue Service (SQS) lets you send, store, and receive messages between software components at any volume,
+without losing messages or requiring other services to be available.
+
+Amazon SQS provides a simple and reliable way for customers to decouple and connect components (microservices) together
+using queues.
+
+# Under the hood
+
+SQS queue is an abstraction for [Amazon Simple Queue Service (SQS)](https://aws.amazon.com/sqs/).
+
+# When to use
+
+Stacktape offers 3 types of AWS managed resources intended for messaging/communication(all use "pay per use" model and
+scale automatically):
+
+1. [AWS SNS topic](/resources/sns-topics/)
+2. [AWS SQS queue](/resources/sqs-queues/)
+3. [AWS EventBridge bus](/resources/event-buses/)
+
+<br />
+
+Depending on you use case you might choose to use:
+
+**Use SNS topic when**
+
+- You want to publish messages to MANY different subscribers with a single action.
+- Require high throughput and reliability for publishing and delivery to consumers.
+- Have many subscribers.
+
+**Use SQS queue when**
+
+- You are looking for reliable 1:1 asynchronous communication to decouple your applications from one another
+- You want to rate limit your consumption of messages (in case of SQS consumer fetches the messages so you can control
+  the rate)
+
+**Use Event bus when**
+
+- You want to publish messages to many subscribers, and use the event data itself to match targets interested certain
+  patterns (with even bus, you can filter which messages should be delivered to the subscriber based on message content)
+- You want integration with other SaaS providers such as Shopify, Datadog, Pagerduty, or others.
+
+# Basic usage
+
+By default sqs-queue does not need to have any properties defined.
+
+```yml
+resources:
+  mainQueue:
+    type: sqs-queue
+```
+
+<PropertiesTable definitionName="SqsQueue" />
+
+# Integrating with workloads
+
+You can invoke [function](/compute-resources/lambda-functions/#sqs-queue) or a
+[batch-job](/compute-resources/batch-jobs/#sqs-queue) every time messages are in sqs-queue. This can be done by creating
+event integration:
+
+- Messages are processed in batches
+- If the SQS queue contains multiple messages, the function/batch-job is invoked with multiple messages contained in an
+  event
+- If **function fails while processing messages** or **batch-job fails to start** messages will not be considered
+  processed and will appear in the queue again after [visibility timeout](#visibility-timeout)
+
+```yml
+resources:
+  myLambda:
+    type: function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: path/to/my-lambda.ts
+      # {start-highlight}
+      events:
+        - type: sqs
+          properties:
+            sqsQueueName: mySqsQueue
+      # {stop-highlight}
+
+  mySqsQueue:
+    type: sqs-queue
+```
+
+> Lambda function with SQS queue integration
+
+Alternatively to event integrations, you can also receive messages using AWS SDK. See our
+[worker-service example](#worker-example)
+
+# Worker example
+
+```yml
+resources:
+  myQueue:
+    type: sqs-queue
+    properties:
+      fifoEnabled: true
+
+  processing:
+    type: worker-service
+    properties:
+      packaging:
+        type: stacktape-image-buildpack
+        properties:
+          entryfilePath: processing.ts
+      # {start-highlight}
+      connectTo:
+        - myQueue
+      # {stop-highlight}
+      resources:
+        cpu: 0.25
+        memory: 512
+```
+
+```ts
+import { DeleteMessageCommand, ReceiveMessageCommand, SQSClient } from '@aws-sdk/client-sqs';
+
+const sqsClient = new SQSClient({});
+
+const interval = setInterval(async () => {
+  try {
+    const { Messages } = await sqsClient.send(new ReceiveMessageCommand({ QueueUrl: process.env.STP_MY_QUEUE_URL }));
+    if (Messages?.length) {
+      // do some message processing
+      // .....
+
+      // After processing, delete messages from queue.
+      // If you do NOT delete messages, they will become visible after visibility timeout elapses.
+      // This can lead to same message being processed twice.
+      await Promise.all(
+        Messages.map(({ ReceiptHandle }) =>
+          sqsClient.send(new DeleteMessageCommand({ QueueUrl: process.env.STP_MY_QUEUE_URL, ReceiptHandle }))
+        )
+      );
+    }
+    console.info('Nothing to process');
+  } catch (err) {
+    // error handling
+    console.error(err);
+    clearInterval(interval);
+  }
+}, 10000);
+```
+
+> Code of **processing.ts**
+
+# Sending messages
+
+You can use [AWS SDK](https://aws.amazon.com/developer/tools/#SDKs) to send messages to the queue.
+
+```typescript
+import { SendMessageCommand, SQSClient } from "@aws-sdk/client-sqs";
+
+const sqsClient = new SQSClient({});
+
+sqsClient
+  .send(new SendMessageCommand({ MessageBody: "Hello from the other side", QueueUrl: process.env.STP_MY_QUEUE_URL }))
+  .catch((err) => {
+    console.info(`Sending message failed: ${err}`);
+  });
+```
+
+# Enabling FIFO
+
+You can enable **FIFO**(First in First Out) for your SQS queue, ensuring ordering of events.
+
+-   FIFO (First-In-First-Out) queues have all the capabilities of the standard queues, but are designed to enhance messaging between applications when the order of operations and events is critical, or where duplicates can't be tolerated.
+-   For more information on FIFO queues refer to [AWS docs](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html)
+    
+    When using FIFO, each message should contain `MessageDeduplicationId` or **contentBasedDeduplication** must be enabled.
+
+```yml
+resources:
+  mainQueue:
+    type: sqs-queue
+    properties:
+      fifoEnabled: true
+```
+
+## Content based deduplication
+
+-   Specifies whether to enable content-based deduplication. **Deduplication explained:**
+-   During the deduplication interval, queue treats messages identifies duplicates and delivers only one copy of the message
+-   Duplicate messages are recognized based on `MessageDeduplicationId`:
+    -   You may provide a `MessageDeduplicationId` explicitly.
+    -   If you do not provide `MessageDeduplicationId`, content-based deduplication is used(if enabled) - this means Amazon SQS uses a SHA-256 hash to generate the `MessageDeduplicationId` using the body of the message (but not the attributes of the message).
+        
+        FIFO must be enabled in order to use this feature
+
+# Visibility timeout
+
+<PropDescription definitionName="SqsQueueProps" propertyName="visibilityTimeout" descType="ld" />
+
+You can set visibility timeout using `visibilityTimeoutSeconds` property.
+
+```yml
+resources:
+  mainQueue:
+    type: sqs-queue
+    properties:
+      visibilityTimeoutSeconds: 300
+```

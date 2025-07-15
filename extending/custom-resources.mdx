@@ -1,0 +1,488 @@
+---
+title: ""
+order: 3
+---
+
+# Overview
+
+Custom resources enable you to create resources with custom provisioning logic. This enables users to specify execution
+logic for resource creation, update, and deletion therefore allowing users to execute any kind of logic during stack
+deploy/delete. Moreover, it gives users the ability to provision any type of resource that is not included among
+Stacktape or Cloudformation resources. That way, users can manage all related resources in a single stack.
+
+## When to use
+
+**Provisioning non-AWS resources** - While AWS offers huge amount of services and resources, in some cases, AWS might
+not offer a solution(resource) for your use-case, and often time a third-party solution better fits your needs. For
+example: using **Auth0** over **Cognito** or using **Algolia** over **AWS Elasticsearch**. These non-AWS resources can
+be provisioned using custom resources.
+
+<Info>
+
+If you are not provisioning custom resource but are looking for a way to execute custom logic during deployment process
+take a look at [deployment scripts](/resources/deployment-scripts)
+
+</Info>
+
+{/* 2. **Performing provisioning steps not related to infrastructure** - Deployment of infrastructure is only a part of
+   having the application successfully running. You might need to seed the database or run migrations, both of which are
+   a great fit for a custom resource. Another example might be running a smoke test from your custom resource to ensure
+   that everything is running correctly after deployment. */}
+
+{/* 3. **Any other use case** - Since you are fully in control of the code and therefore of what the custom resource does,
+   there is virtually no limit of how to use custom resources. Custom resources can be powerful, but we advise users to
+   be reasonable with them.  */}
+
+<Divider />
+
+# Usage
+
+In Stacktape, custom resources are made of two parts:
+
+1. [custom-resource-definition](#custom-resource-definition) - definition is special type of lambda function. It
+   contains the custom logic - the code, which gets executed each time **custom-resource-instance** is created, updated,
+   or deleted. To put into perspective of standard programming languages: **custom-resource-definition** is like a class
+   and **custom-resource-instance** is instance of this class.
+
+2. [custom-resource-instance](#custom-resource-instance) - when you specify instance, you must specify
+   **custom-resource-definition** _definitionName_ (which you want to instantiate) and _resourceProperties_(which can be
+   thought of as arguments), which will be passed to the executing code.
+
+All parts of a custom resource are shown in the following snippet. Individual parts are explained in the subsequent
+sections.
+
+The following example shows a custom resource that is used to seed a mongo cluster.
+
+```yml
+resources:
+  myMongoCluster:
+    type: mongo-db-atlas-cluster
+    properties:
+      clusterTier: M10
+
+  mongoSeeder:
+    type: custom-resource-definition
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: seed-the-mongo-cluster.ts
+      connectTo:
+        - myMongoCluster
+
+  seedMongoCluster:
+    type: custom-resource-instance
+    properties:
+      definitionName: mongoSeeder
+      resourceProperties:
+        mongoConnectionString: $Param('myMongoCluster', 'AtlasMongoCluster::SrvConnectionString')
+```
+
+<Divider />
+
+# Custom resource definition
+
+Custom resource definition is similar to [function](/compute-resources/lambda-functions) definition. This is because on
+the background **custom-resource-definition** leverages lambda functions.
+
+<PropertiesTable
+  definitionName="CustomResourceDefinition"
+  rewriteLinksForReferencedCompositeTypes={{
+    StpBuildpackLambdaPackaging: "#code-of-custom-resource",
+    CustomArtifactLambdaPackaging: "#code-of-custom-resource"
+  }}
+/>
+
+```yml
+resources:
+  myMongoCluster:
+    type: mongo-db-atlas-cluster
+    properties:
+      clusterTier: M10
+
+  # {start-highlight}
+  mongoSeeder:
+    type: custom-resource-definition
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: seed-the-mongo-cluster.ts
+      connectTo:
+        - myMongoCluster
+  # {stop-highlight}
+
+  seedMongoCluster:
+    type: custom-resource-instance
+    properties:
+      definitionName: mongoSeeder
+      resourceProperties:
+        mongoConnectionString: $Param('myMongoCluster', 'AtlasMongoCluster::SrvConnectionString')
+```
+
+<Divider />
+
+## Code of custom resource
+
+Package configuration allows you to specify a path to your code and other package properties. The code contains a logic
+of your custom resource.
+
+Code is during deployment packaged and executed as lambda functions. Refer to lambda functions
+[packaging docs](/configuration/packaging#packaging-lambda-functions).
+
+```yml
+resources:
+  myMongoCluster:
+    type: mongo-db-atlas-cluster
+    properties:
+      clusterTier: M10
+
+  mongoSeeder:
+    type: custom-resource-definition
+    properties:
+      # {start-highlight}
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: seed-the-mongo-cluster.ts
+      # {stop-highlight}
+      connectTo:
+        - myMongoCluster
+
+  seedMongoCluster:
+    type: custom-resource-instance
+    properties:
+      definitionName: mongoSeeder
+      resourceProperties:
+        mongoConnectionString: $Param('myMongoCluster', 'AtlasMongoCluster::SrvConnectionString')
+```
+
+<Divider />
+
+### Code example
+
+The following example shows the code of our seeding custom resource in file **seed-the-mongo-cluster.ts**
+
+See [AWS documentation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/crpg-ref.html) to learn more
+about:
+
+- the type of requests (events) custom resource receives during stack operations
+- response objects which you should return during respective operations
+
+```ts
+import mongoose from 'mongoose';
+import { SUCCESS, FAILED, send } from 'cfn-response-promise';
+
+// {start-highlight}
+// incoming event is in following form
+// {stop-highlight}
+// {
+//   "RequestType" : "Create" || "Update" || "Delete",
+//   "RequestId" : "9db53695-b0a0-47d6-908a-ea2d8a3ab5d7",
+//   "ResponseURL" : "https://...",
+//   "ResourceType" : "AWS::Cloudformation::CustomResource",
+//   "LogicalResourceId" : "...",
+//   "StackId" : "arn:aws:cloudformation:...",
+//   "ResourceProperties" : {
+//      ... properties of custom-resource-instance
+//   }
+// }
+
+export default async (event, context) => {
+  // custom resource definition code
+  let success = true;
+  let dataToReturn = {};
+
+  try {
+    // we are only seeding database if the operation is Create
+    if (event.RequestType === 'Create') {
+      // {start-highlight}
+      // we are using the "mongoConnectionString" property passed by custom-resource-instance to create connection
+      const connection = await mongoose.connect(event.ResourceProperties.mongoConnectionString, {
+        // {stop-highlight}
+        authMechanism: 'MONGODB-AWS',
+        authSource: '$external',
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        dbName: 'my-test-database'
+      });
+      // code with seeding the database ...
+      // ...
+    }
+  } catch (err) {
+    success = false;
+  }
+  await send(event, context, success ? SUCCESS : FAILED, dataToReturn, 'customresourceid');
+};
+
+// {start-highlight}
+// function must respond to "ResponseURL" with response in following form
+// we are using "cfn-response-promise" library which formats response for us
+// {stop-highlight}
+// {
+//   "Status" : "SUCCESS" || "FAILED",
+//   "RequestId" : "9db53695-b0a0-47d6-908a-ea2d8a3ab5d7",
+//   "LogicalResourceId" : "...",
+//   "StackId" : "arn:aws:cloudformation:...",
+//   "PhysicalResourceId" : "...",
+//   "Data" : {
+//     ... attributes which can be queried in template using $Param
+//   }
+// }
+```
+
+<Divider />
+
+## Accessing other resources
+
+- For most of the AWS resources, resource-to-resource communication is not allowed by default. This helps to enforce
+  security and resource isolation. Access must be explicitly granted using [IAM](https://aws.amazon.com/iam/) (Identity
+  and Access Management) permissions.
+
+- Access control of [Relational Databases](/resources/relational-databases) is not managed by IAM. These resources are
+  not "cloud-native" and have their own access control mechanism (connection string with username and password). They
+  are accessible by default, and you don't need to grant any extra IAM permissions. If the default,
+  connection-string-based access-control is not sufficient for your use case, you can restrict connection to only
+  resources in the same VPC. In that case, your function must
+  [join that VPC](/compute-resources/lambda-functions#default-vpc-connection) to access them.
+
+- Stacktape automatically handles IAM permissions for the underlying AWS services that it creates (i.e. granting
+  function permission to write logs to Cloudwatch, or allowing to communicate with their event source and many others).
+
+- If your compute resource needs to communicate with other infrastructure components, you need to add permissions
+  manually. You can do this in 2 ways listed below.
+
+## Using connectTo
+
+- List of resource names or AWS services that this function will be able to access (basic IAM permissions will be
+  granted automatically). Granted permissions differ based on the resource.
+- Works only for resources managed by Stacktape in `resources` section (not arbitrary Cloudformation resources)
+- This is useful if you don't want to deal with IAM permissions yourself. Handling permissions using raw IAM role
+  statements can be cumbersome, time-consuming and error-prone. Moreover, when using `connectTo` property, Stacktape
+  **automatically injects information about resource** you are connecting to as environment variables into your custom
+  resource runtime.
+
+By referencing resources (or services) in `connectTo` list, Stacktape automatically:
+
+-   configures correct compute resource's **IAM role permissions** if needed
+-   sets up correct **security group rules** to allow access if needed
+-   **injects relevant environment variables** containing information about resource you are connecting to into the compute resource's runtime
+    -   names of environment variables use upper-snake-case and are in form `STP_[RESOURCE_NAME]_[VARIABLE_NAME]`,
+    -   examples: `STP_MY_DATABASE_CONNECTION_STRING` or `STP_MY_EVENT_BUS_ARN`,
+    -   list of injected variables for each resource type can be seen below.
+
+  
+
+Granted permissions and injected environment variables are different depending on resource type:
+
+  
+
+`Bucket`
+
+-   **Permissions:**
+    -   list objects in a bucket
+    -   create / get / delete / tag object in a bucket
+-   **Injected env variables**: `NAME`, `ARN`
+
+  
+
+`DynamoDB table`
+
+-   **Permissions:**
+    -   get / put / update / delete item in a table
+    -   scan / query a table
+    -   describe table stream
+-   **Injected env variables**: `NAME`, `ARN`, `STREAM_ARN`
+
+  
+
+`MongoDB Atlas cluster`
+
+-   **Permissions:**
+    -   Allows connection to a cluster with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about MongoDB Atlas clusters accessibility modes, refer to [MongoDB Atlas cluster docs](/3rd-party-resources/mongo-db-atlas-clusters/#accessibility).
+    -   Creates access "user" associated with compute resource's role to allow for secure credential-less access to the the cluster
+-   **Injected env variables**: `CONNECTION_STRING`
+
+  
+
+`Relational(SQL) database`
+
+-   **Permissions:**
+    -   Allows connection to a relational database with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about relational database accessibility modes, refer to [Relational databases docs](/resources/relational-databases/#accessibility).
+-   **Injected env variables**: `CONNECTION_STRING`, `JDBC_CONNECTION_STRING`, `HOST`, `PORT` (in case of aurora multi instance cluster additionally: `READER_CONNECTION_STRING`, `READER_JDBC_CONNECTION_STRING`, `READER_HOST`)
+
+  
+
+`Redis cluster`
+
+-   **Permissions:**
+    -   Allows connection to a redis cluster with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about redis cluster accessibility modes, refer to [Redis clusters docs](/resources/redis-clusters/#accessibility).
+-   **Injected env variables**: `HOST`, `READER_HOST`, `PORT`
+
+  
+
+`Event bus`
+
+-   **Permissions:**
+    -   publish events to the specified Event bus
+-   **Injected env variables**: `ARN`
+
+  
+
+`Function`
+
+-   **Permissions:**
+    -   invoke the specified function
+    -   invoke the specified function via url (if lambda has URL enabled)
+-   **Injected env variables**: `ARN`
+
+  
+
+`Batch job`
+
+-   **Permissions:**
+    -   submit batch-job instance into batch-job queue
+    -   list submitted job instances in a batch-job queue
+    -   describe / terminate a batch-job instance
+    -   list executions of state machine which executes the batch-job according to its strategy
+    -   start / terminate execution of a state machine which executes the batch-job according to its strategy
+-   **Injected env variables**: `JOB_DEFINITION_ARN`, `STATE_MACHINE_ARN`
+
+  
+
+`User auth pool`
+
+-   **Permissions:**
+    -   full control over the user pool (`cognito-idp:*`)
+    -   for more information about allowed methods refer to [AWS docs](https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazoncognitouserpools.html)
+-   **Injected env variables**: `ID`, `CLIENT_ID`, `ARN`
+
+  
+  
+
+`SNS Topic`
+
+-   **Permissions:**
+    -   confirm/list subscriptions of the topic
+    -   publish/subscribe to the topic
+    -   unsubscribe from the topic
+-   **Injected env variables**: `ARN`, `NAME`
+
+  
+  
+
+`SQS Queue`
+
+-   **Permissions:**
+    -   send/receive/delete message
+    -   change visibility of message
+    -   purge queue
+-   **Injected env variables**: `ARN`, `NAME`, `URL`
+
+  
+
+`Upstash Kafka topic`
+
+-   **Injected env variables**: `TOPIC_NAME`, `TOPIC_ID`, `USERNAME`, `PASSWORD`, `TCP_ENDPOINT`, `REST_URL`
+
+  
+
+`Upstash Redis`
+
+-   **Injected env variables**: `HOST`, `PORT`, `PASSWORD`, `REST_TOKEN`, `REST_URL`, `REDIS_URL`
+
+  
+
+`Private service`
+
+-   **Injected env variables**: `ADDRESS`
+
+  
+
+`aws:ses`(Macro)
+
+-   **Permissions:**
+    -   gives full permissions to aws ses (`ses:*`).
+    -   for more information about allowed methods refer to [AWS docs](https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonses.html)
+
+In this example, we are granting access to the mongo cluster. This will
+[inject credentials for access](/resources/mongo-db-atlas-clusters#accessing-clusters-from-workloads) which are used in
+[code](#code-example).
+
+```yml
+resources:
+  myMongoCluster:
+    type: mongo-db-atlas-cluster
+    properties:
+      clusterTier: M10
+
+  mongoSeeder:
+    type: custom-resource-definition
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: seed-the-mongo-cluster.ts
+      # {start-highlight}
+      connectTo:
+        - myMongoCluster
+      # {stop-highlight}
+
+  seedMongoCluster:
+    type: custom-resource-instance
+    properties:
+      definitionName: mongoSeeder
+      resourceProperties:
+        mongoConnectionString: $Param('myMongoCluster', 'AtlasMongoCluster::SrvConnectionString')
+```
+
+<PropertiesTable definitionName="StpIamRoleStatement" searchForReferencesInDefinition="CustomResourceDefinitionProps" />
+
+<Divider />
+
+## Environment
+
+Use environment variables for injecting information that resource needs during code execution.
+
+<PropertiesTable definitionName="EnvironmentVar" searchForReferencesInDefinition="CustomResourceDefinitionProps" />
+
+<Divider />
+
+# Custom resource instance
+
+**Custom-resource-instance**, creates instance of specified **custom-resource-definition**. Depending on the action
+(create/update/delete) stack is undergoing, the instance receives event (see [code example](#code-example)) and executes
+the code.
+
+```yml
+resources:
+  myMongoCluster:
+    type: mongo-db-atlas-cluster
+    properties:
+      clusterTier: M10
+
+  mongoSeeder:
+    type: custom-resource-definition
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: seed-the-mongo-cluster.ts
+      connectTo:
+        - myMongoCluster
+
+  # {start-highlight}
+  seedMongoCluster:
+    type: custom-resource-instance
+    properties:
+      definitionName: mongoSeeder
+      resourceProperties:
+        mongoConnectionString: $Param('myMongoCluster', 'AtlasMongoCluster::SrvConnectionString')
+  # {stop-highlight}
+```
+
+<PropertiesTable definitionName="CustomResourceInstance" />
+
+<Divider />
+
+# API reference

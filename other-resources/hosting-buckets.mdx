@@ -1,0 +1,190 @@
+---
+title: ""
+order: -1
+---
+
+# Overview
+
+- Hosting buckets are ideal for serving static content(such as static website) and client rendered applications to your
+  users across the world.
+- Contents of your application are distributed through CDN. By distributing and caching content across 310+ globally
+  dispersed Points of Presence (PoPs - also called edge locations) you can significantly decrease the latency of data
+  delivery as well as reduce load on your application.
+- Hosting buckets come secured(with automatic TLS) out of the box
+- If your use-case requires more control over bucket configuration take a look at the [bucket](/resources/buckets)
+  resource.
+
+# Under the hood
+
+Under the hood, the hosting bucket has two main components:
+
+- S3 bucket - an object(file) storage where your assets are uploaded and stored. For more information about S3 refer to
+  [AWS docs](https://aws.amazon.com/s3/).
+- Cloudfront CDN distribution - distributes and caches your app assets across the world. For more information about
+  Cloudfront refer to [AWS docs](https://aws.amazon.com/cloudfront/).
+
+# Basic usage
+
+You can configure properties hosting bucket by simply setting upload directory path:
+
+-   Path to the directory that contains content you wish to host.
+    
+    This can be **output directory** of your website build process(built website) or any other directory containing static content you wish to serve.
+    
+-   During `deploy`, `codebuild:deploy` or `bucket:sync` commands, contents of the folder is uploaded to the bucket
+
+```yml
+resources:
+  myWebsite:
+    type: 'hosting-bucket'
+    properties:
+      uploadDirectoryPath: ./dist
+```
+
+<PropertiesTable definitionName="HostingBucket" />
+
+# Hosting content type
+
+You can specify what type of content type you are hosting.
+
+Based of that Stacktape will configure HTTP headers of uploaded files and CDN behavior.
+
+Supported content types:
+
+-   **static-website**:
+    -   sets `cache-control` header value for all uploaded files to `public, max-age=0, s-maxage=31536000, must-revalidate`.
+    -   this setup caches all the content on the CDN but never caches files in the browser.
+-   **gatsby-static-website**:
+    -   optimizes headers for static websites built using [Gatsby](https://www.gatsbyjs.com/) according to [Gatsby caching recommendations](https://www.gatsbyjs.com/docs/caching/).
+-   **single-page-app**:
+    -   optimizes headers for a [Single page application](https://en.wikipedia.org/wiki/Single-page_application)
+    -   `html` files are never cached (so that when you re-deploy your website, your users always get the latest content)
+    -   All other assets (.js, .css, etc.) are cached indefinitely. You should **ALWAYS** add a content hash to the filename, so that your users always get a new version of your website after you deploy it. To learn how to add a content hash to your files, refer to the docs of your bundler, for example [webpack docs](https://webpack.js.org/guides/caching/).
+    -   Sets up correct CDN redirects for single page app.
+
+```yml
+resources:
+  myWebsite:
+    type: hosting-bucket
+    properties:
+      uploadDirectoryPath: ./dist
+      # {start-highlight}
+      hostingContentType: single-page-app
+      # {stop-highlight}
+```
+
+# Custom domains
+
+# Custom domain names
+
+If you do not have a custom domain and want one, read the section
+[Registering domain](/other-resources/domains-and-certificates/#registering-domain) on the _Domains and TLS
+certificates_ page.
+
+If you already have an existing domain and you wish to use it with your app, there are two approaches:
+
+1. [Using Stacktape to manage domains and certs](#using-stacktape-to-manage-domain-and-certs) - you must use Route53 in
+   your AWS account as your DNS.
+2. [Using 3rd party DNS provider](#using-3rd-party-dns) - such as GoDaddy, Cloudflare etc. You must handle domains and
+   generate certificates yourself.
+
+For more information about domain management options, refer to
+[Domains and TLS certificates](/other-resources/domains-and-certificates/) page.
+
+## Using Stacktape to manage domains and certs
+
+Connecting a custom domain to the resource does 2 things:
+
+-   **Creates DNS records**:
+    -   If you use your custom domain with a resource, Stacktape automatically creates a DNS record (during deploy) pointing the specified domain name to the resource.
+-   **Adds TLS certificates**
+    -   Stacktape takes care of issuing and attaching correct (free, AWS-managed) certificate to the resource. This means, you do not have to deal with TLS termination(HTTPS).
+    -   If you want to use your own certificates, you can configure `customCertificateArns`.
+
+To manage a custom domain, it first needs to be added to your AWS account. This means that a [hosted zone](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/AboutHZWorkingWith.html) (collection of records managed together for a given domain) for your domain exists in your AWS account and your domain registrar's name servers are pointing to it. To learn more, refer to [Adding a domain guide](/other-resources/domains-and-certificates/#adding-domain).
+
+```yml
+resources:
+  myWebsite:
+    type: hosting-bucket
+    properties:
+      uploadDirectoryPath: ./dist
+      hostingContentType: single-page-app
+      # {start-highlight}
+      customDomains:
+        - domainName: example.com
+      # {stop-highlight}
+```
+
+## Using 3rd party DNS
+
+To use 3rd party provider follow these steps:
+
+1. Create/import a custom TLS certificate for your domain in
+   [AWS console](https://console.aws.amazon.com/acm/home#/certificates/list). Copy certificate ARN; you will need it in
+   the next step.
+2. After the certificate is validated (_Issued_), assign your domain to your resource:
+   - use the ARN of your certificate as customCertificateArn
+   - disable DNS record creation (because you are using third party DNS)
+
+```yml
+resources:
+  myWebsite:
+    type: hosting-bucket
+    properties:
+      uploadDirectoryPath: ./dist
+      # {start-highlight}
+      customDomains:
+        - domainName: mydomain.com
+          disableDnsRecordCreation: true
+          customCertificateArn: <<ARN_OF_YOUR_CERTIFICATE>>
+      # {stop-highlight}
+```
+
+3. After you deploy your hosting bucket, you can find the domain name in
+   [Stacktape console](https://console.stacktape.com/projects) in:
+
+   _Your project and stage_ > _Click on your Hosting Bucket resource to see its (CDN) domain_
+
+   Once you have the domain name, you can point DNS record to this domain using your DNS provider:
+
+   - Use **ALIAS** record type for root domains (i.e _mydomain.com_)
+   - Use **CNAME** record type for subdomains (i.e _www.mydomain.com_ or _staging.mydomain.com_
+
+# Edge lambda functions
+
+-   You can associate `edge-lambda-function` with hosting-bucket to be executed:
+    
+    -   `onRequest` - function is executed when CDN receives a request from a client(viewer) before checking CDN cache and before request is forwarded to hosting-bucket
+    -   `onResponse` - function is executed before returning the response to the client(viewer)
+-   Potential use-cases for using edge functions:
+    
+    -   generating immediate HTTP response without the need to check CDN cache or forward to the bucket
+    -   modifying request (i.e rewrite url, headers etc) before forwarding to the bucket
+
+For more information refer to [Edge lambda functions](/compute-resources/edge-lambda-functions) page.
+
+<PropertiesTable definitionName="EdgeFunctionsConfig" searchForReferencesInDefinition="HostingBucketProps" />
+
+```yml
+resources:
+  authFunction:
+    type: edge-lambda-function
+    properties:
+      packaging:
+        type: stacktape-lambda-buildpack
+        properties:
+          entryfilePath: auth-function.ts
+
+  myWebsite:
+    type: hosting-bucket
+    properties:
+      # {start-highlight}
+      edgeFunctions:
+        onRequest: authFunction
+      # {stop-highlight}
+```
+
+# Referenceable parameters
+
+<ReferenceableParams resource="hosting-bucket" />
