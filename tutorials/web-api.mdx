@@ -89,14 +89,14 @@ In this tutorial, we create a script that performs the database migration comman
 
 Configuring script:
 
-1. **Script name** - an arbitrary name for the script. We use `databaseMigration`,
-2. **Script trigger** - a hook that will determine when the script is executed (we use `After deploy`),
-3. **Script type** - we use `Local script`. To see other types of scripts, refer to
+1. Script name - an arbitrary name for the script. We use `databaseMigration`,
+2. Script trigger - a hook that will determine when the script is executed (we use `After deploy`),
+3. Script type - we use `Local script`. To see other types of scripts, refer to
    [our docs](https://docs.stacktape.com/configuration/scripts/),
-4. **Command** - the command to be executed. We use `npx prisma db push` as our application uses Prisma d,
-5. **Current working directory** - working directory for the script execution relative to the project root. By default,
+4. Command - the command to be executed. We use `npx prisma db push` as our application uses Prisma d,
+5. Current working directory - working directory for the script execution relative to the project root. By default,
    a project's root directory is the working directory,
-6. **Connect to** - we use `connect to` to automatically inject environment variables (such as database connection
+6. Connect to - we use `connect to` to automatically inject environment variables (such as database connection
    string) into our script.
 
 ![Configuring script](../static/getting-started/first-deploy/docs19.png)

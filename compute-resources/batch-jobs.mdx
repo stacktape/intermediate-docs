@@ -48,10 +48,10 @@ The lifecycle of your batch job is fully managed. Stacktape leverages 2 extra re
 
 Batch job execution flow:
 
-1. **Trigger function** receives the event from one of its integrations.
-2. **Trigger function** starts the execution of the **batch job state machine**.
-3. **Batch job state machine** queues batch job instance into **AWS Batch** queue and controls its lifecycle.
-4. **AWS Batch** environment spawns VM(on which job is ran) and runs the job instance(container) on the VM.
+1. Trigger function receives the event from one of its integrations.
+2. Trigger function starts the execution of the **batch job state machine**.
+3. Batch job state machine queues batch job instance into **AWS Batch** queue and controls its lifecycle.
+4. AWS Batch environment spawns VM(on which job is ran) and runs the job instance(container) on the VM.
 
 # When to use
 
@@ -988,11 +988,11 @@ By referencing resources (or services) in `connectTo` list, Stacktape automatica
     -   examples: `STP_MY_DATABASE_CONNECTION_STRING` or `STP_MY_EVENT_BUS_ARN`,
     -   list of injected variables for each resource type can be seen below.
 
-  
+
 
 Granted permissions and injected environment variables are different depending on resource type:
 
-  
+
 
 `Bucket`
 
@@ -1001,7 +1001,7 @@ Granted permissions and injected environment variables are different depending o
     -   create / get / delete / tag object in a bucket
 -   **Injected env variables**: `NAME`, `ARN`
 
-  
+
 
 `DynamoDB table`
 
@@ -1011,7 +1011,7 @@ Granted permissions and injected environment variables are different depending o
     -   describe table stream
 -   **Injected env variables**: `NAME`, `ARN`, `STREAM_ARN`
 
-  
+
 
 `MongoDB Atlas cluster`
 
@@ -1020,7 +1020,7 @@ Granted permissions and injected environment variables are different depending o
     -   Creates access "user" associated with compute resource's role to allow for secure credential-less access to the the cluster
 -   **Injected env variables**: `CONNECTION_STRING`
 
-  
+
 
 `Relational(SQL) database`
 
@@ -1028,7 +1028,7 @@ Granted permissions and injected environment variables are different depending o
     -   Allows connection to a relational database with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about relational database accessibility modes, refer to [Relational databases docs](/resources/relational-databases/#accessibility).
 -   **Injected env variables**: `CONNECTION_STRING`, `JDBC_CONNECTION_STRING`, `HOST`, `PORT` (in case of aurora multi instance cluster additionally: `READER_CONNECTION_STRING`, `READER_JDBC_CONNECTION_STRING`, `READER_HOST`)
 
-  
+
 
 `Redis cluster`
 
@@ -1036,7 +1036,7 @@ Granted permissions and injected environment variables are different depending o
     -   Allows connection to a redis cluster with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about redis cluster accessibility modes, refer to [Redis clusters docs](/resources/redis-clusters/#accessibility).
 -   **Injected env variables**: `HOST`, `READER_HOST`, `PORT`
 
-  
+
 
 `Event bus`
 
@@ -1044,7 +1044,7 @@ Granted permissions and injected environment variables are different depending o
     -   publish events to the specified Event bus
 -   **Injected env variables**: `ARN`
 
-  
+
 
 `Function`
 
@@ -1053,7 +1053,7 @@ Granted permissions and injected environment variables are different depending o
     -   invoke the specified function via url (if lambda has URL enabled)
 -   **Injected env variables**: `ARN`
 
-  
+
 
 `Batch job`
 
@@ -1065,7 +1065,7 @@ Granted permissions and injected environment variables are different depending o
     -   start / terminate execution of a state machine which executes the batch-job according to its strategy
 -   **Injected env variables**: `JOB_DEFINITION_ARN`, `STATE_MACHINE_ARN`
 
-  
+
 
 `User auth pool`
 
@@ -1074,8 +1074,8 @@ Granted permissions and injected environment variables are different depending o
     -   for more information about allowed methods refer to [AWS docs](https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazoncognitouserpools.html)
 -   **Injected env variables**: `ID`, `CLIENT_ID`, `ARN`
 
-  
-  
+
+
 
 `SNS Topic`
 
@@ -1085,8 +1085,8 @@ Granted permissions and injected environment variables are different depending o
     -   unsubscribe from the topic
 -   **Injected env variables**: `ARN`, `NAME`
 
-  
-  
+
+
 
 `SQS Queue`
 
@@ -1096,25 +1096,25 @@ Granted permissions and injected environment variables are different depending o
     -   purge queue
 -   **Injected env variables**: `ARN`, `NAME`, `URL`
 
-  
+
 
 `Upstash Kafka topic`
 
 -   **Injected env variables**: `TOPIC_NAME`, `TOPIC_ID`, `USERNAME`, `PASSWORD`, `TCP_ENDPOINT`, `REST_URL`
 
-  
+
 
 `Upstash Redis`
 
 -   **Injected env variables**: `HOST`, `PORT`, `PASSWORD`, `REST_TOKEN`, `REST_URL`, `REDIS_URL`
 
-  
+
 
 `Private service`
 
 -   **Injected env variables**: `ADDRESS`
 
-  
+
 
 `aws:ses`(Macro)
 
