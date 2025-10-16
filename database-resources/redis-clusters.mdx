@@ -1,57 +1,38 @@
 ---
-title: ""
+title: "Redis Clusters"
 order: 180
 ---
 
-# Overview
+<br />
+<br />
 
-- Redis cluster allows you to deploy fully managed Redis database cluster. You don't have to worry about capacity
-  scaling, hardware & VM provisioning, cluster setup, patching or backups.
+Redis is a fast, in-memory, _NoSQL_ data store that provides sub-millisecond latency. It's often used as a cache to offload primary database systems, but it's also suitable for chat applications, message queues, and real-time analytics.
 
-- Redis is a fast, NoSQL in-memory data store that can provide sub-millisecond latency.
+With Stacktape, you can deploy a fully managed Redis cluster without worrying about capacity scaling, hardware provisioning, cluster setup, patching, or backups. The service is compatible with open-source Redis, so you can use your existing Redis clients.
 
-- Clusters are easy to set up, built on open-source Redis and compatible with the Redis APIs - ElastiCache for Redis
-  works with your Redis clients and uses the open Redis data format to store your data.
+Under the hood, Stacktape uses [Amazon ElastiCache for Redis](https://aws.amazon.com/elasticache/redis/).
 
-- It is often used as a cache to offload main database systems.
+# When to use it
 
-# Under the hood
-
-Redis clusters are fully managed (powered by [Amazon ElastiCache for Redis](https://aws.amazon.com/elasticache/redis/)).
-
-Multiple topologies are possible for the deployment: from a one node database, to a multi-node sharded cluster. See
-section [Cluster topology](#cluster-topology) for more info.
-
-# When to use
-
-Redis is used in cases when the performance is important. Example use-cases include caching, chat apps, messaging,
-queues, real-time analytics, etc.
+Redis is an excellent choice when performance is critical.
 
 <NegativeMargin />
 
 ## Advantages
 
-- **Performance** - Redis is an in-memory data store and can deliver sub-millisecond response times. In comparison to
-  disk-based databases (where most operations need a roundtrip to a disk), in-memory data stores can be an order of
-  magnitude faster.
-- **Fully managed** - You don't have to worry about capacity scaling, hardware & VM provisioning, cluster setup,
-  sharding process, patching, backups, etc.
-- **High availability** - Redis supports both clustered and non-clustered modes and provides high availability via
-  support for automatic failovers with minimal impact.
+- **Performance:** As an in-memory data store, Redis can deliver sub-millisecond response times, making it an order of magnitude faster than disk-based databases.
+- **Fully managed:** Stacktape handles all the operational overhead, including scaling, provisioning, patching, and backups.
+- **High availability:** Supports both clustered and non-clustered modes and provides automatic failover with minimal impact.
 
 ## Disadvantages
 
-- **Data persistence** - Redis offers 2 options for persistency: regular snap-shotting and append-only files. None of
-  them is as secure as a real transactional server providing undo/redo logging, point-in-time recovery, etc.
-- **Hard to store large amounts of data** - All your data must fit in memory.
-- **Requires topology-aware clients** - Clients connecting to the Redis cluster should be aware of the cluster topology.
-  This requires more configuration on the client.
+- **Data persistence:** While Redis offers persistence options like snapshotting and append-only files, it's not as durable as a transactional database with full logging and point-in-time recovery.
+- **Memory limitations:** All of your data must fit in memory.
+- **Client complexity:** Clients connecting to a Redis cluster need to be aware of the cluster's topology, which can require additional configuration.
 
 # Basic usage
 
-- Following example shows basic usage of `redis-cluster` resource. Only required properties are **instanceSize** and
-  **defaultUserPassword**.
-- The example shows a single node `redis-cluster`.
+This example shows a simple, single-node Redis cluster. The only required properties are `instanceSize` and `defaultUserPassword`.
 
 ```yml
 resources:
@@ -75,7 +56,7 @@ resources:
       # {stop-highlight}
 ```
 
-> Lambda function connected to a single-node redis cluster
+> A Lambda function connected to a single-node Redis cluster.
 
 ```ts
 import { Redis } from 'ioredis';
@@ -93,11 +74,13 @@ const handler = async (event, context) => {
 export default handler;
 ```
 
-> Lambda function storing and reading data from a single-node redis cluster
+> Example code for storing and retrieving data from the cluster.
 
-# Node instance size
+# Instance size
 
-- Different instance sizes have different memory and network capabilities.\n- Instance size can be changed without interrupting the cluster or losing the data.\n- To learn more, and see a detailed list of available instances, refer to [AWS pricing page](https://aws.amazon.com/elasticache/pricing/)\n
+This applies to both primary and replica nodes. Different instance sizes offer varying amounts of memory and network performance. You can change the instance size without interrupting the cluster or losing data.
+
+For a detailed list of available instance types, see the [AWS pricing page](https://aws.amazon.com/elasticache/pricing/).
 
 ```yml
 resources:
@@ -112,9 +95,13 @@ resources:
 
 # Default user password
 
-- Redis clusters are password protected. To communicate with the cluster, you must configure
-a password for the default user.\n- Communication with the cluster is encrypted in-transit.\n- You should not input the password directly. The recommended way is using [secrets](/resources/secrets/).\n- Password constraints:
-- Must be only printable ASCII characters.\n- Must be at least 16 characters and no more than 128 characters in length.\n- Cannot contain any of the following characters: '/', '"', or '@'.\n\n
+Redis clusters are password-protected, and all communication is encrypted in transit. It is recommended to use [secrets](/resources/secrets/) to manage this password instead of hardcoding it.
+
+**Password Constraints:**
+
+-   Must contain only printable ASCII characters.
+-   Must be between 16 and 128 characters long.
+-   Cannot contain the following characters: `/`, `"`, or `@`.
 
 ```yml
 resources:
@@ -129,12 +116,11 @@ resources:
 
 # Cluster topology
 
-- Cluster topology is based on the amount of replica nodes and the amount of shards.
-- Performance and high-availability of the cluster are dependent on the topology.
+The topology of your cluster, determined by the number of replica nodes and shards, affects its performance and availability.
 
-## Single node (non-sharded) cluster
+## Single-node cluster
 
-- Single node, non-sharded cluster has only one node. It's not highly available.
+A single-node cluster has only one node and is not highly available.
 
 ```yml
 resources:
@@ -145,23 +131,22 @@ resources:
       defaultUserPassword: $Secret('redis.password')
 ```
 
-![Single node (non-sharded) cluster topology](../static/redis-clusters/single-node.png)
+![A single-node Redis cluster](../static/redis-clusters/single-node.png)
 
 <Divider />
 
-## Multi node (non-sharded) cluster
+## Multi-node cluster
 
-- Adding replica nodes (read replicas) to a cluster has 2 benefits:
-- increases the read throughput\n- increases availability. Replica node can become the primary node in case of primary node failure.\n\n- Load balancing between replicas is automatically handled by AWS.\n- When there are multiple shards, this number specifies the number of replicas for each **shard cluster**.\n<div class="highlight-wrapper">
-  <div style="margin-right: 16px;line-height: 0px;">
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ED8B00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    </path>
-    - </line>
-    - </line>
-  </svg>
-  </div>
-  <div>Changing `numReplicaNodes` when sharding is enabled is not possible and will result in error.\n\n</div>
-</div>
+You can add replica nodes to a non-sharded cluster to improve read performance and availability.
+
+Adding replica nodes (read replicas) provides two main benefits:
+
+1.  **Increased read throughput:** Read requests are distributed across the replicas.
+2.  **Increased availability:** If the primary node fails, a replica can be promoted to take its place.
+
+Load balancing between replicas is handled automatically by AWS. For sharded clusters, this property specifies the number of replicas for each shard.
+
+**Note:** You cannot change this value for a sharded cluster after it has been created.
 
 ```yml
 resources:
@@ -173,25 +158,23 @@ resources:
       numReplicaNodes: 2
 ```
 
-![Multi node (non-sharded) cluster topology](../static/redis-clusters/multi-node.png)
+![A multi-node, non-sharded Redis cluster](../static/redis-clusters/multi-node.png)
 
 <Divider />
 
 ## Sharded cluster
 
-- Sharding enables you to scale redis cluster horizontally, by splitting the data into shards.\n- Each shard is then served by a **shard cluster**, which is responsible for given shard.
-Each **shard cluster** has a primary instance and `numReplicaNodes` amount of replicas.\n- You can update (increase or decrease) number of shards without interrupting the cluster.\n- You cannot update number of replicas per shard cluster on sharded cluster.\n- Routing to correct shard and shard re-balancing is automatically handled by AWS.\n- To learn more about sharding, refer to
-[AWS Docs](/resources/redis-clusters/#sharded-cluster).\n<div class="highlight-wrapper">
-  <div style="margin-right: 16px;line-height: 0px;">
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ED8B00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    </path>
-    - </line>
-    - </line>
-  </svg>
-  </div>
-  <div>Sharding comes with multiple limitations:\n\n- Sharding can only be enabled during redis cluster initial creation.
-After that the cluster cannot be updated from non-sharded to sharded or vice-versa.\n- Changing `numReplicaNodes` when sharding is enabled is not possible. In this case it is necessary to delete and recreate the cluster.\n- `numReplicaNodes` must be set to at least `1` when sharding is enabled.\n</div>
-</div>
+For horizontally scaled performance, you can enable sharding to distribute data across multiple primary nodes.
+
+Sharding allows you to scale your Redis cluster horizontally by splitting the data across multiple shards. Each shard is managed by its own cluster, which includes a primary instance and a specified number of replicas. You can increase or decrease the number of shards without interrupting the cluster. Routing and re-balancing are handled automatically by AWS.
+
+**Limitations:**
+
+-   Sharding can only be enabled when the cluster is first created.
+-   You cannot change the number of replica nodes (`numReplicaNodes`) after a sharded cluster has been created.
+-   `numReplicaNodes` must be at least `1` for sharded clusters.
+
+For more details, see the [AWS documentation](/resources/redis-clusters/#sharded-cluster).
 
 ```yml
 resources:
@@ -207,7 +190,7 @@ resources:
       numReplicaNodes: 2
 ```
 
-![Sharded cluster topology](../static/redis-clusters/sharded-redis.png)
+![A sharded Redis cluster](../static/redis-clusters/sharded-redis.png)
 
 ```ts
 import { Cluster } from 'ioredis';
@@ -236,12 +219,11 @@ const handler = async (event, context) => {
 export default handler;
 ```
 
-> Using a sharded cluster from a lambda function
+> Using a sharded cluster from a Lambda function.
 
 # Logging
 
-- When logging is enabled, [slow-log](https://redis.io/commands/slowlog) will be sent to a pre-created Cloudwatch log
-  group.
+You can enable logging to send the Redis [slow log](https://redis.io/commands/slowlog) to a CloudWatch log group.
 
 ```yml
 resources:
@@ -260,22 +242,17 @@ resources:
 
 ## Forwarding logs
 
-It is possible to forward logs to the third party services/databases. See page
-[Forwarding logs](/configuration/log-forwarding/) for more information and examples.
+You can forward logs to third-party services. See [Forwarding Logs](/configuration/log-forwarding/) for more information.
 
 # Accessibility
 
-- You can configure which resources and hosts can access your cluster.
-- Redis clusters do not support public IP addresses. Therefore, only 2 access modes are supported.
+You can configure which resources can access your cluster. Redis clusters don't support public IP addresses, so only two access modes are available.
 
 <PropertiesTable definitionName="RedisAccessibility" searchForReferencesInDefinition="RedisClusterProps" />
 
 ## VPC mode
 
-- The cluster can be accessed only from resources within the [default VPC](/user-guides/vpcs/#default-vpc).
-- Any [function](/compute-resources/lambda-functions) (provided it has `joinDefaultVpc` set to true),
-  [batch job](/compute-resources/batch-jobs) or [container workload](/compute-resources/multi-container-workloads) or
-  service within your stack can access the cluster.
+The cluster is only accessible from resources within the default _VPC_. This includes any function, batch job, or container workload in your stack.
 
 ```yml
 resources:
@@ -290,10 +267,9 @@ resources:
       # {stop-highlight}
 ```
 
-## Scoping workloads in VPC mode
+## Scoped VPC mode
 
-- Similar to **vpc** mode, but even more restrictive. In addition to resource being in the VPC, any host or resource
-  trying to access your cluster must explicitly include the cluster in its `connectTo` list.
+This mode is more restrictive. In addition to being in the same _VPC_, a resource must explicitly list the cluster in its `connectTo` property to gain access.
 
 ```yml
 resources:
@@ -316,30 +292,22 @@ resources:
 
 You are charged for:
 
-- **Computing nodes, shards and replica nodes**:
-  - Price depends on the instance size, number of shards and number of replica nodes.
-  - Can be calculated as **number of shards** \* (**number of replica nodes** + 1 (there is always primary)) \* **price
-    for node instance**
-  - EXAMPLE 1: Cheapest non-sharded cluster using `cache.t3.micro` instance with 0 replicaNodes: 1 \* (0+1) \* $0.017 =
-    **$0.017/hour** (~$12.50/month)
-  - EXAMPLE 2: Sharded cluster with 2 shards using `cache.t3.micro` and 1 replicaNode: 2 \* (1+1) \* $0.017 = **$0.068
-    per hour** (~$49/month)
-- **Data transfer**:
-  - In most cases there should be no additional cost.
-- **Backups**:
-  - If retained for at most 1 day: free
-  - $0.085/GB/month after that
+- **Nodes:** The price depends on the instance size, number of shards, and number of replica nodes.
+  - **Formula:** `num_shards * (num_replica_nodes + 1) * price_per_node`
+  - **Example 1 (cheapest):** A single-node `cache.t3.micro` cluster costs **$0.017/hour** (~$12.50/month).
+  - **Example 2 (sharded):** A two-shard `cache.t3.micro` cluster with one replica per shard costs **$0.068/hour** (~$49/month).
+- **Data transfer:** Usually no additional cost.
+- **Backups:** Free for the first day of retention, then $0.085/GB per month.
 
 <br />
 
-**Free Tier** (eligible for first 12 months)
+**Free Tier** (first 12 months)
 
-- Includes 750 hours of `t2.micro` instances (`t3.micro` for the regions in which `t2.micro` is not available) each
-  month.
+- 750 hours of `t2.micro` or `t3.micro` instances per month.
 
 <br />
 
-To learn more about pricing, refer to [AWS pricing page](https://aws.amazon.com/elasticache/pricing/?nc=sn&loc=5)
+To learn more, see the [AWS pricing page](https://aws.amazon.com/elasticache/pricing/?nc=sn&loc=5).
 
 # API Reference
 

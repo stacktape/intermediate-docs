@@ -1,9 +1,12 @@
 ---
-title: ""
+title: "Scripts"
 order: 1
 ---
 
-# Introduction
+<br />
+<br />
+
+Scripts allow you to define custom commands that can be executed as part of your workflow. They can be used to perform a variety of tasks, such as building your application, running database migrations, or sending notifications.
 
 <PropDescription definitionName="ConfigRoot" propertyName="scripts" descType="ld" />
 
@@ -21,19 +24,18 @@ hooks:
     - scriptName: buildWeb
 ```
 
-# Local script
+## Local script
 
-**Local script** is executed locally (from the same host from which the stacktape command is being executed):
+A local script is executed on the same machine where the Stacktape command is run.
 
-- The script must define one of `executeCommand`, `executeScript`, `executeCommands` or `executeScripts` properties.
-- Use `connectTo` property for listing resources of your stack which you will be accessing from your script. Stacktape
-  will then automatically inject environment variables needed for connecting to those resources into your script. For
-  more details, see section [Using connectTo](#connecting-to-resources).
+*   The script must define one of the following properties: `executeCommand`, `executeScript`, `executeCommands`, or `executeScripts`.
+*   You can use the `connectTo` property to list the resources that your script needs to access. Stacktape will automatically inject the necessary environment variables for connecting to those resources. For more information, see [Connecting to resources](#connecting-to-resources).
 
-## Using executeCommand
+### executeCommand
 
-- Executes the specified command in a separate shell process. Uses `/bin/bash` on UNIX systems and default shell(usually `cmd.exe`) on Windows systems.\n- The command will be executed on the machine running the Stacktape command.
-If the command works on your machine, it doesn't mean it works for people or machines with different OSes or shells.\n- Only one of `executeScript`, `executeScripts`, `executeCommand` or `executeCommands` can be configured.\n
+A single terminal command to execute in a separate shell process.
+
+The command runs on the machine executing the Stacktape command. Be aware of potential differences between local and CI environments (e.g., OS, shell). You can only use one of `executeScript`, `executeScripts`, `executeCommand`, or `executeCommands`.
 
 ```yml
 scripts:
@@ -45,11 +47,11 @@ scripts:
   # {stop-highlight}
 ```
 
-## Using executeScript
+### executeScript
 
-- The script can be written in **Javascript**, **Typescript** or **Python**.\n- The script is executed in a separate process.\n- The script is executed using an executable configured using `defaults:configure` command or a default
-executable on your machine:
-- `node` for Javascript and Typescript\n- `python` for Python\n\n- Only one of `executeScript`, `executeScripts`, `executeCommand` or `executeCommands` can be configured.\n
+The path to a script file to execute. The script can be written in JavaScript, TypeScript, or Python and runs in a separate process.
+
+The executable is determined by `defaults:configure` or the system default (`node` for JS/TS, `python` for Python). You can only use one of `executeScript`, `executeScripts`, `executeCommand`, or `executeCommands`.
 
 ```yml
 scripts:
@@ -64,9 +66,7 @@ scripts:
 ```ts
 import { WebClient } from "@slack/web-api";
 
-// An access token (from your Slack app or custom integration - xoxp, xoxb)
 const token = "my-access-token";
-// This argument can be a channel ID, a DM ID, a MPDM ID, or a group ID
 const conversationId = "my-conversation-id";
 const slackClient = new WebClient(token);
 const errorData = JSON.parse(process.env.STP_ERROR);
@@ -79,10 +79,11 @@ const errorData = JSON.parse(process.env.STP_ERROR);
 })();
 ```
 
-## Using executeCommands
+### executeCommands
 
-- Commands are executed in sequential order.\n- Each command is executed in a separate shell process. Uses `/bin/bash` on UNIX systems and default shell(usually `cmd.exe`) on Windows systems.\n- Commands will be executed on the machine running the Stacktape command.
-If a command works on your machine, it doesn't mean it works for people or machines with different OSes or shells.\n- Only one of `executeScript`, `executeScripts`, `executeCommand` or `executeCommands` can be configured.\n
+A list of terminal commands to execute sequentially. Each command runs in a separate shell process.
+
+The commands run on the machine executing the Stacktape command. Be aware of potential differences between environments. You can only use one of `executeScript`, `executeScripts`, `executeCommand`, or `executeCommands`.
 
 ```yml
 scripts:
@@ -96,11 +97,11 @@ scripts:
   # {stop-highlight}
 ```
 
-## Using executeScripts
+### executeScripts
 
-- Scripts are executed in sequential order.\n- Script can be written in **Javascript**, **Typescript** or **Python**.\n- Each script is executed in a separate process.\n- Each script is executed using an executable configured using `defaults:configure` command or a default
-executable on your machine:
-- `node` for Javascript and Typescript\n- `python` for Python\n\n- Only one of `executeScript`, `executeScripts`, `executeCommand` or `executeCommands` can be configured.\n
+A list of script files to execute sequentially. Each script runs in a separate process.
+
+The script can be written in JavaScript, TypeScript, or Python. The executable is determined by `defaults:configure` or the system default. You can only use one of `executeScript`, `executeScripts`, `executeCommand`, or `executeCommands`.
 
 ```yml
 scripts:
@@ -114,29 +115,19 @@ scripts:
   # {stop-highlight}
 ```
 
-# Local script with bastion tunneling
+## Local script with bastion tunneling
 
-**Local script with bastion tunneling** executes in the same way as **local script**.
+A local script with bastion tunneling is executed in the same way as a regular local script, but connections to the resources listed in the `connectTo` property are tunneled through a _bastion_ server.
 
-In addition, when using **local script with bastion tunneling**, connections to selected resources listed in
-**connectTo** list, are tunneled through bastion server:
-
-- When using tunneled connection, you are using secured encrypted connection running through the bastion server of your
-  stack (instead of connecting to the resource directly over the internet).
-- Tunneled connection allows you to connect to resources which do not have public endpoint and are only accessible
-  within stack's [default VPC](https://docs.stacktape.com/user-guides/vpcs/#default-vpc) such as private
-  **relational-database** or **redis-cluster** from your local host (where script is executed).
-- To use the tunneled endpoint of the resource (instead of using direct endpoint) in your script/command, use
-  environment variables injected by [connectTo](#connecting-to-resources) property. These environment variables are
-  automatically adjusted to use the tunneled endpoints.
+*   This provides a secure, encrypted connection to your resources.
+*   It allows you to connect to resources that do not have a public endpoint and are only accessible within the stack's [default VPC](/user-guides/vpcs#default-vpc), such as a private `relational-database` or `redis-cluster`.
+*   The environment variables injected by the `connectTo` property are automatically adjusted to use the tunneled endpoints.
 
 <Info>
 
-Your stack must contain [bastion](/resources/bastion-servers/) resource to use this type of script.
+Your stack must have a [_bastion_](/security-resources/bastions) resource to use this type of script.
 
 </Info>
-
-## Example script with tunneling
 
 ```yml
 scripts:
@@ -173,8 +164,6 @@ resources:
         masterUserPassword: my_secret_pass
 ```
 
-> Stacktape config using the migration script with tunneling
-
 ```ts
 import { DbClient } from './db';
 
@@ -189,32 +178,26 @@ const client = new DbClient({ connectionString: databaseConnectionString });
 client.close();
 ```
 
-> Example pseudo migration script
-
 ![Graphical overview of tunneling](../static/bastion/tunneled-connection.png)
 
 <Info>
 
-Bastion tunneling is supported for following resource types:
+Bastion tunneling is supported for the following resource types:
 
-- `relational-database`
-- `redis-cluster`
-- `application-load-balancer`
-- `private-service` (with loadBalancing type application-load-balancer)
+*   `relational-database`
+*   `redis-cluster`
+*   `application-load-balancer`
+*   `private-service` (with `loadBalancing.type` set to `application-load-balancer`)
 
 </Info>
 
-# Bastion script
+## Bastion script
 
-Bastion script is executed remotely on bastion server:
+A bastion script is executed remotely on a _bastion_ server.
 
-- Logs from the script execution are fetched real-time and printed to your local host.
-- Executing commands directly on bastion server gives you unified way to execute set of commands from anywhere.
-- Use `connectTo` property for listing resources of your stack which you will be accessing from your commands. Stacktape
-  will then automatically inject environment variables needed for connecting to those resources into your script. For
-  more details, see section [Using connectTo](#connecting-to-resources).
-
-## Example bastion script
+*   Logs from the script's execution are streamed in real-time to your local machine.
+*   This provides a unified way to execute a set of commands from anywhere.
+*   You can use the `connectTo` property to list the resources that your script needs to access. Stacktape will automatically inject the necessary environment variables for connecting to those resources. For more information, see [Connecting to resources](#connecting-to-resources).
 
 ```yml
 scripts:
@@ -255,19 +238,36 @@ resources:
         masterUserPassword: my_secret_pass
 ```
 
-> Example bastion script executing commands on database
+## Connecting to resources
 
-# Connecting to resources
+A list of resources the script needs to interact with. Stacktape automatically injects environment variables with connection details for each specified resource.
 
-By referencing resources in `connectTo` list, Stacktape automatically injects environment variables (containing information about resources in the list) into the script:\n\n- names of environment variables use upper-snake-case and are in form **STP_`[RESOURCE_NAME]`_`[VARIABLE_NAME]`**,\n- examples: `STP_MY_DATABASE_CONNECTION_STRING` or `STP_MY_EVENT_BUS_ARN`,\n\nList of the injected environment variables depends on the resource type:\n\n- **Bucket**: `NAME`, `ARN`\n- **DynamoDB table**: `NAME`, `ARN`, `STREAM_ARN`\n- **MongoDB Atlas cluster**: `CONNECTION_STRING`\n- **Relational(SQL) database**: `CONNECTION_STRING`, `JDBC_CONNECTION_STRING`, `HOST`, `PORT`
- (in case of aurora multi instance cluster additionally: `READER_CONNECTION_STRING`, `READER_JDBC_CONNECTION_STRING`, `READER_HOST`)\n- **Redis cluster**: `HOST`, `READER_HOST`, `PORT`\n- **Event bus**: `ARN`\n- **Function**: `ARN`\n- **Batch job**: `JOB_DEFINITION_ARN`, `STATE_MACHINE_ARN`\n- **User auth pool**: `ID`, `CLIENT_ID`, `ARN`\n- **SNS Topic**: `ARN`, `NAME`\n- **SQS Queue**: `ARN`, `NAME`, `URL`\n- **Upstash Kafka topic**: `TOPIC_NAME`, `TOPIC_ID`, `USERNAME`, `PASSWORD`, `TCP_ENDPOINT`, `REST_URL`\n- **Upstash Redis**: `HOST`, `PORT`, `PASSWORD`, `REST_TOKEN`, `REST_URL`, `REDIS_URL`\n- **Private service**: `ADDRESS`\n- **Web service**: `URL`\n
+Environment variable names are in the format `STP_[RESOURCE_NAME]_[VARIABLE_NAME]` (e.g., `STP_MY_DATABASE_CONNECTION_STRING`).
+
+**Injected Variables by Resource Type:**
+
+-   **`Bucket`**: `NAME`, `ARN`
+-   **`DynamoDbTable`**: `NAME`, `ARN`, `STREAM_ARN`
+-   **`MongoDbAtlasCluster`**: `CONNECTION_STRING`
+-   **`RelationalDatabase`**: `CONNECTION_STRING`, `JDBC_CONNECTION_STRING`, `HOST`, `PORT`. For Aurora clusters, `READER_CONNECTION_STRING`, `READER_JDBC_CONNECTION_STRING`, and `READER_HOST` are also included.
+-   **`RedisCluster`**: `HOST`, `READER_HOST`, `PORT`
+-   **`EventBus`**: `ARN`
+-   **`Function`**: `ARN`
+-   **`BatchJob`**: `JOB_DEFINITION_ARN`, `STATE_MACHINE_ARN`
+-   **`UserAuthPool`**: `ID`, `CLIENT_ID`, `ARN`
+-   **`SnsTopic`**: `ARN`, `NAME`
+-   **`SqsQueue`**: `ARN`, `NAME`, `URL`
+-   **`UpstashKafkaTopic`**: `TOPIC_NAME`, `TOPIC_ID`, `USERNAME`, `PASSWORD`, `TCP_ENDPOINT`, `REST_URL`
+-   **`UpstashRedis`**: `HOST`, `PORT`, `PASSWORD`, `REST_TOKEN`, `REST_URL`, `REDIS_URL`
+-   **`PrivateService`**: `ADDRESS`
+-   **`WebService`**: `URL`
 
 ```yml
 scripts:
   dbScript:
     type: local-script
     properties:
-      # environment variable $STP_MY_DATABASE_CONNECTION_STRING is injected thanks to connectTo
+      # The $STP_MY_DATABASE_CONNECTION_STRING environment variable is injected by connectTo
       executeCommands:
         - psql $STP_MY_DATABASE_CONNECTION_STRING -c "SELECT * FROM users"
       # {start-highlight}
@@ -286,35 +286,34 @@ resources:
             instanceSize: db.t3.micro
 ```
 
-> Example config using script with connectTo
-
 <Info>
 
-If you are using `local-script-with-bastion-tunneling` script, connections to selected resources listed in `connectTo`
-are tunneled through bastion host. This allows for accessing resources, which are only accessible from within the VPC
-and increases security of connection. Refer to
-[bastion tunneling docs](https://docs.stacktape.com/configuration/scripts/#local-script-with-bastion-tunneling) for more
-information.
+If you are using a `local-script-with-bastion-tunneling` script, connections to the resources listed in the `connectTo` property are tunneled through a _bastion_ host. This allows you to access resources that are only accessible from within the VPC and increases the security of the connection. For more information, see [Local script with bastion tunneling](#local-script-with-bastion-tunneling).
 
 </Info>
 
-# Executing script
+## How to execute a script
 
-The script can be executed in 2 ways:
+A script can be executed in two ways:
 
-- using [script:run command](/cli/commands/script-run/)
+*   Using the [`script:run`](/cli/commands/script-run) command:
 
-  ```bash
-  stacktape script:run --scriptName <<scriptName>> --stage <<stage>>
-  ```
+    ```bash
+    stacktape script:run --scriptName <<scriptName>> --stage <<stage>>
+    ```
 
-- inside a [hook](/configuration/hooks/)
+*   Inside a [hook](/configuration/hooks).
 
-# Environment
+## Environment variables
 
-Most commonly used types of environment variables:\n\n- Static - string, number or boolean (will be stringified).\n- Result of a [custom directive](/configuration/directives/#custom-directives).\n- Referenced property of another resource (using **$ResourceParam** directive). To learn more, refer to
-[referencing parameters guide](/configuration/referencing-parameters/).
-If you are using environment variables to inject information about resources into your script, see also property [connectTo](/configuration/scripts/#connecting-to-resources) which simplifies this process.\n- Value of a [secret](/resources/secrets/) (using [$Secret directive](/configuration/directives/#secret)).\n
+A list of environment variables to pass to the script or command.
+
+Values can be:
+
+-   A static string, number, or boolean.
+-   The result of a [custom directive](/configuration/directives/#custom-directives).
+-   A reference to another resource's parameter using the [\`$ResourceParam\` directive](/configuration/referencing-parameters/).
+-   A value from a [secret](/resources/secrets/) using the [\`$Secret\` directive](/configuration/directives/#secret).
 
 ```yml
 scripts:
@@ -339,19 +338,29 @@ resources:
             instanceSize: db.t2.micro
 ```
 
-# Giving permissions to script
+## Permissions
 
-You can use property `assumeRoleOfResource` to grant script AWS permissions.
+You can use the `assumeRoleOfResource` property to grant a script the same AWS permissions as a specific resource.
 
-- If specified, the script will be executed with the permissions of the specified resource.\n- Resource must already be deployed when the script is executed.\n- On the background, the script is injected with AWS environment variables which are automatically picked up by most of the AWS SDKs and CLIs.\n- Supported resource types include:
-- `function`\n- `batch-job`\n- `worker-service`\n- `web-service`\n- `private-service`\n- `multi-container-workload`\n- `nextjs-web`\n\n
+The name of a deployed resource whose IAM role the script should assume. This grants the script the same permissions as the specified resource.
+
+The resource must be deployed before the script is executed. Stacktape injects temporary AWS credentials as environment variables, which are automatically used by most AWS SDKs and CLIs.
+
+**Supported Resource Types:**
+
+-   `function`
+-   `batch-job`
+-   `worker-service`
+-   `web-service`
+-   `private-service`
+-   `multi-container-workload`
+-   `nextjs-web`
 
 ```yml
 scripts:
   seedDb:
-    executeScript:
-      scripts/seed-db.ts
-      # {start-highlight}
+    executeScript: scripts/seed-db.ts
+    # {start-highlight}
     assumeRoleOfResource: myFunction
     # {stop-highlight}
     environment:
@@ -369,14 +378,9 @@ resources:
         - dynamoTable
 ```
 
-> Script will have same AWS IAM permissions as myFunction
-
-# API reference
+## API reference
 
 <PropertiesTable definitionName="LocalScript" />
-
 <PropertiesTable definitionName="LocalScriptWithBastionTunneling" />
-
 <PropertiesTable definitionName="BastionScript" />
-
 <PropertiesTable definitionName="EnvironmentVar" searchForReferencesInDefinition="LocalScriptProps" />

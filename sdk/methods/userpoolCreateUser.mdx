@@ -1,23 +1,26 @@
 ---
 title: "userpoolCreateUser()"
 order: 14
+nestedTo: /sdk/methods
 ---
 
 # Overview and basic usage
 
 <br />
 
-Creates a new user in the specified user pool.
+### userpool:create-user
+
+Creates a new user in a specified user pool.
+
+You will be prompted to enter the user's details interactively.
 
 <br />
 
-- User's details are specified interactively using the command line.
-
 <br />
 
-<!-- WRITE ONLY BELOW THIS LINE -->
+{/* WRITE ONLY BELOW THIS LINE */}
 
-<!-- WRITE ONLY ABOVE THIS LINE -->
+{/* WRITE ONLY ABOVE THIS LINE */}
 
 ```typescript
 import { Stacktape } from "stacktape";
@@ -37,7 +40,8 @@ stacktape.userpoolCreateUser({
   command="userpool:create-user"
   sortedArgs={[
     {
-      description: "#### AWS region to use for the current operation.\n---\n",
+      description:
+        "#### AWS Region\n\n---\n\nThe AWS region for the operation. For a list of available regions, see the [AWS documentation](https://docs.aws.amazon.com/general/latest/gr/rande.html).",
       allowedTypes: ["string"],
       allowedValues: [
         "af-south-1",
@@ -64,45 +68,47 @@ stacktape.userpoolCreateUser({
       ],
       required: true,
       name: "region",
-      shortDescription: "<p> AWS region to use for the current operation.</p>\n",
-      longDescription: ""
+      shortDescription: "<p> AWS Region</p>\n",
+      longDescription:
+        '<p>The AWS region for the operation. For a list of available regions, see the <a href="https://docs.aws.amazon.com/general/latest/gr/rande.html" style="font-weight: bold;" target="_blank" rel="noreferrer" onclick="event.stopPropagation();">AWS documentation</a>.</p>\n'
     },
     {
       description:
-        "#### Stage used for the operation.\n---\n- Example stages are `production`, `staging`, `testing` or `dev-john`.\n- You can configure the default stage used with every Stacktape command using the `defaults:configure` command.\n- Maximum allowed length is 12 characters.",
+        "#### Stage\n\n---\n\nThe stage for the operation (e.g., `production`, `staging`, `dev-john`). You can set a default stage using the `defaults:configure` command. The maximum length is 12 characters.",
       allowedTypes: ["string"],
       required: true,
       name: "stage",
-      shortDescription: "<p> Stage used for the operation.</p>\n",
+      shortDescription: "<p> Stage</p>\n",
       longDescription:
-        "<ul>\n<li>Example stages are <code>production</code>, <code>staging</code>, <code>testing</code> or <code>dev-john</code>.</li>\n<li>You can configure the default stage used with every Stacktape command using the <code>defaults:configure</code> command.</li>\n<li>Maximum allowed length is 12 characters.</li>\n</ul>\n"
+        "<p>The stage for the operation (e.g., <code>production</code>, <code>staging</code>, <code>dev-john</code>). You can set a default stage using the <code>defaults:configure</code> command. The maximum length is 12 characters.</p>\n"
     },
     {
-      description: "#### Name of the user pool (as specified in configuration file).",
+      description: "#### User Pool Name\n\n---\n\nThe name of the user pool as defined in your configuration file.",
       allowedTypes: ["string"],
       required: true,
       name: "userPoolName",
-      shortDescription: "<p> Name of the user pool (as specified in configuration file).</p>\n"
+      shortDescription: "<p> User Pool Name</p>\n",
+      longDescription: "<p>The name of the user pool as defined in your configuration file.</p>\n"
     },
     {
       description:
-        "#### Automatically confirms the created user.\n---\n- The user won't need to be validate using email or phone to become active.",
+        "#### Auto-Confirm User\n\n---\n\nIf `true`, automatically confirms the user without requiring email or phone verification.",
       allowedTypes: ["boolean"],
       required: false,
       name: "autoConfirmUser",
-      shortDescription: "<p> Automatically confirms the created user.</p>\n",
+      shortDescription: "<p> Auto-Confirm User</p>\n",
       longDescription:
-        "<ul>\n<li>The user won&#39;t need to be validate using email or phone to become active.</li>\n</ul>\n"
+        "<p>If <code>true</code>, automatically confirms the user without requiring email or phone verification.</p>\n"
     },
     {
       description:
-        "#### Name of the AWS account used to perform the operation\n---\n- The account must be first connected in the [Stacktape console](https://console.stacktape.com/aws-accounts)",
+        "#### AWS Account\n\n---\n\nThe name of the AWS account to use for the operation. The account must first be connected in the [Stacktape console](https://console.stacktape.com/aws-accounts).",
       allowedTypes: ["string"],
       required: false,
       name: "awsAccount",
-      shortDescription: "<p> Name of the AWS account used to perform the operation</p>\n",
+      shortDescription: "<p> AWS Account</p>\n",
       longDescription:
-        '<ul>\n<li>The account must be first connected in the <a href="https://console.stacktape.com/aws-accounts" style="font-weight: bold;" target="_blank" rel="noreferrer" onclick="event.stopPropagation();">Stacktape console</a></li>\n</ul>\n'
+        '<p>The name of the AWS account to use for the operation. The account must first be connected in the <a href="https://console.stacktape.com/aws-accounts" style="font-weight: bold;" target="_blank" rel="noreferrer" onclick="event.stopPropagation();">Stacktape console</a>.</p>\n'
     },
     {
       description: "#### Directly supplied stacktape configuration object",
@@ -113,49 +119,51 @@ stacktape.userpoolCreateUser({
     },
     {
       description:
-        "#### Path to your stacktape configuration file.\n---\n- Relative to CWD (current working directory).",
+        "#### Config File Path\n\n---\n\nThe path to your Stacktape configuration file, relative to the current working directory.",
       allowedTypes: ["string"],
       required: false,
       name: "configPath",
-      shortDescription: "<p> Path to your stacktape configuration file.</p>\n",
-      longDescription: "<ul>\n<li>Relative to CWD (current working directory).</li>\n</ul>\n"
+      shortDescription: "<p> Config File Path</p>\n",
+      longDescription:
+        "<p>The path to your Stacktape configuration file, relative to the current working directory.</p>\n"
     },
     {
       description:
-        "#### Current working directory for the current operation.\n---\n- Every file path in your config will be resolved relatively to specified cwd.\n- By default, directory containing the configuration file is used.",
+        "#### Current Working Directory\n\n---\n\nThe working directory for the operation. All file paths in your configuration will be resolved relative to this directory. By default, this is the directory containing the configuration file.",
       allowedTypes: ["string"],
       required: false,
       name: "currentWorkingDirectory",
-      shortDescription: "<p> Current working directory for the current operation.</p>\n",
+      shortDescription: "<p> Current Working Directory</p>\n",
       longDescription:
-        "<ul>\n<li>Every file path in your config will be resolved relatively to specified cwd.</li>\n<li>By default, directory containing the configuration file is used.</li>\n</ul>\n"
+        "<p>The working directory for the operation. All file paths in your configuration will be resolved relative to this directory. By default, this is the directory containing the configuration file.</p>\n"
     },
     {
       description:
-        "#### AWS profile to use with the command\n---\n- You can manage AWS profiles on your system using `aws-profile:create`, `aws-profile:update` or `aws-profile:delete` command.\n- You can configure the default profile used with every Stacktape command using the `defaults:configure` command.",
+        "#### AWS Profile\n\n---\n\nThe AWS profile to use for the command. You can manage profiles using the `aws-profile:*` commands and set a default profile with `defaults:configure`.",
       allowedTypes: ["string"],
       required: false,
       name: "profile",
-      shortDescription: "<p> AWS profile to use with the command</p>\n",
+      shortDescription: "<p> AWS Profile</p>\n",
       longDescription:
-        "<ul>\n<li>You can manage AWS profiles on your system using <code>aws-profile:create</code>, <code>aws-profile:update</code> or <code>aws-profile:delete</code> command.</li>\n<li>You can configure the default profile used with every Stacktape command using the <code>defaults:configure</code> command.</li>\n</ul>\n"
+        "<p>The AWS profile to use for the command. You can manage profiles using the <code>aws-profile:*</code> commands and set a default profile with <code>defaults:configure</code>.</p>\n"
     },
     {
-      description: "#### Name of the Stacktape project relevant for this operation",
+      description: "#### Project Name\n\n---\n\nThe name of the Stacktape project for this operation.",
       allowedTypes: ["string"],
       required: false,
       name: "projectName",
-      shortDescription: "<p> Name of the Stacktape project relevant for this operation</p>\n"
+      shortDescription: "<p> Project Name</p>\n",
+      longDescription: "<p>The name of the Stacktape project for this operation.</p>\n"
     },
     {
       description:
-        "#### Id of the template to download\n---\n- The list of available templates is available on the [Config builder page](https://console.stacktape.com/templates)",
+        "#### Template ID\n\n---\n\nThe ID of the template to download. You can find a list of available templates on the [Config Builder page](https://console.stacktape.com/templates).",
       allowedTypes: ["string"],
       required: false,
       name: "templateId",
-      shortDescription: "<p> Id of the template to download</p>\n",
+      shortDescription: "<p> Template ID</p>\n",
       longDescription:
-        '<ul>\n<li>The list of available templates is available on the <a href="https://console.stacktape.com/templates" style="font-weight: bold;" target="_blank" rel="noreferrer" onclick="event.stopPropagation();">Config builder page</a></li>\n</ul>\n'
+        '<p>The ID of the template to download. You can find a list of available templates on the <a href="https://console.stacktape.com/templates" style="font-weight: bold;" target="_blank" rel="noreferrer" onclick="event.stopPropagation();">Config Builder page</a>.</p>\n'
     }
   ]}
 />

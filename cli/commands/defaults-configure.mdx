@@ -1,30 +1,30 @@
 ---
 title: "defaults:configure"
 order: 30
+nestedTo: /cli/commands
 ---
 
 # Overview and basic usage
 
-Sets system-wide Stacktape defaults.
+### defaults:configure
+
+Sets system-wide default arguments for Stacktape commands.
+
+You can set defaults for:
+
+- `region`
+- `stage`
+- `awsProfile`
+- `projectName`
+- `awsAccount`
+
+You can also configure default executables for resolving Node.js directives.
 
 <br />
 
-You can set default CLI arguments for:
+{/* WRITE ONLY BELOW THIS LINE */}
 
-- AWS region
-- stage
-- awsProfile (One of the aws profiles on your system)
-- projectName (List of your projects is available in [the console](https://console.stacktape.com/aws-accounts))
-- awsAccount (List of AWS accounts is available in [the console](https://console.stacktape.com/aws-accounts))
-
-Other defaults you can configure:
-
-- system-wide executable used for resolving Node.js directive
-- system-wide executable used for resolving Node.js directive
-
-<!-- WRITE ONLY BELOW THIS LINE -->
-
-<!-- WRITE ONLY ABOVE THIS LINE -->
+{/* WRITE ONLY ABOVE THIS LINE */}
 
 ```bash
 stacktape defaults:configure

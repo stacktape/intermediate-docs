@@ -1,34 +1,34 @@
 ---
-title: ""
+title: "Budget Control"
 order: 5
 ---
 
-# Introduction
+<br />
+<br />
 
-Budget control allows you to watch your spending and configure email notifications when limits/thresholds are exceeded.
+Budget control helps you monitor your spending and sends email notifications when predefined limits are exceeded.
 
-To use budget control, you first need to [enable Stacktape cost allocation tags](/user-guides/enabling-budgeting/).
+To use budget control, you must first [enable Stacktape cost allocation tags](/user-guides/enabling-budgeting/).
 
 <Warning>
 
-Budget control currently only watches prices for AWS resources. It does not aggregate prices for resources managed by
-third-party providers (such as [MongoDb Atlas Clusters](/resources/mongo-db-atlas-clusters) or
-[Upstash Redis](/resources/upstash-redis-databases)).
+Budget control currently only tracks costs for AWS resources. It does not include costs for third-party provider
+resources, such as [MongoDB Atlas Clusters](/3rd-party-resources/mongo-db-atlas-clusters) or
+[Upstash for Redis](/3rd-party-resources/upstash-redises).
 
 </Warning>
 
 <Warning>
 
-If you're using custom-defined AWS Cloudformation resources configured in (`cloudformationResources` section), these
-resources might not be correctly attributed to your stack and therefore will not add to the spend.
+If you use custom-defined _Cloudformation_ resources (in the `cloudformationResources` section), their costs might not
+be correctly attributed to your stack and, therefore, not included in the budget.
 
-This is due to AWS Cloudformation not propagating tags to all resources of your stack (AWS limitation).
-
-All Stacktape-managed resource are correctly attributed to the spend.
+This is because _Cloudformation_ does not propagate tags to all resources in a stack. All Stacktape-managed resources
+are correctly attributed.
 
 </Warning>
 
-# Usage
+## How to use budget control
 
 <PropertiesTable definitionName="BudgetControl" />
 
@@ -41,15 +41,18 @@ budgetControl:
 
 ## Notifications
 
+You can configure notifications to be sent when your actual or forecasted spending exceeds a certain threshold.
+
 <PropertiesTable definitionName="BudgetNotification" searchForReferencesInDefinition="BudgetControl" />
 
-- Notification sends email(s) to specified email recipients when the notification condition is met.\n- Notifications are triggered:
-- when the **actual** spend is over specified threshold.\n- when the **forecasted** spend is forecasted to get over specified threshold.\n\n- You can configure up to 5 notifications per stack.\n
+A list of notifications to send when a budget threshold is met.
 
-## Actual budget type notifications
+Notifications are sent via email and can be triggered based on either actual or forecasted spend. You can configure up to 5 notifications per stack.
 
-If you configure `budgetType` to `ACTUAL` (or don't specify budget type), the notification is triggered when the
-**actual** spend goes over your budget limit (100$ in the following example).
+### Actual budget notifications
+
+If you set `budgetType` to `ACTUAL` (or omit it), a notification is triggered when your actual spending exceeds the
+budget limit.
 
 ```yml
 # {start-highlight}
@@ -62,10 +65,10 @@ budgetControl:
 # {stop-highlight}
 ```
 
-## Forecasted budget type notifications
+### Forecasted budget notifications
 
-If you configure `budgetType` to `FORECASTED`, the notification is triggered when the **forecasted** spend goes over
-your budget limit (80$ in the following example).
+If you set `budgetType` to `FORECASTED`, a notification is triggered when your forecasted spending exceeds the budget
+limit.
 
 ```yml
 # {start-highlight}
@@ -81,10 +84,10 @@ budgetControl:
 
 <Warning>
 
-AWS requires approximately 5 weeks of usage data to generate budget forecasts. If you set a notification to trigger
-based on a **FORECASTED** amount, this notification isn't triggered until you have enough historical usage information.
-Therefore we advise using forecasted notifications mainly for long-running production stacks. To learn more about
-budgets, refer to
-[AWS docs](https://docs.aws.amazon.com/cost-management/latest/userguide/budgets-best-practices.html#budgets-best-practices-alerts)
+AWS requires approximately five weeks of usage data to generate budget forecasts. If you set a notification to trigger
+based on a **forecasted** amount, it will not be sent until you have enough historical usage data.
+
+We recommend using forecasted notifications for long-running production stacks. For more information, refer to the
+[AWS documentation](https://docs.aws.amazon.com/cost-management/latest/userguide/budgets-best-practices.html#budgets-best-practices-alerts).
 
 </Warning>

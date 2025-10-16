@@ -3,29 +3,20 @@ title: "AWS CDK Constructs"
 order: 2
 ---
 
-# Overview
-
-AWS CDK(Cloud Development Kit) allows you to use common programming languages to model your application infrastructure.
-
+<br />
 <br />
 
-A basic building block when using CDK is a **construct**. A construct represents a reusable "cloud component"
-encapsulating everything AWS needs to create the component. It can represent a single AWS resource, such as an Amazon
-Simple Storage Service (Amazon S3) bucket or be a higher-level abstraction consisting of multiple related AWS resources.
+The AWS Cloud Development Kit (CDK) allows you to model your application infrastructure using familiar programming languages.
 
-<br />
+A fundamental building block of the CDK is the **construct**. A construct is a reusable cloud component that encapsulates everything AWS needs to create the component. It can represent a single AWS resource, such as an _S3 bucket_, or be a higher-level abstraction composed of multiple related AWS resources.
 
-Stacktape allows you to extend your infrastructure by adding **AWS CDK constructs** to stacktape resources. AWS
-resources which are part of the construct are then deployed together with other AWS resources created by Stacktape.
+Stacktape allows you to extend your infrastructure by adding AWS CDK constructs to your stack. The AWS resources that are part of the construct are then deployed alongside the other resources created by Stacktape.
 
-To learn more about constructs refer to [AWS docs](https://docs.aws.amazon.com/cdk/v2/guide/constructs.html).
-Furthermore, [Construct Hub](https://constructs.dev/search?q=&cdk=aws-cdk&cdkver=2&sort=downloadsDesc&offset=0) is a
-resource to help you discover additional constructs from AWS, third parties, and the open-source CDK community.
+To learn more about constructs, see the [AWS documentation](https://docs.aws.amazon.com/cdk/v2/guide/constructs.html). You can also discover additional constructs from AWS, third parties, and the open-source community on the [Construct Hub](https://constructs.dev/).
 
-# Usage
+## How to use CDK constructs
 
-Currently, Stacktape supports using constructs written in Javascript or Typescript. You can create your custom construct
-by extending `Construct` class.
+Stacktape currently supports constructs written in Javascript or Typescript. You can create your own construct by extending the `Construct` class.
 
 ```ts
 import { Duration } from 'aws-cdk-lib';
@@ -48,7 +39,7 @@ export class MyConstruct extends Construct {
 }
 ```
 
-> Example construct (containing multiple AWS resources)
+You can then reference the construct in your `stacktape.yml` file:
 
 ```yml
 resources:
@@ -60,5 +51,3 @@ resources:
       constructProperties:
         visibilityTimeout: 50
 ```
-
-> Referencing construct in Stacktape config

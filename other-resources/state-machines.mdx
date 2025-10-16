@@ -1,33 +1,23 @@
 ---
-title: "State machines (Step functions)"
+title: "State Machines"
 order: 290
 ---
 
-# Overview
+<br />
+<br />
 
-State machines allow you to design and automate business processes and data pipelines by composing workloads
-([functions](/compute-resources/lambda-functions), [batch-jobs](/compute-resources/batch-jobs)) or other AWS services
-into workflows. State machines manage failures, retries, parallelization, service integrations, and observability so
-developers can focus on higher-value business logic.
+A state machine allows you to design and automate business processes and data pipelines by composing compute resources (like [functions](/compute-resources/functions) and [batch jobs](/compute-resources/batch-jobs)) and other AWS services into a workflow. State machines manage failures, retries, parallelization, and observability, so you can focus on your business logic.
 
-## When to use
+# When to use them
 
-- **Extract, Transform, and Load (ETL) process** - state machines ensure that long-running, multiple ETL jobs execute in
-  order and complete successfully, instead of manually orchestrating those jobs or maintaining a separate application.
-
-- **Orchestrate microservices** - use state machines to combine multiple
-  [functions](/compute-resources/lambda-functions) into responsive serverless applications and microservices.
+- **ETL processes:** State machines can ensure that long-running, multi-step ETL jobs execute in order and complete successfully.
+- **Microservice orchestration:** You can use state machines to combine multiple functions into a responsive, serverless application.
 
 <Divider />
 
-# Define states
+# Defining states
 
-Definition of state machines is written using
-[Amazon states language](https://docs.aws.amazon.com/step-functions/latest/dg/concepts-amazon-states-language.html).
-
-Amazon states language syntax allows you to to specify any workflow from easy ones to most complex ones.
-
-The following example shows an order-payment flow made up of lambda functions:
+You define state machines using the [Amazon States Language](https://docs.aws.amazon.com/step-functions/latest/dg/concepts-amazon-states-language.html). This example shows a simple order payment flow composed of Lambda functions:
 
 ```yml
 resources:
@@ -83,14 +73,11 @@ resources:
 
 ## Retry example
 
-The following example shows:
+This example shows a state machine that ties together a batch job and a function. The state machine is configured to retry only the upload step if it fails, since regenerating the report would be costly and unnecessary.
 
-- **generateReport** - batch-job which generates report.
-- **uploadReport** - function that uploads generated report.
-- **reportStateMachine** - state machines that ties above compute resources together.
-
-State machine definitions provide great flexibility. In this case, **reportStateMachine** only retries upload part of
-our workflow, since regenerating the report (in case of upload failure) would be costly and redundant.
+-   **`generateReport`**: A batch job that generates a report.
+-   **`uploadReport`**: A function that uploads the report.
+-   **`reportStateMachine`**: The state machine that orchestrates the workflow.
 
 ```yml
 resources:

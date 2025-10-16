@@ -3,69 +3,54 @@ title: "Alarms"
 order: 1
 ---
 
-# Overview
-
-Alarms are easy way to get keep your infrastructure in check and swiftly receive notifications when your resources get
-overwhelmed or faulty.
-
-Alarms are always configured to monitor a specified metric of a specified resource type. After threshold for the metric
-is broken, configured action is taken.
-
-# Under the hood
-
-Under the hood alarms are implemented as
-[AWS Cloudwatch Alarms](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html)
-
-# Usage
-
-Alarms can be created in 2 ways:
-
-- [Global alarms](#global-alarms) - created through Stacktape console. These alarms are applied to all resources of a
-  certain _type_ managed by Stacktape.
-- [In-config alarms](#in-config-alarms) - you can specify alarm directly on the resource in your _stacktape config
-  file_.
-
-# Global Alarms
-
-Global alarms are created through [Stacktape console](https://console.stacktape.com/alarms). By creating alarm in
-console, you are **creating a template(blueprint) of an alarm**. Only when you deploy(create/update) your stack after
-creating global alarm (and alarm is eligible for your stack's **serviceName** and **stage**), actual alarm is created
-for the eligible resources of your stack.
-
+<br />
 <br />
 
-When configuring global alarm you can specify:
+Alarms offer a straightforward way to monitor your infrastructure and receive prompt notifications when your resources experience issues or become overloaded.
 
-- what type of resource and metric you wish to monitor
-- thresholds for the metric
-- automatic **Slack** or **email** notifications
-- which stacks does the alarm apply to (`serviceName`, `stage`)
+You can configure alarms to monitor specific metrics of a resource type. When a metric crosses a predefined threshold, the alarm triggers a configured action, such as sending a notification.
+
+Under the hood, Stacktape alarms are implemented using _CloudWatch Alarm_s.
+
+## How to create alarms
+
+There are two ways to create alarms:
+
+*   **Global alarms** are created in the Stacktape Console and apply to all resources of a specific type managed by Stacktape.
+*   **In-config alarms** are defined directly within a resource's configuration in your `stacktape.yml` file.
+
+## Global alarms
+
+Global alarms are templates created in the [Stacktape Console](https://console.stacktape.com/alarms). When you deploy a stack that matches the alarm's `serviceName` and `stage` criteria, Stacktape creates a concrete alarm for each eligible resource in that stack.
+
+When configuring a global alarm, you can specify:
+
+*   The resource type and metric to monitor.
+*   The threshold for the metric.
+*   Automatic **Slack** or **email** notifications.
+*   The stacks the alarm applies to, based on `serviceName` and `stage`.
 
 <Warning>
 
-Global alarms you create in console get applied only to resources in stacks **that are created/updated after the global
-alarm was created in console**. In other words, if you create global alarm, you need to use
-[deploy command](/cli/commands/deploy/) to apply alarms to resources in your stacks.
+Global alarms only apply to stacks that are created or updated **after** the alarm is created. If you create a global alarm, you must run the `stacktape deploy` command to apply it to your existing stacks.
 
 </Warning>
 
-## Creating Global Alarm
+### Creating a global alarm
 
-1. Go to [Stacktape console alarms page](https://console.stacktape.com/alarms) and click `Create new alarm` button
+1.  Navigate to the [Alarms page](https://console.stacktape.com/alarms) in the Stacktape Console and click **Create new alarm**.
 
-![Alarm page](../static/alarms/alarm-page.png)
+    ![Alarm page](../static/alarms/alarm-page.png)
 
-2. Configure alarm according to your needs. In our example we are creating alarm to monitor Lambda functions' error
-   rate. We are also limiting alarm only to **prod** stage (used for production environments).
+2.  Configure the alarm. The example below shows an alarm that monitors the error rate of Lambda functions and is limited to the `prod` stage.
 
-![Creating alarm](../static/alarms/create-alarm.png)
+    ![Creating alarm](../static/alarms/create-alarm.png)
 
-3. After creating alarm you can use [deploy command](/cli/commands/deploy/) on your stack to create actual alarms in the
-   stack.
+3.  Deploy your stack using the `stacktape deploy` command to create the alarms.
 
-# In-config Alarms
+## In-config alarms
 
-You can specify alarm directly in the stacktape config file as a property of a resource which should be monitored.
+You can define alarms directly in your `stacktape.yml` file as a property of the resource you want to monitor.
 
 ```yml
 resources:
@@ -90,109 +75,106 @@ resources:
       # {stop-highlight}
 ```
 
-## Schema of alarm
+An in-config alarm consists of three parts:
+
+*   **Trigger**: Specifies the metric to monitor.
+*   **Notifications** (optional): Defines where to send notifications when the alarm is triggered.
+*   **Evaluation** (optional): Configures the evaluation period for the monitored metric.
 
 <PropertiesTable definitionName="LambdaAlarm" />
 
-Alarm consists of 3 parts:
+### Trigger
 
-1. [Trigger](#trigger) - Type of the trigger specifies what metric will be monitored.
-2. [Notifications](#notifications)(OPTIONAL) - Specifies where to send notification when alarm is triggered.
-3. [Evaluation](#evaluation)(OPTIONAL) - Configures evaluation period (interval) for the monitored metric.
+The trigger specifies the metric to be monitored.
 
-## Trigger
-
-Type of the trigger specifies what metric will be monitored. Depending on the type further properties of trigger can be
-specified
-
-<PropertiesTable definitionName="LambdaErrorRateTrigger" />
+<PropertiesTable definitionName-="LambdaErrorRateTrigger" />
 
 ```yml
 resources:
   myLambdaFunction:
     type: function
-    ...
-      # {start-highlight}
-      alarms:
-        - trigger:
-            type: lambda-error-rate
-            properties:
-              thresholdPercent: 5
-      # {stop-highlight}
+# ...
+# {start-highlight}
+    alarms:
+      - trigger:
+          type: lambda-error-rate
+          properties:
+            thresholdPercent: 5
+# {stop-highlight}
 ```
 
 <Info>
 
-See section [Trigger types](#trigger-types) to see all available alarms
+See the [Trigger Types](#trigger-types) section for a list of all available alarms.
 
 </Info>
 
-## Notifications
+### Notifications
 
-Specifies where to send notification when alarm is triggered. There are 3 integrations available:
+You can configure notifications to be sent to Slack, MS Teams, or by email.
 
-**Slack** integration:
+**Slack:**
 
 ```yml
 resources:
   myResource:
     type: ...
     properties:
-      ...
+# ...
       alarms:
         - trigger:
-            ...
-      # {start-highlight}
+# ...
+# {start-highlight}
           notificationTargets:
             - type: slack
               properties:
                 conversationId: C038XXXXXX
                 accessToken: $Secret('slack-access-token')
-      # {stop-highlight}
+# {stop-highlight}
 ```
 
-**MS Teams** integration:
+**MS Teams:**
 
 ```yml
 resources:
   myResource:
     type: ...
     properties:
-      ...
+# ...
       alarms:
         - trigger:
-            ...
-      # {start-highlight}
+# ...
+# {start-highlight}
           notificationTargets:
             - type: ms-teams
               properties:
                 webhookUrl: MY_WEBHOOK_URL
-      # {stop-highlight}
+# {stop-highlight}
 ```
 
-**Email** integration:
+**Email:**
 
 ```yml
 resources:
   myResource:
     type: ...
     properties:
-      ...
+# ...
       alarms:
         - trigger:
-            ...
-      # {start-highlight}
+# ...
+# {start-highlight}
           notificationTargets:
             - type: email
               properties:
                 sender: alarm@company.com
                 recipient: support@company.com
-      # {stop-highlight}
+# {stop-highlight}
 ```
 
-## Evaluation
+### Evaluation
 
-Configures evaluation period (interval) for the monitored metric.
+The evaluation section configures the evaluation period for the monitored metric.
 
 <PropertiesTable definitionName="AlarmEvaluation" />
 
@@ -201,114 +183,159 @@ resources:
   myResource:
     type: ...
     properties:
-      ...
+# ...
       alarms:
         - trigger:
-            ...
-      # {start-highlight}
+# ...
+# {start-highlight}
           evaluation:
             period: 200
-      # {stop-highlight}
+# {stop-highlight}
 ```
 
-> Lambda function with error rate alarm
+## Trigger a Lambda function on alarm
 
-# Trigger Lambda on Alarm
+You can trigger a Lambda function when an alarm is fired. For more information, see the [alarm event documentation](/compute-resources/functions/#alarm-event).
 
-See [alarm event](/compute-resources/functions/#alarm-event) on function page.
-
-# Trigger types
+## Trigger types
 
 <Info>
-  New trigger types are being added continuously. If you have a specific wish for a trigger do not hesitate to open a{" "}
-  <a href="https://github.com/stacktape/stacktape/issues/new">Github issue</a>.
+  New trigger types are added regularly. If you have a request for a new trigger, please open a
+  [GitHub issue](https://github.com/stacktape/stacktape/issues/new).
 </Info>
 
-## Lambda Error Rate
+### Lambda Error Rate
 
 <PropDescription definitionName="LambdaErrorRateTriggerProps" propertyName="threshold" descType="ld" />
-
 <PropertiesTable definitionName="LambdaErrorRateTrigger" />
 
-## Lambda Duration
+### Lambda Duration
 
 <PropDescription definitionName="LambdaDurationTriggerProps" propertyName="threshold" descType="ld" />
-
 <PropertiesTable definitionName="LambdaDurationTrigger" />
 
-## Database Read Latency
+### Database Read Latency
 
 <PropDescription definitionName="RelationalDatabaseReadLatencyTriggerProps" propertyName="threshold" descType="ld" />
-
 <PropertiesTable definitionName="RelationalDatabaseReadLatencyTrigger" />
 
-## Database Write Latency
+### Database Write Latency
 
 <PropDescription definitionName="RelationalDatabaseWriteLatencyTriggerProps" propertyName="threshold" descType="ld" />
-
 <PropertiesTable definitionName="RelationalDatabaseWriteLatencyTrigger" />
 
-## Database CPU Utilization
+### Database CPU Utilization
 
 <PropDescription definitionName="RelationalDatabaseCPUUtilizationTriggerProps" propertyName="threshold" descType="ld" />
-
 <PropertiesTable definitionName="RelationalDatabaseCPUUtilizationTrigger" />
 
-## Database Free Storage
+### Database Free Storage
 
 <PropDescription definitionName="RelationalDatabaseFreeStorageTriggerProps" propertyName="threshold" descType="ld" />
-
 <PropertiesTable definitionName="RelationalDatabaseFreeStorageTrigger" />
 
-## Database Free Memory
+### Database Free Memory
 
 <PropDescription definitionName="RelationalDatabaseFreeMemoryTriggerProps" propertyName="threshold" descType="ld" />
-
 <PropertiesTable definitionName="RelationalDatabaseFreeMemoryTrigger" />
 
-## Database Connection Count
+### Database Connection Count
 
 <PropDescription
   definitionName="RelationalDatabaseConnectionCountTriggerProps"
   propertyName="threshold"
   descType="ld"
 />
-
 <PropertiesTable definitionName="RelationalDatabaseConnectionCountTrigger" />
 
-## Http Api Gateway Error Rate
+### Http Api Gateway Error Rate
 
 <PropDescription definitionName="HttpApiGatewayErrorRateTriggerProps" propertyName="threshold" descType="ld" />
-
 <PropertiesTable definitionName="HttpApiGatewayErrorRateTrigger" />
 
-## Http Api Gateway Latency
+### Http Api Gateway Latency
 
 <PropDescription definitionName="HttpApiGatewayLatencyTriggerProps" propertyName="threshold" descType="ld" />
-
 <PropertiesTable definitionName="HttpApiGatewayLatencyTrigger" />
 
-## Application Load Balancer Error Rate
+### Application Load Balancer Error Rate
 
 <PropDescription definitionName="ApplicationLoadBalancerErrorRateTriggerProps" propertyName="threshold" descType="ld" />
-
 <PropertiesTable definitionName="ApplicationLoadBalancerErrorRateTrigger" />
 
-## Application Load Balancer Custom
+### Application Load Balancer Custom
 
-- You can pick any metric available in the list below\n- Threshold will be compared with the calculated value which is calculated using the formula `statistic(CHOSEN_METRIC)` where:\n- `statistic` - is a statistic function applied to the collected values (metrics) retrieved during the evaluation period (`avg`(average) by default)\n- `CHOSEN_METRIC` - is a metric you choose\nAvailable metrics are:\n\n- **ActiveConnectionCount** - The total number of concurrent TCP connections active from clients to the load balancer and from the load balancer to targets.\n- **AnomalousHostCount** - The number of hosts detected with anomalies.\n- **ClientTLSNegotiationErrorCount** - The number of TLS connections initiated by the client that did not establish a session with the load balancer due to a TLS error.\n- **ConsumedLCUs** - The number of load balancer capacity units (LCU) used by your load balancer.\n- **DesyncMitigationMode_NonCompliant_Request_Count** - The number of requests that do not comply with RFC 7230.\n- **DroppedInvalidHeaderRequestCount** - The number of requests where the load balancer removed HTTP headers with header fields that are not valid before routing the request.\n- **MitigatedHostCount** - The number of targets under mitigation.\n- **ForwardedInvalidHeaderRequestCount** - The number of requests routed by the load balancer that had HTTP headers with header fields that are not valid.\n- **GrpcRequestCount** - The number of gRPC requests processed over IPv4 and IPv6.\n- **HTTP_Fixed_Response_Count** - The number of fixed-response actions that were successful.\n- **HTTP_Redirect_Count** - The number of redirect actions that were successful.\n- **HTTP_Redirect_Url_Limit_Exceeded_Count** - The number of redirect actions that couldn't be completed because the URL in the response location header is larger than 8K.\n- **HTTPCode_ELB_3XX_Count** - The number of HTTP 3XX redirection codes that originate from the load balancer.\n- **HTTPCode_ELB_4XX_Count** - The number of HTTP 4XX client error codes that originate from the load balancer.\n- **HTTPCode_ELB_5XX_Count** - The number of HTTP 5XX server error codes that originate from the load balancer.\n- **HTTPCode_ELB_500_Count** - The number of HTTP 500 error codes that originate from the load balancer.\n- **HTTPCode_ELB_502_Count** - The number of HTTP 502 error codes that originate from the load balancer.\n- **HTTPCode_ELB_503_Count** - The number of HTTP 503 error codes that originate from the load balancer.\n- **HTTPCode_ELB_504_Count** - The number of HTTP 504 error codes that originate from the load balancer.\n- **IPv6ProcessedBytes** - The total number of bytes processed by the load balancer over IPv6.\n- **IPv6RequestCount** - The number of IPv6 requests received by the load balancer.\n- **NewConnectionCount** - The total number of new TCP connections established from clients to the load balancer and from the load balancer to targets.\n- **NonStickyRequestCount** - The number of requests where the load balancer chose a new target because it couldn't use an existing sticky session.\n- **ProcessedBytes** - The total number of bytes processed by the load balancer over IPv4 and IPv6.\n- **RejectedConnectionCount** - The number of connections that were rejected because the load balancer had reached its maximum number of connections.\n- **RequestCount** - The number of requests processed over IPv4 and IPv6.\n- **RuleEvaluations** - The number of rules processed by the load balancer given a request rate averaged over an hour.\n- **HealthyHostCount** - The number of targets that are considered healthy.\n- **HTTPCode_Target_2XX_Count** - The number of HTTP 2XX response codes generated by the targets.\n- **HTTPCode_Target_3XX_Count** - The number of HTTP 3XX response codes generated by the targets.\n- **HTTPCode_Target_4XX_Count** - The number of HTTP 4XX response codes generated by the targets.\n- **HTTPCode_Target_5XX_Count** - The number of HTTP 5XX response codes generated by the targets.\n- **RequestCountPerTarget** - The average request count per target, in a target group.\n- **TargetConnectionErrorCount** - The number of connections that were not successfully established between the load balancer and target.\n- **TargetResponseTime** - The time elapsed, in seconds, after the request leaves the load balancer until the target starts to send the response headers.\n- **TargetTLSNegotiationErrorCount** - The number of TLS connections initiated by the load balancer that did not establish a session with the target.\n- **UnHealthyHostCount** - The number of targets that are considered unhealthy.\n- **HealthyStateDNS** - The number of zones that meet the DNS healthy state requirements.\n- **HealthyStateRouting** - The number of zones that meet the routing healthy state requirements.\n- **UnhealthyRoutingRequestCount** - The number of requests that are routed using the routing failover action (fail open).\n- **UnhealthyStateDNS** - The number of zones that do not meet the DNS healthy state requirements.\n- **UnhealthyStateRouting** - The number of zones that do not meet the routing healthy state requirements.\n- **LambdaInternalError** - The number of requests to a Lambda function that failed because of an issue internal to the load balancer or AWS Lambda.\n- **LambdaTargetProcessedBytes** - The total number of bytes processed by the load balancer for requests to and responses from a Lambda function.\n- **LambdaUserError** - The number of requests to a Lambda function that failed because of an issue with the Lambda function.\n- **ELBAuthError** - The number of user authentications that could not be completed due to an internal error.\n- **ELBAuthFailure** - The number of user authentications that could not be completed because the IdP denied access to the user.\n- **ELBAuthLatency** - The time elapsed, in milliseconds, to query the IdP for the ID token and user info.\n- **ELBAuthRefreshTokenSuccess** - The number of times the load balancer successfully refreshed user claims using a refresh token provided by the IdP.\n- **ELBAuthSuccess** - The number of authenticate actions that were successful.\n- **ELBAuthUserClaimsSizeExceeded** - The number of times that a configured IdP returned user claims that exceeded 11K bytes in size.\n
+The threshold will be compared against the calculated value of `statistic(METRIC)`, where:
 
+-   `statistic` is the function applied to the metric values collected during the evaluation period (default: `avg`).
+-   `METRIC` is the chosen metric.
+
+**Available Metrics:**
+
+-   `ActiveConnectionCount`: The total number of concurrent TCP connections active from clients to the load balancer and from the load balancer to targets.
+-   `AnomalousHostCount`: The number of hosts detected with anomalies.
+-   `ClientTLSNegotiationErrorCount`: The number of TLS connections initiated by the client that did not establish a session with the load balancer due to a TLS error.
+-   `ConsumedLCUs`: The number of load balancer capacity units (LCU) used by your load balancer.
+-   `DesyncMitigationMode_NonCompliant_Request_Count`: The number of requests that do not comply with RFC 7230.
+-   `DroppedInvalidHeaderRequestCount`: The number of requests where the load balancer removed HTTP headers with invalid fields before routing the request.
+-   `MitigatedHostCount`: The number of targets under mitigation.
+-   `ForwardedInvalidHeaderRequestCount`: The number of requests routed by the load balancer that had HTTP headers with invalid fields.
+-   `GrpcRequestCount`: The number of gRPC requests processed over IPv4 and IPv6.
+-   `HTTP_Fixed_Response_Count`: The number of successful fixed-response actions.
+-   `HTTP_Redirect_Count`: The number of successful redirect actions.
+-   `HTTP_Redirect_Url_Limit_Exceeded_Count`: The number of redirect actions that failed because the URL in the response location header exceeded 8K.
+-   `HTTPCode_ELB_3XX_Count`: The number of HTTP 3XX redirection codes originating from the load balancer.
+-   `HTTPCode_ELB_4XX_Count`: The number of HTTP 4XX client error codes originating from the load balancer.
+-   `HTTPCode_ELB_5XX_Count`: The number of HTTP 5XX server error codes originating from the load balancer.
+-   `HTTPCode_ELB_500_Count`: The number of HTTP 500 error codes originating from the load balancer.
+-   `HTTPCode_ELB_502_Count`: The number of HTTP 502 error codes originating from the load balancer.
+-   `HTTPCode_ELB_503_Count`: The number of HTTP 503 error codes originating from the load balancer.
+-   `HTTPCode_ELB_504_Count`: The number of HTTP 504 error codes originating from the load balancer.
+-   `IPv6ProcessedBytes`: The total number of bytes processed by the load balancer over IPv6.
+-   `IPv6RequestCount`: The number of IPv6 requests received by the load balancer.
+-   `NewConnectionCount`: The total number of new TCP connections established from clients to the load balancer and from the load balancer to targets.
+-   `NonStickyRequestCount`: The number of requests where the load balancer chose a new target because it could not use an existing sticky session.
+-   `ProcessedBytes`: The total number of bytes processed by the load balancer over IPv4 and IPv6.
+-   `RejectedConnectionCount`: The number of connections rejected because the load balancer reached its maximum number of connections.
+-   `RequestCount`: The number of requests processed over IPv4 and IPv6.
+-   `RuleEvaluations`: The number of rules processed by the load balancer, averaged over an hour.
+-   `HealthyHostCount`: The number of targets that are considered healthy.
+-   `HTTPCode_Target_2XX_Count`: The number of HTTP 2XX response codes generated by the targets.
+-   `HTTPCode_Target_3XX_Count`: The number of HTTP 3XX response codes generated by the targets.
+-   `HTTPCode_Target_4XX_Count`: The number of HTTP 4XX response codes generated by the targets.
+-   `HTTPCode_Target_5XX_Count`: The number of HTTP 5XX response codes generated by the targets.
+-   `RequestCountPerTarget`: The average number of requests per target in a target group.
+-   `TargetConnectionErrorCount`: The number of connections that were not successfully established between the load balancer and a target.
+-   `TargetResponseTime`: The time elapsed (in seconds) from when a request leaves the load balancer until the target starts sending response headers.
+-   `TargetTLSNegotiationErrorCount`: The number of TLS connections initiated by the load balancer that did not establish a session with the target.
+-   `UnHealthyHostCount`: The number of targets that are considered unhealthy.
+-   `HealthyStateDNS`: The number of zones that meet the DNS healthy state requirements.
+-   `HealthyStateRouting`: The number of zones that meet the routing healthy state requirements.
+-   `UnhealthyRoutingRequestCount`: The number of requests routed using the routing failover action (fail open).
+-   `UnhealthyStateDNS`: The number of zones that do not meet the DNS healthy state requirements.
+-   `UnhealthyStateRouting`: The number of zones that do not meet the routing healthy state requirements.
+-   `LambdaInternalError`: The number of requests to a Lambda function that failed due to an issue internal to the load balancer or AWS Lambda.
+-   `LambdaTargetProcessedBytes`: The total number of bytes processed by the load balancer for requests to and responses from a Lambda function.
+-   `LambdaUserError`: The number of requests to a Lambda function that failed due to an issue with the Lambda function itself.
+-   `ELBAuthError`: The number of user authentications that could not be completed due to an internal error.
+-   `ELBAuthFailure`: The number of user authentications that could not be completed because the IdP denied access.
+-   `ELBAuthLatency`: The time elapsed (in milliseconds) to query the IdP for the ID token and user info.
+-   `ELBAuthRefreshTokenSuccess`: The number of times the load balancer successfully refreshed user claims using a refresh token.
+-   `ELBAuthSuccess`: The number of successful authentication actions.
+-   `ELBAuthUserClaimsSizeExceeded`: The number of times a configured IdP returned user claims that exceeded 11K bytes in size.
 <PropertiesTable definitionName="ApplicationLoadBalancerCustomTrigger" />
 
-## Sqs Queue Received Messages
+### Sqs Queue Received Messages
 
 <PropDescription definitionName="SqsQueueReceivedMessagesCountTriggerProps" propertyName="threshold" descType="ld" />
-
 <PropertiesTable definitionName="SqsQueueReceivedMessagesCountTrigger" />
 
-## Sqs Queue Not Empty
+### Sqs Queue Not Empty
 
-- By default trigger is fired when the queue is not empty.\n- For queue to be considered empty all of these metrics exposed by SQS queue must be 0 during the evaluation period:
-- `ApproximateNumberOfMessagesVisible`\n- `ApproximateNumberOfMessagesNotVisible`\n- `NumberOfMessagesReceived`\n- `NumberOfMessagesSent`\n\n
+Triggers an alarm if the SQS queue is not empty. A queue is considered empty if all of the following metrics are 0 for the evaluation period:
 
+-   `ApproximateNumberOfMessagesVisible`
+-   `ApproximateNumberOfMessagesNotVisible`
+-   `NumberOfMessagesReceived`
+-   `NumberOfMessagesSent`
 <PropertiesTable definitionName="SqsQueueNotEmptyTrigger" />

@@ -1,17 +1,22 @@
 ---
-title: "Writing config in Typescript"
+title: "Writing Config in Typescript"
 order: 2
 ---
 
-# Introduction
+<br />
+<br />
 
-- Besides YAML, you can write your configuration in Javascript and Typescript.
-- This is useful, if have a lot of dynamic behavior in your configuration.
-- Please note that you can also add dynamic behavior to your templates using [directives](/configuration/directives).
+In addition to YAML, you can write your Stacktape configuration in Javascript or Typescript. This is useful if you have a lot of dynamic behavior in your configuration.
 
-# Usage
+<Info>
 
-Writing your configuration in javascript or typescript is straightforward.
+You can also add dynamic behavior to your YAML templates using [directives](/configuration/directives).
+
+</Info>
+
+## How to use a Javascript or Typescript config
+
+Writing your configuration in Javascript or Typescript is straightforward. Just export your configuration as the default export:
 
 ```javascript
 export default {
@@ -19,18 +24,13 @@ export default {
 };
 ```
 
-When using the CLI, Stacktape will automatically pick up the configuration, if you name it `stacktape.js`. Stacktape
-picks up the configuration files in the following order:
+When you run a CLI command, Stacktape will automatically look for a configuration file in the following order: `stacktape.yml`, `stacktape.json`, `stacktape.ts`, `stacktape.js`.
 
-- YAML
-- JSON
-- Typescript
-- Javascript
+## Using Stacktape Typescript types
 
-# Using Stacktape Typescript types
+To improve your development experience, you can use the Typescript types provided by the `@stacktape/sdk` package.
 
-To improve your development experience, you can use typescript types provided by the `@stacktape/sdk` package. To
-install it, run
+First, install the package:
 
 ```bash
 npm install @stacktape/sdk
@@ -42,7 +42,7 @@ or
 yarn add @stacktape/sdk
 ```
 
-For javascript files, you can use it in the following way:
+For Javascript files, you can use JSDoc to get type hints:
 
 ```javascript
 /** @type {import('@stacktape/sdk').StacktapeConfig} */
@@ -53,7 +53,7 @@ const config = {
 export default config;
 ```
 
-For typescript files:
+For Typescript files, you can import the `StacktapeConfig` type:
 
 ```typescript
 import { StacktapeConfig } from "@stacktape/sdk";
@@ -65,11 +65,9 @@ const config: StacktapeConfig = {
 export default config;
 ```
 
-# Using getConfig Function
+## Using the getConfig function
 
-If your typescript file exports `getConfig` function, Stacktape executes this function to generate your config. An
-object containing information is passed as an argument to the function, which can be used to parametrize returned
-config.
+If your Typescript file exports a `getConfig` function, Stacktape will execute this function to generate your configuration. An object containing contextual information is passed as an argument to the function, which you can use to parameterize the returned configuration.
 
 ```typescript
 import { StacktapeConfig, StacktapeArgs } from "@stacktape/sdk";

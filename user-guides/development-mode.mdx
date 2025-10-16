@@ -3,72 +3,49 @@ title: "Development mode"
 order: 1
 ---
 
-# Introduction
-
-Stacktape allows you to easily develop your application in a **"development"** mode.
-
+<br />
 <br />
 
-Different compute resource types have different ways to develop them.
+Stacktape provides a development mode that is designed to be:
 
-<br />
+*   **Practical**: Fast feedback loop.
+*   **Correct**: As close to the production environment as possible.
+*   **Intuitive**: Easy to use.
+*   **Enjoyable**: All the information you need in one place, with pretty-printed logs.
 
-The development mode is designed to be:
+Different compute resources have different ways of being developed.
 
-- Practical (fast feedback loop).
-- Correct (as close to the production compute resource as possible).
-- Intuitive and easy to use.
-- Enjoyable (all the information you need in one place, pretty-printed logs, etc.)
+## Developing container workloads
 
-# Developing application code of container workloads
+The recommended way to develop a container workload is to use the [`dev` command](/cli/commands/dev).
 
-<br />
-
-The recommended way to develop a container workload is to use the [dev command](/cli/commands/dev/).
-
-For example, to develop and debug container `api-container` within container workload named `apiServer`, you can use
+For example, to develop the `api-container` in a workload named `apiServer`, you would run:
 
 ```bash
-stacktape dev --region eu-west-1 --stage <<your-previously-deployed-stage>> --resourceName apiServer
+stacktape dev --resourceName apiServer --stage <<your-stage>>
 ```
 
-This will run the container locally, map all of the `containerPort`-s specified in the `events` section to the host
-machine, and continuously pretty-print logs produced by the container.
+This will run the container locally, map all the `containerPort`s specified in the `events` section to the host machine, and continuously pretty-print the container's logs.
 
-<br />
+Stacktape emulates the deployed environment as closely as possible:
 
-Stacktape emulates the compute resource as closely to the deployed version as possible:
+*   The container's `environment` variables, including those referenced by `$ResourceParam()` and `$Secret()` directives, are automatically downloaded and injected.
+*   Temporary credentials for the container's [assumed role](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html) are injected, so your locally running container will have the exact same _IAM_ permissions as the deployed version.
 
-- Container's `environment` variables referenced by `$ResourceParam` and `$Secret` directives are automatically
-  downloaded and injected to the compute resource.
-- Temporary credentials of the container's
-  [assumed role](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html) are injected to the compute
-  resource. This means that your locally running container will have the exact same IAM permissions as the deployed
-  version.
+The container is rebuilt and restarted when you type `rs` and press `Enter` in the terminal, or when you use the `--watch` option and a source code file changes.
 
-<br />
+## Developing Lambda functions
 
-The container is rebuilt and restarted, when you either:
-
-- type `rs + enter` to the terminal
-- use the `--watch` option and one of your source code files changes
-
-# Developing application code of lambda functions
-
-The recommended way to develop a container compute resource is to use the [dev command](/cli/commands/dev/).
+The recommended way to develop a Lambda function is to use the [`dev` command](/cli/commands/dev).
 
 ```bash
-stacktape dev --region eu-west-1 --stage <<your-previously-deployed-stage>> --resourceName getPosts
+stacktape dev --resourceName getPosts --stage <<your-stage>>
 ```
 
-This will quickly build and deploy your function code, continuously watch for its logs, and pretty-print them to the
-terminal.
+This will quickly build and deploy your function's code and continuously watch and pretty-print its logs to the terminal.
 
-The function is rebuilt and redeployed, when you either:
+The function is rebuilt and redeployed when you type `rs` and press `Enter` in the terminal, or when you use the `--watch` option and a source code file changes.
 
-- type `rs + enter` to the terminal
-- use the `--watch` option and one of your source code files changes
+## Developing batch jobs
 
-# Developing application code of batch job
-
-Local development mode for batch job is currently under development.
+A local development mode for batch jobs is currently under development.

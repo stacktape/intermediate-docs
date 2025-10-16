@@ -1,23 +1,22 @@
 ---
-title: ""
+title: "Overrides"
 order: 2
 ---
 
-# Introduction
+<br />
+<br />
 
-Stacktape uses _Cloudformation_ to deploy your infrastructure into AWS. Each Stacktape resource definition (specified in
-the `resources` section) translates into multiple low-level AWS Cloudformation resource definitions. Overrides allow you
-to set or override the properties of these low-level Cloudformation resource definitions.
+Stacktape uses _Cloudformation_ to deploy your infrastructure to AWS. Each Stacktape resource you define in the `resources` section of your `stacktape.yml` file is translated into one or more underlying _Cloudformation_ resources. Overrides allow you to modify the properties of these generated _Cloudformation_ resources.
 
 <Info>
-  You can see what Cloudformation resources your Stacktape resource translates into in the config editor or on the
-  overview page of your deployed stack (project stage).
+
+You can view the _Cloudformation_ resources that a Stacktape resource translates into in the config editor or on the overview page of your deployed stack.
+
 </Info>
 
-# Usage
+## How to use overrides
 
-Let's say we want to override the timeout of the AWS Lambda resource which is part of `myFunction` Stacktape resource in
-the following configuration:
+Imagine you want to override the timeout of an AWS Lambda function that is part of the `myFunction` Stacktape resource in the following configuration:
 
 ```yml
 resources:
@@ -30,15 +29,11 @@ resources:
           entryfilePath: path/to/my/lambda.ts
 ```
 
-<br />
-
-In the interactive config editor, you can see the translated Cloudformation template for this config. You can see that
-`myFunction` resource contains 2 Cloudformation resources: **MyFunctionFunction** (_AWS::Lambda::Function_) and
-**MyFunctionLogGroup** (_AWS::Logs::LogGroup_).
+In the interactive config editor, you can inspect the translated _Cloudformation_ template for this configuration. You will see that the `myFunction` resource contains two _Cloudformation_ resources: `MyFunctionFunction` (of type `AWS::Lambda::Function`) and `MyFunctionLogGroup` (of type `AWS::Logs::LogGroup`).
 
 ![Tree view of compiled Cloudformation template](../static/overrides-tree-view.png)
 
-Since we are looking to override the timeout, we will specify override for **MyFunctionFunction** resource
+To override the timeout, you would add an override for the `MyFunctionFunction` resource:
 
 ```yml
 resources:

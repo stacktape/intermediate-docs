@@ -1,45 +1,37 @@
 ---
-title: "Authentication (Cognito)"
+title: "User Authentication (Cognito)"
 order: 260
 ---
 
-# Overview
+<br />
+<br />
 
-- Userpools securely store your users and provide sign-up, sign-in, and access control for your applications.
+User pools provide a secure identity store for your users, handling sign-up, sign-in, and access control for your applications. They support standard identity protocols like OAuth 2.0, SAML 2.0, and OpenID Connect, and can be integrated with HTTP API Gateways to protect your endpoints.
 
-- Userpools support OAuth 2.0, SAML 2.0, and OpenID Connect standards.
+# When to use them
 
-- Userpools can be integrated with HTTP API Gateways using authorizers to provide access only for authenticated users.
-
-# When to use
-
-Userpools can be used almost anytime your application needs to authenticate and authorize users.
+User pools are a good choice whenever your application needs to authenticate and authorize users.
 
 <br />
 
 **Advantages**
 
-- **Pay-per-MAU** - You pay for Monthly Active Users.
-- **Free-tier** - There's a free tier of 50,000 MAUs for users who sign in directly to Cognito User Pools (not using
-  SAML or OIDC federation).
-- **Serverless** - You can seamlessly scale your userbase almost indefinitely.
-- **Secure by default** - Your users are securely stored by AWS.
-- **Compliant** - With userpools, you are HIPAA eligible and PCI DSS, SOC, ISO/IEC 27001, ISO/IEC 27017, ISO/IEC 27018,
-  and ISO 9001 compliant by default.
+- **Pay-per-MAU:** You pay for monthly active users.
+- **Free tier:** The first 50,000 monthly active users are free (for users who sign in directly, not through SAML or OIDC federation).
+- **Serverless:** Scales seamlessly to handle a large number of users.
+- **Secure by default:** User data is stored securely by AWS.
+- **Compliant:** User pools are HIPAA eligible and compliant with PCI DSS, SOC, ISO/IEC 27001, and other standards.
 
 **Disadvantages**
 
-- **Not cheap for large user bases** - When you have more than 50,000 MAUs or many users with SAML or OIDC federation,
-  can get expensive.
-- **Not easy to understand** - Similarly to almost everything related to authentication or OAUTH, understanding user
-  pool authentication flows can be complicated.
+- **Cost at scale:** Can become expensive for large user bases or heavy use of SAML or OIDC federation.
+- **Complexity:** Authentication flows and standards like OAuth can be complex to understand and implement correctly.
 
 <Divider />
 
 # Basic usage
 
-- Example: Lambda function connected to HTTP API Gateway with authorizer that allows only users authenticated using
-  `myUserPool` to access the configured path.
+This example shows a Lambda function connected to an HTTP API Gateway with an authorizer that only allows access to users authenticated by `myUserPool`.
 
 ```yml
 resources:
@@ -71,12 +63,37 @@ resources:
 
 <Divider />
 
-# Using firewall
+# Password policy
 
-- You can use `web-app-firewall` to protect your resources from common web exploits that could affect application availability, compromise security, or consume excessive resources.\n- Web app firewall protects your application by filtering dangerous requests coming to your app.
-You can read more about the firewall [in our docs](/security-resources/web-app-firewalls/).\n
+You can enforce a password policy for your users, specifying minimum length and requiring lowercase letters, numbers, symbols, and uppercase letters.
 
-To lean more, check [web-app-firewall](/resources/web-app-firewalls/) documentation.
+<PropertiesTable definitionName="PasswordPolicy" searchForReferencesInDefinition="UserAuthPool" />
+
+# Multi-factor authentication
+
+You can enable multi-factor authentication (MFA) for your user pool to add an extra layer of security.
+
+<PropertiesTable definitionName="MfaConfiguration" searchForReferencesInDefinition="UserAuthPool" />
+
+# Hooks
+
+You can use Lambda functions as hooks to trigger custom logic at different points in the user authentication lifecycle, such as before sign-up or after a successful sign-in.
+
+<PropertiesTable definitionName="UserPoolHooks" searchForReferencesInDefinition="UserAuthPool" />
+
+# External identity providers
+
+You can allow users to sign in with external identity providers like Google, Facebook, or any SAML or OIDC-compliant provider.
+
+<PropertiesTable definitionName="IdentityProvider" searchForReferencesInDefinition="UserAuthPool" />
+
+# Firewall
+
+You can protect your user pool with a web application firewall.
+
+A web application firewall (WAF) can help protect your user pool from common web-based attacks. For more information, see the [Stacktape documentation on web application firewalls](/security-resources/web-app-firewalls/).
+
+To learn more, see the [Web Application Firewall](/security-resources/web-app-firewalls/) documentation.
 
 ```yml
 resources:
@@ -99,7 +116,17 @@ resources:
 
 # Pricing
 
-Work in progress
+Amazon Cognito has a free tier for user pools, which includes 10,000 monthly active users (MAUs) for users who sign in directly or through a social identity provider. For users who sign in through SAML or OIDC federation, the free tier includes 50 MAUs.
+
+Beyond the free tier, pricing is based on the number of MAUs. For the "Lite" tier, the costs are as follows:
+
+-   **10,001 - 100,000 MAUs:** $0.0055 per MAU
+-   **100,001 - 1,000,000 MAUs:** $0.0046 per MAU
+-   **Over 1,000,000 MAUs:** $0.00325 per MAU
+
+For users federated through SAML or OIDC, the price is $0.015 per MAU above the free tier.
+
+Additional charges apply for sending SMS messages for MFA and for using advanced security features. For detailed and up-to-date pricing information, see the [Amazon Cognito pricing page](https://aws.amazon.com/cognito/pricing/).
 
 # Referenceable parameters
 

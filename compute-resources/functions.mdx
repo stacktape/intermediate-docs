@@ -3,51 +3,14 @@ title: ""
 order: 100
 ---
 
-# Overview
-
-Functions are abstraction of AWS Lambda - a serverless computing service provided by Amazon Web Services (AWS), which
-allows developers to run their code without having to worry about server infrastructure. Developers can write code in
-several programming languages and set triggers for the code to be executed automatically in response to events, such as
-HTTP API request, changes to data in an Amazon S3 bucket, messages in an Amazon SQS queue, and
-[many others](#trigger-events).
-
+<br />
 <br />
 
-Lambda can be used for a variety of use cases, including building and deploying **web applications**, **processing
-data**, and **automating business processes**. By using functions, developers can focus on writing code instead of
-managing servers, and only pay for the compute time used by their code.
+Functions are Stacktape's abstraction for AWS Lambda, a _serverless_ compute service that lets you run code without managing servers. You can write code in multiple languages and trigger it to run in response to events like HTTP requests, file uploads to an _S3 bucket_, or messages in an SQS queue.
 
-# Get started
+This allows you to build and deploy web applications, process data, and automate workflows while only paying for the compute time you use.
 
-Start with functions by trying one of our [starter projects](#starter-projects) or checkout
-[example Lambda function](#example-function)
-
-## Starter projects
-
-- (Typescript)
-  [Lambda API with DynamoDB](https://github.com/stacktape/stacktape/tree/master/starter-projects/lambda-api-dynamo-db)
-- (Typescript)
-  [Lambda API with Atlas MongoDB](https://github.com/stacktape/stacktape/tree/master/starter-projects/lambda-api-mongo-db)
-- (Typescript)
-  [Lambda API with MySQL](https://github.com/stacktape/stacktape/tree/master/starter-projects/lambda-api-mysql)
-- (Typescript) [Lambda with Redis](https://github.com/stacktape/stacktape/tree/master/starter-projects/lambda-app-redis)
-- (Typescript)
-  [DynamoDB stream to SNS fanout](https://github.com/stacktape/stacktape/tree/master/starter-projects/lambda-api-dynamo-db-stream-sns)
-- (Typescript)
-  [NuxtJS Server Side Rendered web in Lambda](https://github.com/stacktape/stacktape/tree/master/starter-projects/nuxtjs-ssr-website-lambda)
-- (Typescript)
-  [Lambda Pupeteer web scraper](https://github.com/stacktape/stacktape/tree/master/starter-projects/lambda-web-scraper-puppeteer)
-- (Typescript)
-  [Kafka stream processing](https://github.com/stacktape/stacktape/tree/master/starter-projects/kafka-stream-processing)
-- (Java) [Lambda API with DynamoDB](https://github.com/stacktape/stacktape/tree/master/starter-projects/java-lambda-api)
-- (Go)
-  [Lambda API with DynamoDB (Go)](https://github.com/stacktape/stacktape/tree/master/starter-projects/go-lambda-api)
-- (Python)
-  [Lambda API with Atlas MongoDB (Python)](https://github.com/stacktape/stacktape/blob/master/starter-projects/python-lambda-api/stacktape.yml)
-
-<br />
-
-## Example function
+# Example function
 
 ```yml
 resources:
@@ -60,7 +23,7 @@ resources:
           entryfilePath: path/to/my-lambda.ts
 ```
 
-> Stacktape configuration of a basic lambda function(see also code example below)
+> Stacktape configuration for a basic Lambda function.
 
 ```ts
 // Stacktape will automatically package any library for you
@@ -84,43 +47,34 @@ const handler = async (event, context) => {
 export default handler;
 ```
 
-> Example lambda function written in Typescript
+> Example function code written in TypeScript.
 
 # Under the hood
 
-Stacktape functions are an abstraction for [AWS Lambda functions](https://aws.amazon.com/lambda/). AWS Lambda production
-tested serverless service with pay per request/compute-time model,fitting for many use-cases.
+Stacktape Functions are built on top of AWS Lambda, a production-ready, pay-per-request service suitable for a wide range of use cases.
 
 # When to use
 
-Lambda functions work well for many use-cases (HTTP APIs, scheduled tasks, integrations & more). However, they can't be
-used for long-running tasks and tasks that require a higher degree of control over an execution environment.
-
-<NegativeMargin />
+Lambda functions are a great choice for many applications, including HTTP APIs, scheduled tasks, and event-driven integrations. However, they are not suitable for long-running processes or tasks that require fine-grained control over the execution environment.
 
 ## Advantages
 
-- **Pay-per-use** - You only pay for the compute time you consume (rounded to 1ms)
-- **Massive & fast scaling** - Can scale up to 1000s of parallel executions. New containers running your code can be
-  spawned in milliseconds.
-- **High availability** - AWS Lambda runs your function in multiple Availability Zones
-- **Secure by default** - Underlying environment is securely managed by AWS
-- **Lots of integrations** - Function can be invoked by events from a wide variety of services
+-   **Pay-per-use**: You are billed only for the compute time you consume, rounded to the nearest millisecond.
+-   **Massive & fast scaling**: Functions can scale to thousands of parallel executions in milliseconds.
+-   **High availability**: AWS Lambda automatically runs your function in multiple _Availability Zones_ to ensure high availability.
+-   **Secure by default**: The underlying environment is securely managed by AWS.
+-   **Lots of integrations**: Functions can be triggered by a wide variety of services.
 
 ## Disadvantages
 
-- **Limited execution time** - Can run only up to 15 minutes
-- **Limited configuration of lambda environment** - You can configure only memory (CPU power scales with it). The
-  maximum amount of memory is 10GB (6 virtual CPUs).
-- **More expensive for certain tasks** - Continuously running tasks and tasks with predictable load can be performed for
-  less using batch jobs and container workloads.
-- **Cold starts** - Lambda function can take some additional time (usually ~0.2 to 4 seconds) to execute when it runs
-  for the first time. To learn more, refer to [cold starts](/compute-resources/lambda-functions/#cold-starts)
+-   **Limited execution time**: A function can run for a maximum of 15 minutes.
+-   **Limited configuration**: You can only configure memory (from 128MB to 10GB), and CPU power scales proportionally.
+-   **More expensive for certain tasks**: For continuous or predictable workloads, batch jobs or container workloads can be more cost-effective.
+-   **_Cold starts_**: The first invocation of a function after a period of inactivity can experience a slight delay.
 
 # Packaging
 
-In `packaging` section of the function, you specify path to your code and other details about how should your code be
-built and packaged. Refer to [packaging docs](/configuration/packaging#packaging-lambda-functions) for more details.
+In the `packaging` section, you specify the path to your code and how it should be built. For more details, see the [packaging documentation](../../configuration/packaging.mdx#packaging-lambda-functions).
 
 ```yml
 resources:
@@ -139,13 +93,7 @@ resources:
 
 # Computing resources
 
-- Lambda function environment is fully managed. You can't directly configure the type of virtual machine that runs your
-  workload.
-- Amount of memory available to the function can be set using `memory` property. This value should be between 128 MB and
-  10,240 MB in 1-MB increments.
-- Amount of CPU power available to the function is also set using `memory` property - it's proportionate to the amount
-  of available RAM. Function with 1797MB has a CPU power equal to 1 virtual CPU. Lambda function can have a maximum of 6
-  vCPUs (at 10,240 MB of RAM).
+The function's execution environment is fully managed. You can set the `memory` from 128MB to 10,240MB. CPU power is allocated proportionally to the memory, with 1,797MB corresponding to one virtual CPU and a maximum of six vCPUs at 10,240MB.
 
 ```yml
 resources:
@@ -163,13 +111,11 @@ resources:
 
 # Runtime
 
-- Stacktape automatically detects the function's language and uses the latest runtime version associated with that language.\n- Example: uses `nodejs22.x` for all files ending with `.js` and `.ts`.\n- For the list of all available lambda runtimes, refer to [AWS docs](https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html).\n
+Stacktape automatically detects the programming language and selects the latest appropriate runtime. For example, `.ts` and `.js` files will use a recent Node.js runtime. For a full list of available runtimes, see the [AWS Lambda runtimes documentation](https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html).
 
 # Timeout
 
-- Sets the maximum amount of time (in seconds) that a function can run before a timeout error is thrown.
-- Maximum allowed time is 900 seconds.
-- The default is 3 seconds.
+Sets the maximum execution time for the function in seconds. The default is 3 seconds, and the maximum is 900 seconds (15 minutes).
 
 ```yml
 resources:
@@ -187,9 +133,14 @@ resources:
 
 # Environment variables
 
-Most commonly used types of environment variables:\n\n- Static - string, number or boolean (will be stringified).\n- Result of a [custom directive](/configuration/directives/#custom-directives).\n- Referenced property of another resource (using **$ResourceParam** directive). To learn more, refer to
-[referencing parameters guide](/configuration/referencing-parameters/).
-If you are using environment variables to inject information about resources into your script, see also property [connectTo](/configuration/scripts/#connecting-to-resources) which simplifies this process.\n- Value of a [secret](/resources/secrets/) (using [$Secret directive](/configuration/directives/#secret)).\n
+A list of environment variables to pass to the script or command.
+
+Values can be:
+
+-   A static string, number, or boolean.
+-   The result of a [custom directive](/configuration/directives/#custom-directives).
+-   A reference to another resource's parameter using the [\`$ResourceParam\` directive](/configuration/referencing-parameters/).
+-   A value from a [secret](/resources/secrets/) using the [\`$Secret\` directive](/configuration/directives/#secret).
 
 ```yml
 environment:
@@ -205,46 +156,27 @@ environment:
 
 # Logging
 
-- Every time your code outputs (prints) something to the `stdout` or `stderr`, your log will be captured and stored in a
-  AWS CloudWatch log group.
-- You can browse your logs in 2 ways:
-  - Browse logs in the AWS CloudWatch console. To get direct link to your logs you have 2 options:
-    1. Go to [stacktape console](https://console.stacktape.com/). Link is among information about your stack and
-       resource.
-    2. You can use `stacktape stack-info` command.
-  - Browse logs using [stacktape logs command](/cli/commands/logs) that will print logs to the console.
-- Please note that storing log data can become costly over time. To avoid excessive charges, you can configure
-  `retentionDays`.
+Any output to `stdout` or `stderr` is captured and stored in an AWS CloudWatch log group. You can view logs through the [Stacktape Console](https://console.stacktape.com/), the `stacktape stack-info` command, or by streaming them with the `stacktape logs` command.
+
+To manage costs, you can configure `retentionDays` to automatically delete old logs.
 
 <PropertiesTable definitionName="LambdaFunctionLogging" searchForReferencesInDefinition="LambdaFunction" />
 
 ## Forwarding logs
 
-It is possible to forward logs to the third party services/databases. See page
-[Forwarding logs](/configuration/log-forwarding/) for more information and examples.
+You can forward logs to third-party services. For more information, see the [Log Forwarding documentation](../../configuration/log-forwarding.mdx).
 
 # Storage
 
-- Each lambda function has access to its own ephemeral, temporary storage.
-- It's available at `/tmp` and has a fixed size of 512MB.
-- This storage is NOT shared between multiple execution environments. If there are 2 or more concurrently running
-  functions, they don't share this storage.
-- This storage can be used to cache certain data between function executions.
-- To store data persistently, consider using [Buckets](/resources/buckets).
+Each function has access to 512MB of temporary, _ephemeral storage_ at `/tmp`. This storage is not shared between concurrent executions but can be used for caching data within a single execution environment. For persistent storage, use [Buckets](../../other-resources/buckets.mdx).
 
 # Trigger events
 
-- Functions are invoked ("triggered") in a reaction to an event.
-- When you specify an event, Stacktape creates an event integration and adds all the required permissions to invoke the
-  function.
-- Each function can have multiple event integrations.
-- Payload (data) received by the function is based on the event integration.
+Functions are invoked in response to events. Stacktape automatically creates the necessary integrations and permissions for your specified triggers. A single function can have multiple event integrations, and the payload it receives will vary based on the event source.
 
-## HTTP Api event
+## HTTP API event
 
-- The function is triggered in a reaction to an incoming request to the specified HTTP API Gateway.
-- HTTP API Gateway selects the route with the most-specific match. To learn more about how paths are evaluated, refer to
-  [AWS Docs](https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-routes.html#http-api-develop-routes.evaluation)
+Triggers the function when a request is made to a specified HTTP API Gateway.
 
 ```yml
 resources:
@@ -268,20 +200,11 @@ resources:
       # {stop-highlight}
 ```
 
-> Lambda function connected to an HTTP API Gateway "myHttpApi"
-
 <PropertiesTable definitionName="HttpApiIntegration" searchForReferencesInDefinition="LambdaFunction" />
 
 ### Cognito authorizer
 
-- Using Cognito authorizer allows only the users authenticated with
-  [User pool](/resources/userpools-and-authentication/) to access your function.
-- Request must include `access token` (specified as a bearer token, `{ Authorization: "<<your-access-token>>"" }`)
-- If the request is successfully authorized, your function will receive some authorization claims in its payload. To get
-  more information about the user, you can use
-  [getUser API Method](https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_GetUser.html)
-- HTTP API uses JWT(JSON Web token)-based authorization. To lean more about how requests are authorized, refer to
-  [AWS Docs](https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-jwt-authorizer.html).
+Restricts access to users authenticated with a [User Pool](../../security-resources/user-auth-pools.mdx).
 
 ```yml
 resources:
@@ -314,8 +237,6 @@ resources:
             # {stop-highlight}
 ```
 
-> Example cognito authorizer
-
 ```ts
 import { CognitoIdentityProvider } from '@aws-sdk/client-cognito-identity-provider';
 
@@ -329,65 +250,13 @@ const handler = async (event, context) => {
 export default handler;
 ```
 
-> Example lambda function that fetches user data from Cognito
-
 <PropertiesTable definitionName="CognitoAuthorizer" searchForReferencesInDefinition="LambdaFunctionProps" />
 
 <br />
 
 ### Lambda authorizer
 
-- When using Lambda authorizer, a special lambda function determines if the client can access your function.
-- When a request arrives to the HTTP API Gateway, lambda authorizer function is invoked. It must return either a simple
-  response indicating if the client is authorized
-
-```json
-{
-  "isAuthorized": true,
-  "context": {
-    "exampleKey": "exampleValue"
-  }
-}
-```
-
-> Simple lambda authorizer response format
-
-or an IAM Policy document (when the `iamResponse` property is set to `true`, you can further configure permissions of
-the target lambda function)
-
-```json
-{
-  "principalId": "abcdef", // The principal user identification associated with the token sent by the client.
-  "policyDocument": {
-    "Version": "2012-10-17",
-    "Statement": [
-      {
-        "Action": "execute-api:Invoke",
-        "Effect": "Allow|Deny",
-        "Resource": "arn:aws:execute-api:{regionId}:{accountId}:{apiId}/{stage}/{httpVerb}/[{resource}/[{child-resources}]]"
-      }
-    ]
-  },
-  "context": {
-    "exampleKey": "exampleValue"
-  }
-}
-```
-
-> IAM Policy document lambda authorizer response format
-
-- Data returned in the `context` property will be available to the function.
-- You can configure `identitySources` that specify the location of data that's required to authorize a request. If they
-  are not included in the request, the Lambda authorizer won't be invoked, and the client receives a `401 error`. The
-  following identity sources are supported: `$request.header.name`, `$request.querystring.name` and
-  `$context.variableName`.
-- When caching is enabled for an authorizer, API Gateway uses the authorizer's identity sources as the cache key. If a
-  client specifies the same parameters in identity sources within the configured TTL, API Gateway uses the cached
-  authorizer result, rather than invoking your Lambda function.
-- By default, API Gateway uses the cached authorizer response for all routes of an API that use the authorizer. To cache
-  responses per route, add `$context.routeKey` to your authorizer's identity sources.
-- To learn more about Lambda authorizers, refer to
-  [AWS Docs](https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-lambda-authorizer.html)
+Uses another Lambda function to authorize incoming requests.
 
 <PropertiesTable definitionName="LambdaAuthorizer" searchForReferencesInDefinition="LambdaFunctionProps" />
 
@@ -395,13 +264,7 @@ the target lambda function)
 
 ## Schedule event
 
-The function is triggered on a specified schedule. You can use 2 different schedule types:
-
-- **Fixed rate** - Runs on a specified schedule starting after the event integration is successfully created in your
-  stack.
-  [Learn more about rate expressions](https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html#RateExpressions)
-- **Cron expression** - Leverages Cron time-based scheduler.
-  [Learn more about Cron expressions](https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html#CronExpressions)
+Triggers the function on a fixed rate or cron schedule.
 
 ```yml
 resources:
@@ -431,18 +294,7 @@ resources:
 
 ## Event Bus event
 
-The function is triggered when the specified event bus receives an event matching the specified pattern.
-
-2 types of event buses can be used:
-
-<br />
-
-- **Default event bus**
-
-  - Default event bus is pre-created by AWS and shared by the whole AWS account.
-  - Can receive events from multiple AWS services.
-    [Full list of supported services](https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/EventTypes.html).
-  - To use the default event bus, set the `useDefaultBus` property.
+Triggers the function when a matching event is received by an event bus.
 
 ```yml
 resources:
@@ -465,13 +317,6 @@ resources:
                 - 'us-west-2'
       # {stop-highlight}
 ```
-
-> Batch job connected to the default event bus
-
-- **Custom event bus**
-  - Your own, custom [Event bus](/resources/event-buses/).
-  - This event bus can receive your own, custom events.
-  - To use custom event bus, specify either `eventBusArn` or `eventBusName` property.
 
 ```yml
 resources:
@@ -496,30 +341,13 @@ resources:
       # {stop-highlight}
 ```
 
-> Batch job connected to a custom event bus
-
 <PropertiesTable definitionName="EventBusIntegration" searchForReferencesInDefinition="LambdaFunction" />
 
 <Divider />
 
 ## Kafka Topic event
 
-The function is triggered whenever there are messages in the specified Kafka Topic.
-
-- Messages are processed in batches.
-- If the Kafka topic contains multiple messages, the function is invoked with multiple messages in its payload.
-
-Batching behavior can be configured. The function is triggered when any of the following things happen:
-
-- **Batch window** expires. Batch window can be configured using `maxBatchWindowSeconds` property.
-- Maximum **Batch size** (amount of messages fetched from the topic) is reached. Batch size can be configured using
-  `batchSize` property.
-- Maximum **Payload limit** is reached. Maximum payload size is 6 MB.
-
-### Custom Kafka
-
-When configuring custom Kafka integration you need to specify `bootstrapServers`, `topicName` and `authentication`
-method.
+Triggers the function when messages are available in a Kafka topic.
 
 ```yml
 resources:
@@ -547,19 +375,13 @@ resources:
       # {stop-highlight}
 ```
 
-> Custom Kafka integration
-
 <PropertiesTable definitionName="KafkaTopicIntegration" searchForReferencesInDefinition="LambdaFunction" />
 
 <Divider />
 
 ## SNS event
 
-The function is triggered every time a specified SNS topic receives a new message.
-
-- Amazon SNS is a fully managed messaging service for both application-to-application (A2A) and application-to-person
-  (A2P) communication.
-- Messages (notifications) are published to the [sns topics](/resources/sns-topics/).
+Triggers the function when a message is published to an [SNS topic](../../other-resources/sns-topics.mdx).
 
 ```yml
 resources:
@@ -587,27 +409,7 @@ resources:
 
 ## SQS event
 
-The function is triggered whenever there are messages in the specified SQS Queue.
-
-- Messages are processed in batches
-- If the SQS queue contains multiple messages, the function is invoked with multiple messages in its payload
-- A single queue should always be "consumed" by a single function. SQS message can only be read once from the queue and
-  while it's being processed, it's invisible to other functions. If multiple different functions are processing messages
-  from the same queue, each will get their share of the messages, but one message won't be delivered to more than one
-  function at a time. If you need to consume the same message by multiple consumers
-  ([Fanout pattern](https://aws.amazon.com/blogs/compute/messaging-fanout-pattern-for-serverless-architectures-using-amazon-sns/)),
-  consider using [EventBus integration](/compute-resources/lambda-functions#event-bus-event) or
-  [SNS integration](/compute-resources/lambda-functions#sns-event).
-- You can create SQS queue using [sqs-queue resource](/resources/sqs-queues/)
-- If **function fails while processing messages** messages will not be considered processed and will appear in the queue
-  again after [visibility timeout](/resources/sqs-queues/#visibility-timeout).
-
-Batching behavior can be configured. The function is triggered when any of the following things happen:
-
-- **Batch window** expires. Batch window can be configured using `maxBatchWindowSeconds` property.
-- Maximum **Batch size** (amount of messages in the queue) is reached. Batch size can be configured using `batchSize`
-  property.
-- Maximum **Payload limit** is reached. Maximum payload size is 6 MB.
+Triggers the function when messages are available in an [SQS queue](../../other-resources/sqs-queues.mdx).
 
 ```yml
 resources:
@@ -635,31 +437,7 @@ resources:
 
 ## Kinesis stream event
 
-The function is triggered whenever there are messages in the specified Kinesis Stream.
-
-- Messages are processed in batches.
-- If the stream contains multiple messages, the function is invoked with multiple messages in its payload.
-- To add a custom Kinesis stream to your stack, simply add
-  [Cloudformation resource](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-kinesis-stream.html)
-  to the [cloudformationResources](/resources/cloudformation-resources/) section of your config.
-- Similarly to SQS, Kinesis is used to process messages in batches. To learn the differences, refer to
-  [AWS Docs](https://aws.amazon.com/kinesis/data-streams/faqs/)
-
-Batching behavior can be configured. The function is triggered when any of the following things happen:
-
-- **Batch window** expires. Batch window can be configured using `maxBatchWindowSeconds` property.
-- Maximum **Batch size** (amount of messages in the queue) is reached. Batch size can be configured using `batchSize`
-  property.
-- Maximum **Payload limit** is reached. Maximum payload size is 6 MB.
-
-Consuming messages from a kinesis stream can be done in 2 ways:
-
-- **Consuming directly from the stream** - polling each shard in your Kinesis stream for records once per second. Read
-  throughput of the kinesis shard is shared with other stream consumers.
-- **Consuming using a stream consumer** - To minimize latency and maximize read throughput, use "stream consumer" with
-  enhanced fan-out. Enhanced fan-out consumers get a dedicated connection to each shard that doesn't impact other
-  applications reading from the stream. You can either pass reference to the consumer using _consumerArn_ property, or
-  you can let Stacktape auto-create consumer using _autoCreateConsumer_ property.
+Triggers the function when records are available in a Kinesis Data Stream.
 
 ```yml
 resources:
@@ -697,16 +475,9 @@ cloudformationResources:
 
 <Divider />
 
-## DynamoDb stream event
+## DynamoDB stream event
 
-The function is triggered whenever there are processable records in the specified DynamoDB streams.
-
-- DynamoDB stream captures a time-ordered sequence of item-level modifications in a DynamoDB table and durably stores
-  the information for up to 24 hours.
-- Records from the stream are processed in batches. This means that multiple records are included in a single function
-  invocation.
-- DynamoDB stream must be enabled in a DynamoDB table definition. Learn how to enable streams in
-  [dynamo-table docs](/resources/dynamo-db-tables/#item-change-streaming)
+Triggers the function in response to item-level changes in a [DynamoDB table](../../database-resources/dynamo-db-tables.mdx).
 
 ```yml
 resources:
@@ -744,10 +515,7 @@ resources:
 
 ## S3 event
 
-The function is triggered when a specified event occurs in your bucket.
-
-- To learn more about supported event types, refer to
-  [AWS Docs](https://docs.aws.amazon.com/AmazonS3/latest/userguide/notification-how-to-event-types-and-destinations.html#supported-notification-event-types).
+Triggers the function in response to events in an S3 bucket.
 
 ```yml
 resources:
@@ -781,15 +549,7 @@ resources:
 
 ## Cloudwatch Log event
 
-The function is triggered when a log record arrives to the specified log group.
-
-- Event payload arriving to the function is BASE64 encoded and has the following format:
-
-```json
-{ "awslogs": { "data": "BASE64_ENCODED_GZIP_COMPRESSED_DATA" } }
-```
-
-- To read access the log data, event payload needs to be decoded and decompressed first.
+Triggers the function when a log record is added to a CloudWatch log group.
 
 ```yml
 resources:
@@ -819,63 +579,7 @@ resources:
 
 ## Alarm event
 
-The function is triggered when a alarm goes into ALARM state.
-
-- Example format of the event payload arriving to the function (example payload is shortened, refer to
-  [AWS docs](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch-and-eventbridge.html) for more
-  info):
-
-```json
-{
-  "version": "0",
-  "id": "2dde0eb1-528b-d2d5-9ca6-6d590caf2329",
-  "detail-type": "CloudWatch Alarm State Change",
-  "source": "aws.cloudwatch",
-  "account": "123456789012",
-  "time": "2019-10-02T17:20:48Z",
-  "region": "us-east-1",
-  "resources": ["arn:aws:cloudwatch:us-east-1:123456789012:alarm:CpuAlarm"],
-  "detail": {
-    "alarmName": "CpuAlarm",
-    "configuration": {
-      "description": "Goes into alarm if cpu exceed 80%"
-    },
-    "previousState": {
-      "reason": "Initial alarm creation",
-      "timestamp": "2019-10-02T17:20:03.642+0000",
-      "value": "OK"
-    },
-    "state": {
-      "reason": "Threshold Crossed: 1 out of the last 1 datapoints [85.0 (02/10/19 17:10:00)] was greater than the threshold (80.0) (minimum 1 datapoint for OK -> ALARM transition).",
-      "timestamp": "2019-10-02T17:20:48.554+0000",
-      "value": "ALARM"
-    }
-  }
-}
-```
-
-You can reference both:
-
-- **global alarms** created through [Stacktape console](https://console.stacktape.com/alarms),
-- **in-config alarms** defined within your config file,
-- to learn more about creating alarms refer to [Alarms docs](https://docs.stacktape.com/configuration/alarms/).
-
-<!-- <PropertiesTable definitionName="AlarmIntegration" searchForReferencesInDefinition="LambdaFunction" /> -->
-
-#### Referencing in-config alarm
-
-Stacktape automatically creates names for in-config alarms. Name has following scheme:
-
-```
-{RESOURCE_NAME}.alarms.{INDEX_OF_ALARM}
-```
-
-In the following example, we have resolved name like this:
-
-- `RESOURCE_NAME` - myDatabase
-- `INDEX_OF_ALARM` - 0
-
-Resulting name is therefore: `myDatabase.alarms.0`
+Triggers the function when a CloudWatch alarm enters the `ALARM` state. You can reference alarms created in the [Stacktape Console](https://console.stacktape.com/alarms) or directly in your configuration file.
 
 ```yml
 resources:
@@ -908,25 +612,6 @@ resources:
       # {stop-highlight}
 ```
 
-#### Referencing global alarm
-
-If you have created alarm in [Stacktape console](https://console.stacktape.com/alarms) you can reference it using the
-following name scheme:
-
-```
-{RESOURCE_NAME}.alarms.{NAME_OF_GLOBAL_ALARM}
-```
-
-In the following example, we are assuming that **we have created global alarm with name `CpuUtilization`** in
-[Stacktape console](https://console.stacktape.com/alarms).
-
-We can resolve alarm name like this:
-
-- `RESOURCE_NAME` - myDatabase
-- `NAME_OF_GLOBAL_ALARM_IN_PASCAL_CASE` - CpuUtilization
-
-Resulting name is therefore: `myDatabase.alarms.CpuUtilization`
-
 ```yml
 resources:
   myDatabase:
@@ -956,10 +641,7 @@ resources:
 
 ## Application Load Balancer event
 
-The function is triggered when a specified **Application load Balancer** receives an HTTP request that matches the
-integration's conditions.
-
-- You can filter requests based on **HTTP Method**, **Path**, **Headers**, **Query parameters**, and **IP Address**.
+Triggers the function when an Application Load Balancer receives a request matching specified rules.
 
 ```yml
 resources:
@@ -991,56 +673,19 @@ resources:
 
 # Sync vs. Async invocations
 
-Functions can be invoked in 2 different ways. Different integrations (events) invoke your function in different ways.
+Functions can be invoked synchronously or asynchronously, depending on the trigger.
 
 ## Synchronous invocation
 
-- AWS Lambda runtime invokes your functions, waits for it to complete, and then returns the result to the caller.
-- Synchronous invocation can be performed by these callers:
-  - HTTP API Gateway event integration
-  - Application Load balancer event integration
-  - Amazon Cognito
-  - Directly calling `invokeSync` method (or similar method, depending on the language used) from the `aws-sdk`. This
-    method then directly returns the result of your function.
-
-<Divider />
+The caller waits for the function to complete and returns its result. This is used by API Gateway, Application Load Balancer, and direct SDK calls.
 
 ## Asynchronous invocation
 
-- AWS Lambda runtime invokes your functions but doesn't wait for it to complete. The caller receives only the
-  information, if it's been successfully enqueued.
-- Asynchronous invocation can be performed by these callers:
-  - SNS event integration
-  - SQS event integration
-  - Event-bus event integration
-  - Schedule event integration
-  - S3 event integration
-  - Cloudwatch Log event integration
-  - DynamoDB event integration
-  - Kinesis event integration
-  - Directly calling `invoke` method (or similar method, depending on the language used) from the `aws-sdk`. This method
-    doesn't directly return the result of your function, only the information whether the invocation successfully
-    started.
-- If the function execution fails, lambda retries the function for 2 more times. Please note that this can sometimes
-  cause issues, if the function is not
-  [idempotent](https://stackoverflow.com/questions/1077412/what-is-an-idempotent-operation).
+The caller queues the function for execution and does not wait for the result. This is used by SNS, SQS, EventBridge, S3, and others. If an asynchronously invoked function fails, AWS Lambda will automatically retry it up to two times.
 
 # Lambda Destinations
 
-Lambda Destinations allow you to orchestrate simple, lambda-based, event-driven workflows.
-
-- Works only for [asynchronous invocations](/compute-resources/lambda-functions/#asynchronous-invocation)
-- You can hook into **onSuccess** or **onFailure** events
-- 4 different destinations are supported:
-  - SQS queue
-  - SNS topic
-  - Event bus
-  - other lambda function
-- Destination receives both function's result (or error) and original event.
-- To learn more about Lambda destinations, refer to
-  [AWS blog post](https://aws.amazon.com/blogs/compute/introducing-aws-lambda-destinations/).
-- Defined using a `destinations` property on the function
-- For SNS, DynamoDB and Kinesis event integrations, onFailure destination can be set per event integration.
+For asynchronous invocations, you can configure destinations to handle the results. You can send the output of a function to another service (like SQS, SNS, or another Lambda) on success or failure.
 
 ```yml
 resources:
@@ -1075,32 +720,11 @@ resources:
 
 # Accessing other resources
 
-- For most of the AWS resources, resource-to-resource communication is not allowed by default. This helps to enforce
-  security and resource isolation. Access must be explicitly granted using [IAM](https://aws.amazon.com/iam/) (Identity
-  and Access Management) permissions.
-
-- Access control of [Relational Databases](/resources/relational-databases) is not managed by IAM. These resources are
-  not "cloud-native" and have their own access control mechanism (connection string with username and password). They
-  are accessible by default, and you don't need to grant any extra IAM permissions. If the default,
-  connection-string-based access-control is not sufficient for your use case, you can restrict connection to only
-  resources in the same VPC. In that case, your function must
-  [join that VPC](/compute-resources/lambda-functions#default-vpc-connection) to access them.
-
-- Stacktape automatically handles IAM permissions for the underlying AWS services that it creates (i.e. granting
-  function permission to write logs to Cloudwatch, or allowing to communicate with their event source and many others).
-
-- If your compute resource needs to communicate with other infrastructure components, you need to add permissions
-  manually. You can do this in 2 ways listed below.
+By default, functions cannot access other AWS resources. You must grant permissions explicitly using _IAM_.
 
 ## Using connectTo
 
-- List of resource names or AWS services that this function will be able to access (basic IAM permissions will be
-  granted automatically). Granted permissions differ based on the resource.
-- Works only for resources managed by Stacktape in `resources` section (not arbitrary Cloudformation resources)
-- This is useful if you don't want to deal with IAM permissions yourself. Handling permissions using raw IAM role
-  statements can be cumbersome, time-consuming and error-prone. Moreover, when using `connectTo` property, Stacktape
-  **automatically injects information about resource** you are connecting to as environment variables into your compute
-  resource.
+The `connectTo` property is a simplified way to grant access to other Stacktape-managed resources.
 
 ```yml
 resources:
@@ -1128,31 +752,17 @@ resources:
 
 <br />
 
-By referencing resources (or services) in `connectTo` list, Stacktape automatically:\n\n- configures correct compute resource's **IAM role permissions** if needed\n- sets up correct **security group rules** to allow access if needed\n- **injects relevant environment variables** containing information about resource you are connecting to into the compute resource's runtime
-- names of environment variables use upper-snake-case and are in form `STP_[RESOURCE_NAME]_[VARIABLE_NAME]`,\n- examples: `STP_MY_DATABASE_CONNECTION_STRING` or `STP_MY_EVENT_BUS_ARN`,\n- list of injected variables for each resource type can be seen below.\n\n\nGranted permissions and injected environment variables are different depending on resource type:\n\n\n`Bucket`\n\n- **Permissions:**
-- list objects in a bucket\n- create / get / delete / tag object in a bucket\n\n- **Injected env variables**: `NAME`, `ARN`\n\n`DynamoDB table`\n\n- **Permissions:**
-- get / put / update / delete item in a table\n- scan / query a table\n- describe table stream\n\n- **Injected env variables**: `NAME`, `ARN`, `STREAM_ARN`\n\n`MongoDB Atlas cluster`\n\n- **Permissions:**
-- Allows connection to a cluster with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about
-MongoDB Atlas clusters accessibility modes, refer to
-[MongoDB Atlas cluster docs](/3rd-party-resources/mongo-db-atlas-clusters/#accessibility).\n- Creates access "user" associated with compute resource's role to allow for secure credential-less access to the the cluster\n\n- **Injected env variables**: `CONNECTION_STRING`\n\n`Relational(SQL) database`\n\n- **Permissions:**
-- Allows connection to a relational database with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about
-relational database accessibility modes, refer to [Relational databases docs](/resources/relational-databases/#accessibility).\n\n- **Injected env variables**: `CONNECTION_STRING`, `JDBC_CONNECTION_STRING`, `HOST`, `PORT`
-  (in case of aurora multi instance cluster additionally: `READER_CONNECTION_STRING`, `READER_JDBC_CONNECTION_STRING`, `READER_HOST`)\n\n`Redis cluster`\n\n- **Permissions:**
-- Allows connection to a redis cluster with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about
-redis cluster accessibility modes, refer to [Redis clusters docs](/resources/redis-clusters/#accessibility).\n\n- **Injected env variables**: `HOST`, `READER_HOST`, `PORT`\n\n`Event bus`\n\n- **Permissions:**
-- publish events to the specified Event bus\n\n- **Injected env variables**: `ARN`\n\n`Function`\n\n- **Permissions:**
-- invoke the specified function\n- invoke the specified function via url (if lambda has URL enabled)\n\n- **Injected env variables**: `ARN`\n\n`Batch job`\n\n- **Permissions:**
-- submit batch-job instance into batch-job queue\n- list submitted job instances in a batch-job queue\n- describe / terminate a batch-job instance\n- list executions of state machine which executes the batch-job according to its strategy\n- start / terminate execution of a state machine which executes the batch-job according to its strategy\n\n- **Injected env variables**: `JOB_DEFINITION_ARN`, `STATE_MACHINE_ARN`\n\n`User auth pool`\n\n- **Permissions:**
-- full control over the user pool (`cognito-idp:*`)\n- for more information about allowed methods refer to [AWS docs](https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazoncognitouserpools.html)\n\n- **Injected env variables**: `ID`, `CLIENT_ID`, `ARN`\n\n\n`SNS Topic`\n\n- **Permissions:**
-- confirm/list subscriptions of the topic\n- publish/subscribe to the topic\n- unsubscribe from the topic\n\n- **Injected env variables**: `ARN`, `NAME`\n\n\n`SQS Queue`\n\n- **Permissions:**
-- send/receive/delete message\n- change visibility of message\n- purge queue\n\n- **Injected env variables**: `ARN`, `NAME`, `URL`\n\n`Upstash Kafka topic`\n\n- **Injected env variables**: `TOPIC_NAME`, `TOPIC_ID`, `USERNAME`, `PASSWORD`, `TCP_ENDPOINT`, `REST_URL`\n\n`Upstash Redis`\n\n- **Injected env variables**: `HOST`, `PORT`, `PASSWORD`, `REST_TOKEN`, `REST_URL`, `REDIS_URL`\n\n`Private service`\n\n- **Injected env variables**: `ADDRESS`\n\n`aws:ses`(Macro)\n\n- **Permissions:**
-- gives full permissions to aws ses (`ses:*`).\n- for more information about allowed methods refer to [AWS docs](https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonses.html)\n\n
+Configures access to other resources in your stack and AWS services. By specifying resources here, Stacktape automatically:
+
+-   Configures IAM role permissions.
+-   Sets up security group rules to allow network traffic.
+-   Injects environment variables with connection details into the compute resource.
+
+Environment variables are named `STP_[RESOURCE_NAME]_[VARIABLE_NAME]` (e.g., `STP_MY_DATABASE_CONNECTION_STRING`).
 
 ## Using iamRoleStatements
 
-- List of raw IAM role statement objects. These will be appended to the function's role.
-- Allows you to set granular control over your function's permissions.
-- Can be used to give access to _any_ Cloudformation resource
+For fine-grained control, you can provide raw _IAM_ role statements.
 
 ```yml
 resources:
@@ -1184,8 +794,13 @@ cloudformationResources:
 
 # Deployment strategies
 
-- Using `deployment` you can update the function in live environment in a safe way - by shifting the traffic to the new version gradually.\n- Gradual shift of traffic gives you opportunity to test/monitor the function during update and in a case of a problem swiftly rollback.\n- Supports multiple strategies:
-- **Canary10Percent5Minutes** - Shifts 10 percent of traffic in the first increment. The remaining 90 percent is deployed five minutes later.\n- **Canary10Percent10Minutes** - Shifts 10 percent of traffic in the first increment. The remaining 90 percent is deployed 10 minutes later.\n- **Canary10Percent15Minutes** - Shifts 10 percent of traffic in the first increment. The remaining 90 percent is deployed 15 minutes later.\n- **Canary10Percent30Minutes** - Shifts 10 percent of traffic in the first increment. The remaining 90 percent is deployed 30 minutes later.\n- **Linear10PercentEvery1Minute** - Shifts 10 percent of traffic every minute until all traffic is shifted.\n- **Linear10PercentEvery2Minutes** - Shifts 10 percent of traffic every two minutes until all traffic is shifted.\n- **Linear10PercentEvery3Minutes** - Shifts 10 percent of traffic every three minutes until all traffic is shifted.\n- **Linear10PercentEvery10Minutes** - Shifts 10 percent of traffic every 10 minutes until all traffic is shifted.\n- **AllAtOnce** - Shifts all traffic to the updated Lambda functions at once.\n\n- You can validate/abort deployment(update) using lambda-function hooks.\n
+This allows for safe, gradual deployments. Instead of instantly replacing the old version, traffic is shifted to the new version over time. This provides an opportunity to monitor for issues and roll back if necessary.
+
+Supported strategies include:
+
+-   **Canary**: A percentage of traffic is shifted to the new version for a specified time before routing all traffic.
+-   **Linear**: Traffic is shifted in equal increments over a specified period.
+-   **AllAtOnce**: All traffic is shifted to the new version immediately.
 
 <PropertiesTable
   definitionName="LambdaFunctionDeploymentConfig"
@@ -1209,7 +824,7 @@ resources:
 
 ## Hook functions
 
-You can use hooks to perform checks using lambda-functions.
+You can use hook functions to perform checks during deployment.
 
 ```yml
 resources:
@@ -1256,37 +871,17 @@ export default async (event) => {
 };
 ```
 
-> Code of validateDeployment function
-
 # Cold starts
 
-- Lambda function can take some additional time to execute when it runs for the first time.
-- Behind the scenes, AWS runs your function inside a container. Cold start happens every time a new container is added
-  to run your function. This happens when:
-  - your function is invoked for the first time after deployment
-  - your function has not been invoked for some times (~15-45 minutes) and the container is removed
-  - existing containers can't handle the load and new container(s) must be added
-- Cold start usually take from ~0.2 to several seconds. It depends on:
-  - Runtime used (Java and .NET are usually slower).
-  - Duration of execution of code that runs **outside** the function handler (executed only once, on every cold start)
-  - Size of your lambda function. (Stacktape does everything it can to reduce the size of your lambda function as much
-    as possible.)
+A _cold start_ is the latency experienced on the first invocation of a function after a period of inactivity. This happens because AWS needs to provision a new container to run your code. Subsequent invocations are much faster until the container is terminated due to inactivity.
+
+The duration of a cold start depends on the runtime, the size of your function package, and the amount of code that runs outside your main handler.
 
 # Default VPC connection
 
-- Certain AWS services (such as [Relational Databases](/resources/relational-databases)) must be connected to a
-  [VPC (Virtual private cloud)](/user-guides/vpcs) to be able to run. Stacktape automatically creates a default VPC for
-  stacks that include these resources and connects them to the VPC.
-- **Functions are NOT connected to the default VPC** of your stack by default.
-- To communicate with resources inside a default VPC that have their accessibility mode set to only allow connection
-  from the same VPC, you need to connect your function to that VPC.
-- Connecting a function to a VPC makes it lose connection to the internet. (Outbound requests will fail). To restore a
-  connection to the internet, you need to use [NAT Gateway](/user-guides/vpcs/#using-a-nat-gateway). We do not recommend
-  using NAT Gateways and advice you to re-architect your application instead.
-- To learn more about VPCs and accessibility modes, refer to [VPC docs](/user-guides/vpcs),
-  [accessing relational databases](/resources/relational-databases#accessibility),
-  [accessing redis clusters](/resources/redis-clusters#accessibility) and
-  [accessing MongoDB Atlas clusters](/resources/mongo-db-atlas-clusters#accessibility)
+Functions are not connected to a _VPC_ by default. If your function needs to access resources inside a _VPC_ (like a [Relational Database](../../database-resources/relational-databases.mdx)), you must explicitly connect it.
+
+Connecting a function to a _VPC_ will cut off its access to the public internet. Restoring internet access requires a [NAT Gateway](../../user-guides/vpcs.mdx#using-a-nat-gateway), which can be complex and costly.
 
 ```yml
 resources:
@@ -1302,27 +897,16 @@ resources:
       # {stop-highlight}
 ```
 
-> Function connected to the default VPC
+> Function connected to the default VPC.
 
 # Pricing
 
 You are charged for:
 
-- **Total compute** (gigabyte seconds):
+-   **Total compute**: A combination of memory allocated and execution time.
+-   **Number of requests**: A flat rate per million invocations.
 
-  - **Amount of memory** \* **execution time**
-  - The price for 128MB per 1 ms execution: $0.0000000021.
-
-- **Request charges**: (invocation):
-  - $0.20/1 million invocations
-
-<br />
-
-**(forever) FREE TIER** includes one million free requests per month and 400,000 GB-seconds of compute time.
-
-<br />
-
-To learn more about lambda functions pricing, refer to [AWS pricing page](https://aws.amazon.com/lambda/pricing/)
+AWS offers a generous free tier for Lambda. For details, see the [AWS pricing page](https://aws.amazon.com/lambda/pricing/).
 
 # Referenceable parameters
 

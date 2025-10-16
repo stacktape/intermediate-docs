@@ -1,33 +1,35 @@
 ---
-title: ""
+title: "Hooks"
 order: 2
 ---
 
-# Introduction
+<br />
+<br />
 
-- Hooks allow you to execute a custom command or script before or after specified command is executed.
-- Example use cases:
-  - build, validate or lint your application before deployment
-  - run unit tests on your application before deployment
-  - execute database migration after deployment
-  - cleanup database before delete
+Hooks allow you to execute a custom command or script before or after a specified Stacktape command.
 
-# Usage
+Example use cases:
 
-Within hook, you can reference scripts specified in [scripts](/configuration/scripts/) section of your config.
+- Building, validating, or linting your application before deployment.
+- Running unit tests before deployment.
+- Executing database migrations after deployment.
+- Cleaning up a database before deletion.
 
-Scripts can be referenced in a hook, but they can also be executed manually. Refer to
-[scripts docs](/configuration/scripts/) to learn more.
+## How to use hooks
+
+You can reference scripts defined in the [`scripts`](/configuration/scripts) section of your `stacktape.yml` file within
+a hook. Scripts can also be executed manually. For more information, see the
+[scripts documentation](/configuration/scripts).
 
 <Info>
 
-During execution the script will get the following environment variables:
+When a script is executed, it receives the following environment variables:
 
-- `STP_HOOK_TYPE` - `before` or `after`
-- `STP_COMMAND` - Stacktape command used
+- `STP_HOOK_TYPE`: `before` or `after`
+- `STP_COMMAND`: The Stacktape command that was used
 
-This is in addition to the environment variables specified on the script definition and the environment variables
-injected when using [connectTo](/configuration/scripts/#connecting-to-resources).
+These are in addition to the environment variables specified in the script definition and those injected when using
+[`connectTo`](/configuration/scripts#connecting-to-resources).
 
 </Info>
 
@@ -49,25 +51,25 @@ hooks:
     # {stop-highlight}
 ```
 
-> Using script in the hook
-
-# Hookable events
+## Hookable events
 
 <PropertiesTable definitionName="Hooks" />
 
-## Before command hooks
+### Before-command hooks
 
-- Executed before the command, but AFTER the configuration has been successfully loaded.
+These hooks are executed before the specified command, but after the configuration has been successfully loaded.
 
 <Warning>
-  Executed only if the configuration was successfully loaded and hooks have been registered. The hook won't be executed
-  if there's an error with your CLI arguments or in your configuration.
+
+A before-command hook is only executed if the configuration is loaded successfully and the hooks are registered. The
+hook will not be executed if there is an error in your CLI arguments or in your configuration file.
+
 </Warning>
 
-## After command hooks
+### After-command hooks
 
-- Executed after the command has successfully finished.
-- Most common use case for using after deploy hooks is migration/seeding of the database, or API/endpoint testing.
+These hooks are executed after the specified command has finished successfully. Common use cases for after-command hooks
+include database migration or seeding, and API or endpoint testing.
 
 ```yml
 scripts:
@@ -103,5 +105,3 @@ resources:
       credentials:
         masterUserPassword: my_secret_pass
 ```
-
-> Stacktape config using the migration script with tunneling

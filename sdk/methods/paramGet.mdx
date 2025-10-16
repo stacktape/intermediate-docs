@@ -1,21 +1,24 @@
 ---
 title: "paramGet()"
 order: 22
+nestedTo: /sdk/methods
 ---
 
 # Overview and basic usage
 
 <br />
 
-Retrieves specified parameter of the resource deployed in specified stack
+### param:get
+
+Retrieves a specified parameter from a resource in a deployed stack.
 
 <br />
 
 <br />
 
-<!-- WRITE ONLY BELOW THIS LINE -->
+{/* WRITE ONLY BELOW THIS LINE */}
 
-<!-- WRITE ONLY ABOVE THIS LINE -->
+{/* WRITE ONLY ABOVE THIS LINE */}
 
 ```typescript
 import { Stacktape } from "stacktape";
@@ -37,7 +40,8 @@ stacktape.paramGet({
   sortedArgs={[
     { allowedTypes: ["string"], required: true, name: "paramName", shortDescription: "" },
     {
-      description: "#### AWS region to use for the current operation.\n---\n",
+      description:
+        "#### AWS Region\n\n---\n\nThe AWS region for the operation. For a list of available regions, see the [AWS documentation](https://docs.aws.amazon.com/general/latest/gr/rande.html).",
       allowedTypes: ["string"],
       allowedValues: [
         "af-south-1",
@@ -64,55 +68,58 @@ stacktape.paramGet({
       ],
       required: true,
       name: "region",
-      shortDescription: "<p> AWS region to use for the current operation.</p>\n",
-      longDescription: ""
+      shortDescription: "<p> AWS Region</p>\n",
+      longDescription:
+        '<p>The AWS region for the operation. For a list of available regions, see the <a href="https://docs.aws.amazon.com/general/latest/gr/rande.html" style="font-weight: bold;" target="_blank" rel="noreferrer" onclick="event.stopPropagation();">AWS documentation</a>.</p>\n'
     },
     { allowedTypes: ["string"], required: true, name: "resourceName", shortDescription: "" },
     {
       description:
-        "#### Stage used for the operation.\n---\n- Example stages are `production`, `staging`, `testing` or `dev-john`.\n- You can configure the default stage used with every Stacktape command using the `defaults:configure` command.\n- Maximum allowed length is 12 characters.",
+        "#### Stage\n\n---\n\nThe stage for the operation (e.g., `production`, `staging`, `dev-john`). You can set a default stage using the `defaults:configure` command. The maximum length is 12 characters.",
       allowedTypes: ["string"],
       required: true,
       name: "stage",
-      shortDescription: "<p> Stage used for the operation.</p>\n",
+      shortDescription: "<p> Stage</p>\n",
       longDescription:
-        "<ul>\n<li>Example stages are <code>production</code>, <code>staging</code>, <code>testing</code> or <code>dev-john</code>.</li>\n<li>You can configure the default stage used with every Stacktape command using the <code>defaults:configure</code> command.</li>\n<li>Maximum allowed length is 12 characters.</li>\n</ul>\n"
+        "<p>The stage for the operation (e.g., <code>production</code>, <code>staging</code>, <code>dev-john</code>). You can set a default stage using the <code>defaults:configure</code> command. The maximum length is 12 characters.</p>\n"
     },
     {
       description:
-        "#### Name of the AWS account used to perform the operation\n---\n- The account must be first connected in the [Stacktape console](https://console.stacktape.com/aws-accounts)",
+        "#### AWS Account\n\n---\n\nThe name of the AWS account to use for the operation. The account must first be connected in the [Stacktape console](https://console.stacktape.com/aws-accounts).",
       allowedTypes: ["string"],
       required: false,
       name: "awsAccount",
-      shortDescription: "<p> Name of the AWS account used to perform the operation</p>\n",
+      shortDescription: "<p> AWS Account</p>\n",
       longDescription:
-        '<ul>\n<li>The account must be first connected in the <a href="https://console.stacktape.com/aws-accounts" style="font-weight: bold;" target="_blank" rel="noreferrer" onclick="event.stopPropagation();">Stacktape console</a></li>\n</ul>\n'
+        '<p>The name of the AWS account to use for the operation. The account must first be connected in the <a href="https://console.stacktape.com/aws-accounts" style="font-weight: bold;" target="_blank" rel="noreferrer" onclick="event.stopPropagation();">Stacktape console</a>.</p>\n'
     },
     {
       description:
-        "#### Path to your stacktape configuration file.\n---\n- Relative to CWD (current working directory).",
+        "#### Config File Path\n\n---\n\nThe path to your Stacktape configuration file, relative to the current working directory.",
       allowedTypes: ["string"],
       required: false,
       name: "configPath",
-      shortDescription: "<p> Path to your stacktape configuration file.</p>\n",
-      longDescription: "<ul>\n<li>Relative to CWD (current working directory).</li>\n</ul>\n"
+      shortDescription: "<p> Config File Path</p>\n",
+      longDescription:
+        "<p>The path to your Stacktape configuration file, relative to the current working directory.</p>\n"
     },
     {
       description:
-        "#### AWS profile to use with the command\n---\n- You can manage AWS profiles on your system using `aws-profile:create`, `aws-profile:update` or `aws-profile:delete` command.\n- You can configure the default profile used with every Stacktape command using the `defaults:configure` command.",
+        "#### AWS Profile\n\n---\n\nThe AWS profile to use for the command. You can manage profiles using the `aws-profile:*` commands and set a default profile with `defaults:configure`.",
       allowedTypes: ["string"],
       required: false,
       name: "profile",
-      shortDescription: "<p> AWS profile to use with the command</p>\n",
+      shortDescription: "<p> AWS Profile</p>\n",
       longDescription:
-        "<ul>\n<li>You can manage AWS profiles on your system using <code>aws-profile:create</code>, <code>aws-profile:update</code> or <code>aws-profile:delete</code> command.</li>\n<li>You can configure the default profile used with every Stacktape command using the <code>defaults:configure</code> command.</li>\n</ul>\n"
+        "<p>The AWS profile to use for the command. You can manage profiles using the <code>aws-profile:*</code> commands and set a default profile with <code>defaults:configure</code>.</p>\n"
     },
     {
-      description: "#### Name of the Stacktape project relevant for this operation",
+      description: "#### Project Name\n\n---\n\nThe name of the Stacktape project for this operation.",
       allowedTypes: ["string"],
       required: false,
       name: "projectName",
-      shortDescription: "<p> Name of the Stacktape project relevant for this operation</p>\n"
+      shortDescription: "<p> Project Name</p>\n",
+      longDescription: "<p>The name of the Stacktape project for this operation.</p>\n"
     }
   ]}
 />

@@ -1,34 +1,21 @@
 ---
-title: "AWS CloudFormation resources"
+title: "AWS CloudFormation Resources"
 order: 1
 ---
 
-# Overview
+<br />
+<br />
 
-AWS Cloudformation configuration is AWS's native way to manage infrastructure as a code.
-
-In Stacktape, you can use the `cloudformationResources` section to extend your Stacktape template with AWS
-Cloudformation resources. This enables you to easily configure, manage and interconnect Cloudformation resources with
-other resources of your stack. As a result, you are able to leverage **full power of AWS in a single unit
-configuration**.
-
-<Divider />
-
-# Usage
+You can use the `cloudformationResources` section of your `stacktape.yml` file to extend your Stacktape template with native _Cloudformation_ resources. This allows you to configure, manage, and interconnect _Cloudformation_ resources with other resources in your stack, giving you the full power of AWS in a single configuration file.
 
 ## Example
 
-The following example shows a Stacktape template with CloudFormation SNS topic resource (SNS is AWS managed messaging
-service).
+The following example shows a Stacktape template that includes a _Cloudformation_ SNS topic. The infrastructure includes:
 
-Infrastructure includes:
-
-- **MySnsTopic** - SNS topic - used as communicator between functions (Cloudformation resource)
-- **processData** - function - processing function. If failure occurs, message is sent into MySnsTopic
-- **analyzeError** - function - is invoked once **MySnsTopic** receives failure message from **processData** and
-  analyzes the failure.
-- **slackNotify** - function - is invoked once **MySnsTopic** receives failure message from **processData** and sends
-  notification about the failure.
+*   **MySnsTopic**: An SNS topic that acts as a communicator between functions (a _Cloudformation_ resource).
+*   **processData**: A function that processes data. If it fails, a message is sent to `MySnsTopic`.
+*   **analyzeError**: A function that is invoked when `MySnsTopic` receives a failure message from `processData`.
+*   **slackNotify**: A function that is invoked when `MySnsTopic` receives a failure message from `processData` and sends a notification to Slack.
 
 ```yml
 # {start-highlight}
@@ -78,5 +65,3 @@ resources:
             topicArn: $CfResourceParam('MySnsTopic', 'Arn')
       # {stop-highlight}
 ```
-
-<Divider />
