@@ -1,5 +1,5 @@
 ---
-title: ""
+title: ''
 order: -1
 ---
 
@@ -27,11 +27,11 @@ Under the hood, the hosting bucket has two main components:
 
 You can configure properties hosting bucket by simply setting upload directory path:
 
--   Path to the directory that contains content you wish to host.
-    
-    This can be **output directory** of your website build process(built website) or any other directory containing static content you wish to serve.
-    
--   During `deploy`, `codebuild:deploy` or `bucket:sync` commands, contents of the folder is uploaded to the bucket
+- Path to the directory that contains content you wish to host.
+
+  This can be **output directory** of your website build process(built website) or any other directory containing static content you wish to serve.
+
+- During `deploy`, `codebuild:deploy` or `bucket:sync` commands, contents of the folder is uploaded to the bucket
 
 ```yml
 resources:
@@ -51,16 +51,16 @@ Based of that Stacktape will configure HTTP headers of uploaded files and CDN be
 
 Supported content types:
 
--   **static-website**:
-    -   sets `cache-control` header value for all uploaded files to `public, max-age=0, s-maxage=31536000, must-revalidate`.
-    -   this setup caches all the content on the CDN but never caches files in the browser.
--   **gatsby-static-website**:
-    -   optimizes headers for static websites built using [Gatsby](https://www.gatsbyjs.com/) according to [Gatsby caching recommendations](https://www.gatsbyjs.com/docs/caching/).
--   **single-page-app**:
-    -   optimizes headers for a [Single page application](https://en.wikipedia.org/wiki/Single-page_application)
-    -   `html` files are never cached (so that when you re-deploy your website, your users always get the latest content)
-    -   All other assets (.js, .css, etc.) are cached indefinitely. You should **ALWAYS** add a content hash to the filename, so that your users always get a new version of your website after you deploy it. To learn how to add a content hash to your files, refer to the docs of your bundler, for example [webpack docs](https://webpack.js.org/guides/caching/).
-    -   Sets up correct CDN redirects for single page app.
+- **static-website**:
+  - sets `cache-control` header value for all uploaded files to `public, max-age=0, s-maxage=31536000, must-revalidate`.
+  - this setup caches all the content on the CDN but never caches files in the browser.
+- **gatsby-static-website**:
+  - optimizes headers for static websites built using [Gatsby](https://www.gatsbyjs.com/) according to [Gatsby caching recommendations](https://www.gatsbyjs.com/docs/caching/).
+- **single-page-app**:
+  - optimizes headers for a [Single page application](https://en.wikipedia.org/wiki/Single-page_application)
+  - `html` files are never cached (so that when you re-deploy your website, your users always get the latest content)
+  - All other assets (.js, .css, etc.) are cached indefinitely. You should **ALWAYS** add a content hash to the filename, so that your users always get a new version of your website after you deploy it. To learn how to add a content hash to your files, refer to the docs of your bundler, for example [webpack docs](https://webpack.js.org/guides/caching/).
+  - Sets up correct CDN redirects for single page app.
 
 ```yml
 resources:
@@ -95,11 +95,11 @@ For more information about domain management options, refer to
 
 Connecting a custom domain to the resource does 2 things:
 
--   **Creates DNS records**:
-    -   If you use your custom domain with a resource, Stacktape automatically creates a DNS record (during deploy) pointing the specified domain name to the resource.
--   **Adds TLS certificates**
-    -   Stacktape takes care of issuing and attaching correct (free, AWS-managed) certificate to the resource. This means, you do not have to deal with TLS termination(HTTPS).
-    -   If you want to use your own certificates, you can configure `customCertificateArns`.
+- **Creates DNS records**:
+  - If you use your custom domain with a resource, Stacktape automatically creates a DNS record (during deploy) pointing the specified domain name to the resource.
+- **Adds TLS certificates**
+  - Stacktape takes care of issuing and attaching correct (free, AWS-managed) certificate to the resource. This means, you do not have to deal with TLS termination(HTTPS).
+  - If you want to use your own certificates, you can configure `customCertificateArns`.
 
 To manage a custom domain, it first needs to be added to your AWS account. This means that a [hosted zone](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/AboutHZWorkingWith.html) (collection of records managed together for a given domain) for your domain exists in your AWS account and your domain registrar's name servers are pointing to it. To learn more, refer to [Adding a domain guide](/other-resources/domains-and-certificates/#adding-domain).
 
@@ -153,14 +153,15 @@ resources:
 
 # Edge lambda functions
 
--   You can associate `edge-lambda-function` with hosting-bucket to be executed:
-    
-    -   `onRequest` - function is executed when CDN receives a request from a client(viewer) before checking CDN cache and before request is forwarded to hosting-bucket
-    -   `onResponse` - function is executed before returning the response to the client(viewer)
--   Potential use-cases for using edge functions:
-    
-    -   generating immediate HTTP response without the need to check CDN cache or forward to the bucket
-    -   modifying request (i.e rewrite url, headers etc) before forwarding to the bucket
+- You can associate `edge-lambda-function` with hosting-bucket to be executed:
+
+  - `onRequest` - function is executed when CDN receives a request from a client(viewer) before checking CDN cache and before request is forwarded to hosting-bucket
+  - `onResponse` - function is executed before returning the response to the client(viewer)
+
+- Potential use-cases for using edge functions:
+
+  - generating immediate HTTP response without the need to check CDN cache or forward to the bucket
+  - modifying request (i.e rewrite url, headers etc) before forwarding to the bucket
 
 For more information refer to [Edge lambda functions](/compute-resources/edge-lambda-functions) page.
 

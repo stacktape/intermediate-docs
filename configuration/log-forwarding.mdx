@@ -1,5 +1,5 @@
 ---
-title: "Log Forwarding"
+title: 'Log Forwarding'
 order: 4
 ---
 
@@ -19,16 +19,16 @@ third-party providers for several reasons:
 
 Stacktape allows for easy log forwarding to endpoint of your choice.
 
--   Log forwarding is done using [Amazon Kinesis Data Firehose](https://aws.amazon.com/kinesis/data-firehose/) delivery stream.
--   When using log forwarding, you will incur costs based on the amount of data being transferred to the destination (~$0.03 per transferred GB). Refer to [AWS Kinesis Firehose Pricing](https://aws.amazon.com/kinesis/data-firehose/pricing/?nc=sn&loc=3) page to see details.
--   Currently supported destinations for logs:
-    -   `http-endpoint`
-        -   delivers logs to any HTTP endpoint.
-        -   The endpoint must follow [Firehose request and response specifications](https://docs.aws.amazon.com/firehose/latest/dev/httpdeliveryrequestresponse.html). (Many of the third party vendors are compliant with this specifications out of the box.)
-    -   `datadog`
-        -   delivers logs to [Datadog](https://www.datadoghq.com/).
-    -   `highlight`
-        -   delivers logs to [Highlight.io](https://www.highlight.io/) project.
+- Log forwarding is done using [Amazon Kinesis Data Firehose](https://aws.amazon.com/kinesis/data-firehose/) delivery stream.
+- When using log forwarding, you will incur costs based on the amount of data being transferred to the destination (~$0.03 per transferred GB). Refer to [AWS Kinesis Firehose Pricing](https://aws.amazon.com/kinesis/data-firehose/pricing/?nc=sn&loc=3) page to see details.
+- Currently supported destinations for logs:
+  - `http-endpoint`
+    - delivers logs to any HTTP endpoint.
+    - The endpoint must follow [Firehose request and response specifications](https://docs.aws.amazon.com/firehose/latest/dev/httpdeliveryrequestresponse.html). (Many of the third party vendors are compliant with this specifications out of the box.)
+  - `datadog`
+    - delivers logs to [Datadog](https://www.datadoghq.com/).
+  - `highlight`
+    - delivers logs to [Highlight.io](https://www.highlight.io/) project.
 
 Refer to [our docs](/configuration/log-forwarding/) for more information.
 

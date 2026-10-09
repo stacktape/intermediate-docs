@@ -1,5 +1,5 @@
 ---
-title: "Packaging"
+title: 'Packaging'
 order: 0
 ---
 
@@ -166,9 +166,9 @@ resources:
 - The image is built using a zero-config [external buildpack](https://buildpacks.io/docs/).
 - You can find a buildpack for almost any language or framework. The default buildpack used is
   `paketobuildpacks/builder:base`. You can configure the buildpack used by specifying the `buildpack` property.
-  {/* To show
+  {/_ To show
   a list of available buildpacks for a given language/framework combination, you can use the
-  [buildpack:suggest](/cli/commands/buildpack-suggest/) command. */}
+  [buildpack:suggest](/cli/commands/buildpack-suggest/) command. _/}
 - The buildpack scans the specified source directory and automatically determines how the build the image for a given
   application.
 - The image is uploaded to a pre-created (AWS ECR) container registry.
@@ -196,9 +196,9 @@ resources:
 
 - The image is built using [nixpacks](https://nixpacks.com/docs).
 - In most cases, building and deploying an app with Nixpacks should just work with no configuration needed.
-  {/* To show
+  {/_ To show
   a list of available buildpacks for a given language/framework combination, you can use the
-  [buildpack:suggest](/cli/commands/buildpack-suggest/) command. */}
+  [buildpack:suggest](/cli/commands/buildpack-suggest/) command. _/}
 - Nixpacks scans the specified source directory and automatically determining how the build the image for a given
   application.
 - The image is uploaded to a pre-created (AWS ECR) container registry.

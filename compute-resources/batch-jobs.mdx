@@ -1,5 +1,5 @@
 ---
-title: ""
+title: ''
 order: 140
 ---
 
@@ -121,10 +121,10 @@ resources:
   definitionName="BatchJobContainer"
   searchForReferencesInDefinition="BatchJobProps"
   rewriteLinksForReferencedCompositeTypes={{
-    StpBuildpackBjImagePackaging: "#image",
-    ExternalBuildpackBjImagePackaging: "#image",
-    PrebuiltBjImagePackaging: "#image",
-    CustomDockerfileBjImagePackaging: "#image"
+    StpBuildpackBjImagePackaging: '#image',
+    ExternalBuildpackBjImagePackaging: '#image',
+    PrebuiltBjImagePackaging: '#image',
+    CustomDockerfileBjImagePackaging: '#image'
   }}
 />
 
@@ -143,10 +143,10 @@ resources:
 
 Most commonly used types of environment variables:
 
--   Static - string, number or boolean (will be stringified).
--   Result of a [custom directive](/configuration/directives/#custom-directives).
--   Referenced property of another resource (using **$ResourceParam** directive). To learn more, refer to [referencing parameters guide](/configuration/referencing-parameters/). If you are using environment variables to inject information about resources into your script, see also property [connectTo](/configuration/scripts/#connecting-to-resources) which simplifies this process.
--   Value of a [secret](/resources/secrets/) (using [$Secret directive](/configuration/directives/#secret)).
+- Static - string, number or boolean (will be stringified).
+- Result of a [custom directive](/configuration/directives/#custom-directives).
+- Referenced property of another resource (using **$ResourceParam** directive). To learn more, refer to [referencing parameters guide](/configuration/referencing-parameters/). If you are using environment variables to inject information about resources into your script, see also property [connectTo](/configuration/scripts/#connecting-to-resources) which simplifies this process.
+- Value of a [secret](/resources/secrets/) (using [$Secret directive](/configuration/directives/#secret)).
 
 ```yml
 environment:
@@ -205,8 +205,8 @@ If you define memory required for your batch-job in multiples of 1024 be aware: 
 
 If you define GPUs, instances are chosen according to your need from the GPU accelerated families:
 
--   `p4d family`: uses Tesla A100 GPU. More in [AWS Docs](https://aws.amazon.com/ec2/instance-types/p4/)
--   `g5 family`: uses NVIDIA A10G GPU. More in [AWS Docs](https://aws.amazon.com/ec2/instance-types/g5/)
+- `p4d family`: uses Tesla A100 GPU. More in [AWS Docs](https://aws.amazon.com/ec2/instance-types/p4/)
+- `g5 family`: uses NVIDIA A10G GPU. More in [AWS Docs](https://aws.amazon.com/ec2/instance-types/g5/)
 
 <PropertiesTable definitionName="BatchJobResources" searchForReferencesInDefinition="BatchJobProps" />
 
@@ -233,11 +233,11 @@ resources:
 
 # Spot instances
 
--   Batch jobs can be configured to use spot instances.
--   Spot instances leverage AWS's spare computing capacity and can cost up to 90% less than "onDemand" (normal) instances.
--   However, your batch job can be interrupted at any time, if AWS needs the capacity back. When this happens, your batch job receives a SIGTERM signal and you then have 120 seconds to save your progress or clean up.
--   Interruptions are usually infrequent as can be seen in the [AWS Spot instance advisor](https://aws.amazon.com/ec2/spot/instance-advisor/).
--   To learn more about spot instances, refer to [AWS Docs](https://aws.amazon.com/ec2/spot/use-case/batch/).
+- Batch jobs can be configured to use spot instances.
+- Spot instances leverage AWS's spare computing capacity and can cost up to 90% less than "onDemand" (normal) instances.
+- However, your batch job can be interrupted at any time, if AWS needs the capacity back. When this happens, your batch job receives a SIGTERM signal and you then have 120 seconds to save your progress or clean up.
+- Interruptions are usually infrequent as can be seen in the [AWS Spot instance advisor](https://aws.amazon.com/ec2/spot/instance-advisor/).
+- To learn more about spot instances, refer to [AWS Docs](https://aws.amazon.com/ec2/spot/use-case/batch/).
 
 ```yml
 resources:
@@ -259,14 +259,14 @@ resources:
 
 # Retries
 
--   If the batch job exits with non-zero exit code (due to internal failure, timeout, spot instance interruption from AWS, etc.) and attempts are not exhausted, it can be retried.
+- If the batch job exits with non-zero exit code (due to internal failure, timeout, spot instance interruption from AWS, etc.) and attempts are not exhausted, it can be retried.
 
 <PropertiesTable definitionName="BatchJobRetryConfiguration" searchForReferencesInDefinition="BatchJobProps" />
 
 # Timeout
 
--   When the timeout is reached, the batch job will be stopped.
--   If the batch job fails and maximum attempts are not exhausted, it will be retried.
+- When the timeout is reached, the batch job will be stopped.
+- If the batch job fails and maximum attempts are not exhausted, it will be retried.
 
 ```yml
 resources:
@@ -848,7 +848,7 @@ resources:
 The batch job is triggered when a log record arrives to the specified log group.
 
 - Event payload arriving to the batch job is BASE64 encoded and has the following format: `&#123; "awslogs":
-  &#123; "data": "BASE64ENCODED_GZIP_COMPRESSED_DATA" &#125; &#125;`
+&#123; "data": "BASE64ENCODED_GZIP_COMPRESSED_DATA" &#125; &#125;`
 - To read access the log data, event payload needs to be decoded and decompressed first.
 
 ```yml
@@ -981,146 +981,112 @@ resources:
 
 By referencing resources (or services) in `connectTo` list, Stacktape automatically:
 
--   configures correct compute resource's **IAM role permissions** if needed
--   sets up correct **security group rules** to allow access if needed
--   **injects relevant environment variables** containing information about resource you are connecting to into the compute resource's runtime
-    -   names of environment variables use upper-snake-case and are in form `STP_[RESOURCE_NAME]_[VARIABLE_NAME]`,
-    -   examples: `STP_MY_DATABASE_CONNECTION_STRING` or `STP_MY_EVENT_BUS_ARN`,
-    -   list of injected variables for each resource type can be seen below.
-
-
+- configures correct compute resource's **IAM role permissions** if needed
+- sets up correct **security group rules** to allow access if needed
+- **injects relevant environment variables** containing information about resource you are connecting to into the compute resource's runtime
+  - names of environment variables use upper-snake-case and are in form `STP_[RESOURCE_NAME]_[VARIABLE_NAME]`,
+  - examples: `STP_MY_DATABASE_CONNECTION_STRING` or `STP_MY_EVENT_BUS_ARN`,
+  - list of injected variables for each resource type can be seen below.
 
 Granted permissions and injected environment variables are different depending on resource type:
 
-
-
 `Bucket`
 
--   **Permissions:**
-    -   list objects in a bucket
-    -   create / get / delete / tag object in a bucket
--   **Injected env variables**: `NAME`, `ARN`
-
-
+- **Permissions:**
+  - list objects in a bucket
+  - create / get / delete / tag object in a bucket
+- **Injected env variables**: `NAME`, `ARN`
 
 `DynamoDB table`
 
--   **Permissions:**
-    -   get / put / update / delete item in a table
-    -   scan / query a table
-    -   describe table stream
--   **Injected env variables**: `NAME`, `ARN`, `STREAM_ARN`
-
-
+- **Permissions:**
+  - get / put / update / delete item in a table
+  - scan / query a table
+  - describe table stream
+- **Injected env variables**: `NAME`, `ARN`, `STREAM_ARN`
 
 `MongoDB Atlas cluster`
 
--   **Permissions:**
-    -   Allows connection to a cluster with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about MongoDB Atlas clusters accessibility modes, refer to [MongoDB Atlas cluster docs](/3rd-party-resources/mongo-db-atlas-clusters/#accessibility).
-    -   Creates access "user" associated with compute resource's role to allow for secure credential-less access to the the cluster
--   **Injected env variables**: `CONNECTION_STRING`
-
-
+- **Permissions:**
+  - Allows connection to a cluster with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about MongoDB Atlas clusters accessibility modes, refer to [MongoDB Atlas cluster docs](/3rd-party-resources/mongo-db-atlas-clusters/#accessibility).
+  - Creates access "user" associated with compute resource's role to allow for secure credential-less access to the the cluster
+- **Injected env variables**: `CONNECTION_STRING`
 
 `Relational(SQL) database`
 
--   **Permissions:**
-    -   Allows connection to a relational database with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about relational database accessibility modes, refer to [Relational databases docs](/resources/relational-databases/#accessibility).
--   **Injected env variables**: `CONNECTION_STRING`, `JDBC_CONNECTION_STRING`, `HOST`, `PORT` (in case of aurora multi instance cluster additionally: `READER_CONNECTION_STRING`, `READER_JDBC_CONNECTION_STRING`, `READER_HOST`)
-
-
+- **Permissions:**
+  - Allows connection to a relational database with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about relational database accessibility modes, refer to [Relational databases docs](/resources/relational-databases/#accessibility).
+- **Injected env variables**: `CONNECTION_STRING`, `JDBC_CONNECTION_STRING`, `HOST`, `PORT` (in case of aurora multi instance cluster additionally: `READER_CONNECTION_STRING`, `READER_JDBC_CONNECTION_STRING`, `READER_HOST`)
 
 `Redis cluster`
 
--   **Permissions:**
-    -   Allows connection to a redis cluster with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about redis cluster accessibility modes, refer to [Redis clusters docs](/resources/redis-clusters/#accessibility).
--   **Injected env variables**: `HOST`, `READER_HOST`, `PORT`
-
-
+- **Permissions:**
+  - Allows connection to a redis cluster with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about redis cluster accessibility modes, refer to [Redis clusters docs](/resources/redis-clusters/#accessibility).
+- **Injected env variables**: `HOST`, `READER_HOST`, `PORT`
 
 `Event bus`
 
--   **Permissions:**
-    -   publish events to the specified Event bus
--   **Injected env variables**: `ARN`
-
-
+- **Permissions:**
+  - publish events to the specified Event bus
+- **Injected env variables**: `ARN`
 
 `Function`
 
--   **Permissions:**
-    -   invoke the specified function
-    -   invoke the specified function via url (if lambda has URL enabled)
--   **Injected env variables**: `ARN`
-
-
+- **Permissions:**
+  - invoke the specified function
+  - invoke the specified function via url (if lambda has URL enabled)
+- **Injected env variables**: `ARN`
 
 `Batch job`
 
--   **Permissions:**
-    -   submit batch-job instance into batch-job queue
-    -   list submitted job instances in a batch-job queue
-    -   describe / terminate a batch-job instance
-    -   list executions of state machine which executes the batch-job according to its strategy
-    -   start / terminate execution of a state machine which executes the batch-job according to its strategy
--   **Injected env variables**: `JOB_DEFINITION_ARN`, `STATE_MACHINE_ARN`
-
-
+- **Permissions:**
+  - submit batch-job instance into batch-job queue
+  - list submitted job instances in a batch-job queue
+  - describe / terminate a batch-job instance
+  - list executions of state machine which executes the batch-job according to its strategy
+  - start / terminate execution of a state machine which executes the batch-job according to its strategy
+- **Injected env variables**: `JOB_DEFINITION_ARN`, `STATE_MACHINE_ARN`
 
 `User auth pool`
 
--   **Permissions:**
-    -   full control over the user pool (`cognito-idp:*`)
-    -   for more information about allowed methods refer to [AWS docs](https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazoncognitouserpools.html)
--   **Injected env variables**: `ID`, `CLIENT_ID`, `ARN`
-
-
-
+- **Permissions:**
+  - full control over the user pool (`cognito-idp:*`)
+  - for more information about allowed methods refer to [AWS docs](https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazoncognitouserpools.html)
+- **Injected env variables**: `ID`, `CLIENT_ID`, `ARN`
 
 `SNS Topic`
 
--   **Permissions:**
-    -   confirm/list subscriptions of the topic
-    -   publish/subscribe to the topic
-    -   unsubscribe from the topic
--   **Injected env variables**: `ARN`, `NAME`
-
-
-
+- **Permissions:**
+  - confirm/list subscriptions of the topic
+  - publish/subscribe to the topic
+  - unsubscribe from the topic
+- **Injected env variables**: `ARN`, `NAME`
 
 `SQS Queue`
 
--   **Permissions:**
-    -   send/receive/delete message
-    -   change visibility of message
-    -   purge queue
--   **Injected env variables**: `ARN`, `NAME`, `URL`
-
-
+- **Permissions:**
+  - send/receive/delete message
+  - change visibility of message
+  - purge queue
+- **Injected env variables**: `ARN`, `NAME`, `URL`
 
 `Upstash Kafka topic`
 
--   **Injected env variables**: `TOPIC_NAME`, `TOPIC_ID`, `USERNAME`, `PASSWORD`, `TCP_ENDPOINT`, `REST_URL`
-
-
+- **Injected env variables**: `TOPIC_NAME`, `TOPIC_ID`, `USERNAME`, `PASSWORD`, `TCP_ENDPOINT`, `REST_URL`
 
 `Upstash Redis`
 
--   **Injected env variables**: `HOST`, `PORT`, `PASSWORD`, `REST_TOKEN`, `REST_URL`, `REDIS_URL`
-
-
+- **Injected env variables**: `HOST`, `PORT`, `PASSWORD`, `REST_TOKEN`, `REST_URL`, `REDIS_URL`
 
 `Private service`
 
--   **Injected env variables**: `ADDRESS`
-
-
+- **Injected env variables**: `ADDRESS`
 
 `aws:ses`(Macro)
 
--   **Permissions:**
-    -   gives full permissions to aws ses (`ses:*`).
-    -   for more information about allowed methods refer to [AWS docs](https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonses.html)
+- **Permissions:**
+  - gives full permissions to aws ses (`ses:*`).
+  - for more information about allowed methods refer to [AWS docs](https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonses.html)
 
 ## Using iamRoleStatements
 

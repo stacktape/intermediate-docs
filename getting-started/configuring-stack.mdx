@@ -1,5 +1,5 @@
 ---
-title: "Configuring stack"
+title: 'Configuring stack'
 order: 1
 ---
 
@@ -324,7 +324,7 @@ resources:
         properties:
           primaryInstance:
             instanceSize: db.t4g.micro
-          version: "15.5"
+          version: '15.5'
 ```
 
 To learn more, refer to this [dedicated page about hooks](/configuration/hooks).
@@ -356,11 +356,11 @@ resources:
 # Cloudformation resources
 cloudformationResources:
   AnomalyServiceMonitor:
-    Type: "AWS::CE::AnomalyMonitor"
+    Type: 'AWS::CE::AnomalyMonitor'
     Properties:
-      MonitorName: "MonitorName"
-      MonitorType: "DIMENSIONAL"
-      MonitorDimension: "SERVICE"
+      MonitorName: 'MonitorName'
+      MonitorType: 'DIMENSIONAL'
+      MonitorDimension: 'SERVICE'
 # {stop-highlight}
 ```
 
@@ -388,7 +388,7 @@ resources:
     # {start-highlight}
     overrides:
       MyFunctionFunction:
-        Description: "My overriden lambda function description"
+        Description: 'My overriden lambda function description'
     # {stop-highlight}
 ```
 
@@ -428,10 +428,10 @@ instance size based on stage (environment).
 
 ```typescript
 export const getDbInstanceSize = (stage: string) => {
-  if (stage === "production") {
-    return "db.m5.xlarge";
+  if (stage === 'production') {
+    return 'db.m5.xlarge';
   }
-  return "db.t2.micro";
+  return 'db.t2.micro';
 };
 ```
 
@@ -470,11 +470,12 @@ If you also want to have type safety for your configurations, install `@stacktap
 
 <CodeBlock
   tabs={[
-    { lang: "bash", code: "npm install --dev @stacktape/sdk\n", label: "npm" },
-    { lang: "bash", code: "yarn add --dev @stacktape/sdk\n", label: "yarn" },
-    { lang: "bash", code: "pnpm add -D @stacktape/sdk\n", label: "pnpm" },
-    { lang: "bash", code: "bun add -D @stacktape/sdk\n", label: "bun" }
-]} />
+    { lang: 'bash', code: 'npm install --dev @stacktape/sdk\n', label: 'npm' },
+    { lang: 'bash', code: 'yarn add --dev @stacktape/sdk\n', label: 'yarn' },
+    { lang: 'bash', code: 'pnpm add -D @stacktape/sdk\n', label: 'pnpm' },
+    { lang: 'bash', code: 'bun add -D @stacktape/sdk\n', label: 'bun' }
+  ]}
+/>
 
 For javascript files, you can use it in the following way:
 
@@ -490,7 +491,7 @@ export default config;
 For typescript files:
 
 ```typescript
-import { StacktapeConfig } from "@stacktape/sdk";
+import { StacktapeConfig } from '@stacktape/sdk';
 
 const config: StacktapeConfig = {
   // your config
@@ -526,6 +527,6 @@ export const getConfig: GetConfigFunction = ({ stage }) => {
 ```
 
 <PreviousNext
-  left={{ url: "/getting-started/basics/", title: "Basics" }}
-  right={{ url: "/getting-started/using-config-editor/", title: "Interactive config editor" }}
+  left={{ url: '/getting-started/basics/', title: 'Basics' }}
+  right={{ url: '/getting-started/using-config-editor/', title: 'Interactive config editor' }}
 />

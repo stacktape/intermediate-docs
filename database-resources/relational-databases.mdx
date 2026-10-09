@@ -1,5 +1,5 @@
 ---
-title: "Relational (SQL) databases"
+title: 'Relational (SQL) databases'
 order: 150
 ---
 
@@ -207,12 +207,12 @@ resources:
 
 ### Instance size
 
--   Allows you to choose the database instance size. Each instance size offers different combination of CPU, memory, storage, and networking capacity.
--   To see a list of available instances, refer to [AWS docs](https://aws.amazon.com/rds/instance-types/)
+- Allows you to choose the database instance size. Each instance size offers different combination of CPU, memory, storage, and networking capacity.
+- To see a list of available instances, refer to [AWS docs](https://aws.amazon.com/rds/instance-types/)
 
--   Not every instance size is supported for every database engine, version or region.
--   Be aware that some instance families (such as t3 or t4) are mostly meant for testing and not production workloads
--   Refer to [AWS Docs](https://aws.amazon.com/rds/pricing/) for detailed breakdown of supported combinations.
+- Not every instance size is supported for every database engine, version or region.
+- Be aware that some instance families (such as t3 or t4) are mostly meant for testing and not production workloads
+- Refer to [AWS Docs](https://aws.amazon.com/rds/pricing/) for detailed breakdown of supported combinations.
 
 - Instance size can be configured for both primary instance and read replicas.
 
@@ -236,12 +236,12 @@ resources:
 
 ### MultiAz mode
 
--   When enabled, the data is replicated to a standby instance in a different AZ (Availability Zone).
--   If the default (primary) instance fails, the failover to the standby instance in another AZ is performed.
--   The failover to the standby instance is synchronous (highly durable).
--   The standby instance can not be directly accessed (doesn't have its own database endpoint).
--   In contrast to using replicas, standby instance can fully take-over the responsibilities of the primary instance, while replicas can only be used for read operations.
--   Reduces the impact of maintenance. The maintenance is performed on the standby instance first, promotes the standby instance to a primary instance, and then performs maintenance on the old primary instance which is now a standby replica.
+- When enabled, the data is replicated to a standby instance in a different AZ (Availability Zone).
+- If the default (primary) instance fails, the failover to the standby instance in another AZ is performed.
+- The failover to the standby instance is synchronous (highly durable).
+- The standby instance can not be directly accessed (doesn't have its own database endpoint).
+- In contrast to using replicas, standby instance can fully take-over the responsibilities of the primary instance, while replicas can only be used for read operations.
+- Reduces the impact of maintenance. The maintenance is performed on the standby instance first, promotes the standby instance to a primary instance, and then performs maintenance on the old primary instance which is now a standby replica.
 
 - Multi AZ (Availability zone) mode can be configured for both primary instances and read replicas.
 
@@ -268,9 +268,9 @@ resources:
 
 ### Read replicas
 
--   Read replicas help to decrease the load on the primary instance by serving a read-only database requests.
--   Replication uses database's native asynchronous replication to update the read replicas whenever there is a change to the primary instance.
--   Each read replica has its own database endpoint.
+- Read replicas help to decrease the load on the primary instance by serving a read-only database requests.
+- Replication uses database's native asynchronous replication to update the read replicas whenever there is a change to the primary instance.
+- Each read replica has its own database endpoint.
 
 ```yml
 resources:
@@ -297,13 +297,13 @@ resources:
 
 ### Storage
 
--   When you run out of free database space, your storage will automatically scale up.
--   By default, scales between **20GB** and **200GB**.
--   The scaling process happens when the following conditions are met:
-    -   Free available space\` is less than 10 percent of the allocated storage
-    -   The low-storage condition lasts at least five minutes.
-    -   At least six hours have passed since the last storage modification.
--   To learn more about storage autoscaling, refer to [AWS Docs](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_PIOPS.StorageTypes.html#USER_PIOPS.Autoscaling)
+- When you run out of free database space, your storage will automatically scale up.
+- By default, scales between **20GB** and **200GB**.
+- The scaling process happens when the following conditions are met:
+  - Free available space\` is less than 10 percent of the allocated storage
+  - The low-storage condition lasts at least five minutes.
+  - At least six hours have passed since the last storage modification.
+- To learn more about storage autoscaling, refer to [AWS Docs](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_PIOPS.StorageTypes.html#USER_PIOPS.Autoscaling)
 
 ```yml
 resources:
@@ -438,13 +438,13 @@ resources:
 
 # Backups
 
--   Databases are automatically backed up once a day.
--   Maximum retention period is `35` days.
--   You can disable automated backups by setting the value to 0 (works only for RDS engines).
--   You can also take manual backup snapshots (in the console or using the API). The retention is not applied to manual backups.
--   By default, backups are retained for 1 day.
--   To learn more about RDS engine backups, refer to [RDS engine backups AWS Docs](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_WorkingWithAutomatedBackups.html).
--   To learn more about Aurora engine backups, refer to [Aurora engine backups AWS Docs](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.Managing.Backups.html).
+- Databases are automatically backed up once a day.
+- Maximum retention period is `35` days.
+- You can disable automated backups by setting the value to 0 (works only for RDS engines).
+- You can also take manual backup snapshots (in the console or using the API). The retention is not applied to manual backups.
+- By default, backups are retained for 1 day.
+- To learn more about RDS engine backups, refer to [RDS engine backups AWS Docs](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_WorkingWithAutomatedBackups.html).
+- To learn more about Aurora engine backups, refer to [Aurora engine backups AWS Docs](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.Managing.Backups.html).
 
 ```yml
 resources:
@@ -466,8 +466,8 @@ resources:
 
 # Logging
 
--   By default, logging is enabled and logs are preserved for `90` days.
--   Logged data depend on the used `engine`. You can log information about connections, disconnections, executed queries & much more.
+- By default, logging is enabled and logs are preserved for `90` days.
+- Logged data depend on the used `engine`. You can log information about connections, disconnections, executed queries & much more.
 
 <PropertiesTable definitionName="RelationalDatabaseLogging" searchForReferencesInDefinition="RelationalDatabaseProps" />
 
@@ -583,6 +583,7 @@ connectionPool.close();
       `30min` and `tcp_keepalives_interval` to `1min`). This means inactive connections will be closed by the database.
 
   - if a database request fails because of a closed connection, you should re-create it within your application code.
+
 ```ts
 import { Client } from 'pg';
 
@@ -728,14 +729,14 @@ resources:
 
 # Maintenance window
 
--   The maintenance window is the time period during which the database is available for maintenance.
--   During this time, your database instance can be updated with modifications like OS patching or database engine version upgrades.
--   The database might be unavailable for a short period of time during maintenance. To avoid service interruptions, you should use `multiAz` deployment for RDS engines or use an Aurora engine.
--   The maintenance window is **specified in UTC**.
--   The maintenance window is specified in the format of `day:time-day:time`. Example: `Sun:02:00-Sun:04:00`
--   By default, the maintenance window is set to **Sunday 02:00 - Sunday 04:00** adjusted to the region's timezone (but does not account for daylight savings time). Examples:
-    -   In **us-east-1** the maintenance window is set to **Sunday 07:00 - Sunday 09:00 UTC** which translates to **Sunday 02:00 - Sunday 04:00** in the region's timezone
-    -   In **eu-west-1** the maintenance window is set to **Sunday 01:00 - Sunday 03:00 UTC** which translates to **Sunday 02:00 - Sunday 04:00** in the region's timezone
+- The maintenance window is the time period during which the database is available for maintenance.
+- During this time, your database instance can be updated with modifications like OS patching or database engine version upgrades.
+- The database might be unavailable for a short period of time during maintenance. To avoid service interruptions, you should use `multiAz` deployment for RDS engines or use an Aurora engine.
+- The maintenance window is **specified in UTC**.
+- The maintenance window is specified in the format of `day:time-day:time`. Example: `Sun:02:00-Sun:04:00`
+- By default, the maintenance window is set to **Sunday 02:00 - Sunday 04:00** adjusted to the region's timezone (but does not account for daylight savings time). Examples:
+  - In **us-east-1** the maintenance window is set to **Sunday 07:00 - Sunday 09:00 UTC** which translates to **Sunday 02:00 - Sunday 04:00** in the region's timezone
+  - In **eu-west-1** the maintenance window is set to **Sunday 01:00 - Sunday 03:00 UTC** which translates to **Sunday 02:00 - Sunday 04:00** in the region's timezone
 
 ```yml
 resources:

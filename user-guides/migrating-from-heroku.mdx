@@ -1,5 +1,5 @@
 ---
-title: "Migrating from Heroku"
+title: 'Migrating from Heroku'
 order: 4
 ---
 
@@ -24,7 +24,7 @@ in your service [environment variables](#1-4-environment-and-secrets).
 2. You should have an AWS account connected to your Stacktape organization. Refer to
    [this tutorial](https://docs.stacktape.com/user-guides/connect-aws-account/) to see how to connect your AWS account.
 
-{/* # 1. Install Stacktape and connect your AWS account
+{/\* # 1. Install Stacktape and connect your AWS account
 
 1. If you do not have Stacktape account yet, you can [sign up](https://console.stacktape.com/sign-up) here.
 
@@ -35,13 +35,13 @@ in your service [environment variables](#1-4-environment-and-secrets).
    <CodeBlock
      tabs={[
        {
-         lang: "bash",
-         code: "iwr https://installs.stacktape.com/windows.ps1 -useb | iex\n",
-         label: "Windows (PowerShell)"
+         lang: 'bash',
+         code: 'iwr https://installs.stacktape.com/windows.ps1 -useb | iex\n',
+         label: 'Windows (PowerShell)'
        },
-       { lang: "bash", code: "curl -L https://installs.stacktape.com/linux.sh | sh\n", label: "Linux" },
-       { lang: "bash", code: "curl -L https://installs.stacktape.com/macos.sh | sh\n", label: "Macos" },
-       { lang: "bash", code: "curl -L https://installs.stacktape.com/macos-arm.sh | sh\n", label: "Macos ARM" }
+       { lang: 'bash', code: 'curl -L https://installs.stacktape.com/linux.sh | sh\n', label: 'Linux' },
+       { lang: 'bash', code: 'curl -L https://installs.stacktape.com/macos.sh | sh\n', label: 'Macos' },
+       { lang: 'bash', code: 'curl -L https://installs.stacktape.com/macos-arm.sh | sh\n', label: 'Macos ARM' }
      ]}
    />
 
@@ -49,7 +49,7 @@ in your service [environment variables](#1-4-environment-and-secrets).
    [VS code extension](https://marketplace.visualstudio.com/items?itemName=stacktape.vscode-stacktape)
 
 Entire install process is described in greater detail in our
-[Install Stacktape docs](https://docs.stacktape.com/getting-started/setup-stacktape/) */}
+[Install Stacktape docs](https://docs.stacktape.com/getting-started/setup-stacktape/) \*/}
 
 # Concepts mapping
 
@@ -187,7 +187,7 @@ resources:
       engine:
         type: postgres
         properties:
-          version: "16.3"
+          version: '16.3'
           primaryInstance:
             instanceSize: db.t3.micro
   # {stop-highlight}
@@ -242,7 +242,7 @@ resources:
       engine:
         type: postgres
         properties:
-          version: "16.3"
+          version: '16.3'
           primaryInstance:
             instanceSize: db.t3.micro
 ```

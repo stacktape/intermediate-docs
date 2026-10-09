@@ -1,5 +1,5 @@
 ---
-title: ""
+title: ''
 order: 180
 ---
 
@@ -97,9 +97,9 @@ export default handler;
 
 # Node instance size
 
--   Different instance sizes have different memory and network capabilities.
--   Instance size can be changed without interrupting the cluster or losing the data.
--   To learn more, and see a detailed list of available instances, refer to [AWS pricing page](https://aws.amazon.com/elasticache/pricing/)
+- Different instance sizes have different memory and network capabilities.
+- Instance size can be changed without interrupting the cluster or losing the data.
+- To learn more, and see a detailed list of available instances, refer to [AWS pricing page](https://aws.amazon.com/elasticache/pricing/)
 
 ```yml
 resources:
@@ -114,13 +114,13 @@ resources:
 
 # Default user password
 
--   Redis clusters are password protected. To communicate with the cluster, you must configure a password for the default user.
--   Communication with the cluster is encrypted in-transit.
--   You should not input the password directly. The recommended way is using [secrets](/resources/secrets/).
--   Password constraints:
-    -   Must be only printable ASCII characters.
-    -   Must be at least 16 characters and no more than 128 characters in length.
-    -   Cannot contain any of the following characters: '/', '"', or '@'.
+- Redis clusters are password protected. To communicate with the cluster, you must configure a password for the default user.
+- Communication with the cluster is encrypted in-transit.
+- You should not input the password directly. The recommended way is using [secrets](/resources/secrets/).
+- Password constraints:
+  - Must be only printable ASCII characters.
+  - Must be at least 16 characters and no more than 128 characters in length.
+  - Cannot contain any of the following characters: '/', '"', or '@'.
 
 ```yml
 resources:
@@ -157,11 +157,11 @@ resources:
 
 ## Multi node (non-sharded) cluster
 
--   Adding replica nodes (read replicas) to a cluster has 2 benefits:
-    -   increases the read throughput
-    -   increases availability. Replica node can become the primary node in case of primary node failure.
--   Load balancing between replicas is automatically handled by AWS.
--   When there are multiple shards, this number specifies the number of replicas for each **shard cluster**.
+- Adding replica nodes (read replicas) to a cluster has 2 benefits:
+  - increases the read throughput
+  - increases availability. Replica node can become the primary node in case of primary node failure.
+- Load balancing between replicas is automatically handled by AWS.
+- When there are multiple shards, this number specifies the number of replicas for each **shard cluster**.
 
 Changing `numReplicaNodes` when sharding is enabled is not possible and will result in error.
 
@@ -181,18 +181,18 @@ resources:
 
 ## Sharded cluster
 
--   Sharding enables you to scale redis cluster horizontally, by splitting the data into shards.
--   Each shard is then served by a **shard cluster**, which is responsible for given shard. Each **shard cluster** has a primary instance and `numReplicaNodes` amount of replicas.
--   You can update (increase or decrease) number of shards without interrupting the cluster.
--   You cannot update number of replicas per shard cluster on sharded cluster.
--   Routing to correct shard and shard re-balancing is automatically handled by AWS.
--   To learn more about sharding, refer to [AWS Docs](/resources/redis-clusters/#sharded-cluster).
+- Sharding enables you to scale redis cluster horizontally, by splitting the data into shards.
+- Each shard is then served by a **shard cluster**, which is responsible for given shard. Each **shard cluster** has a primary instance and `numReplicaNodes` amount of replicas.
+- You can update (increase or decrease) number of shards without interrupting the cluster.
+- You cannot update number of replicas per shard cluster on sharded cluster.
+- Routing to correct shard and shard re-balancing is automatically handled by AWS.
+- To learn more about sharding, refer to [AWS Docs](/resources/redis-clusters/#sharded-cluster).
 
 Sharding comes with multiple limitations:
 
--   Sharding can only be enabled during redis cluster initial creation. After that the cluster cannot be updated from non-sharded to sharded or vice-versa.
--   Changing `numReplicaNodes` when sharding is enabled is not possible. In this case it is necessary to delete and recreate the cluster.
--   `numReplicaNodes` must be set to at least `1` when sharding is enabled.
+- Sharding can only be enabled during redis cluster initial creation. After that the cluster cannot be updated from non-sharded to sharded or vice-versa.
+- Changing `numReplicaNodes` when sharding is enabled is not possible. In this case it is necessary to delete and recreate the cluster.
+- `numReplicaNodes` must be set to at least `1` when sharding is enabled.
 
 ```yml
 resources:

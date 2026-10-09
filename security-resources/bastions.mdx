@@ -1,5 +1,5 @@
 ---
-title: "Bastion servers (Jump hosts)"
+title: 'Bastion servers (Jump hosts)'
 order: 311
 ---
 
@@ -185,9 +185,9 @@ You can use `runCommandsAtLaunch` property to run custom set of commands when th
 
 Running custom commands can be useful for installing dependencies or setting up your bastion in any other way:
 
--   Commands are run as the root user (do not use sudo).
--   Modifying this list after bastion was already created will force replacement of the bastion instance. This means that any data that was manually created on the old bastion instance will be lost.
--   Use this if to install dependencies and packages that might be required for your bastion scripts
+- Commands are run as the root user (do not use sudo).
+- Modifying this list after bastion was already created will force replacement of the bastion instance. This means that any data that was manually created on the old bastion instance will be lost.
+- Use this if to install dependencies and packages that might be required for your bastion scripts
 
 ```yml
 resources:

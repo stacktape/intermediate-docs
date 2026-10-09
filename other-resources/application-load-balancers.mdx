@@ -1,5 +1,5 @@
 ---
-title: ""
+title: ''
 order: 210
 ---
 
@@ -62,7 +62,7 @@ is ideal for high load fast performing applications.
 <PropertiesTable
   definitionName="ApplicationLoadBalancer"
   rewriteLinksForReferencedCompositeTypes={{
-    ApplicationLoadBalancerCdnConfiguration: "#cdn"
+    ApplicationLoadBalancerCdnConfiguration: '#cdn'
   }}
 />
 
@@ -201,11 +201,11 @@ Stacktape allows you to connect your custom domain names to some of your resourc
 
 Connecting a custom domain to the resource does 2 things:
 
--   **Creates DNS records**:
-    -   If you use your custom domain with a resource, Stacktape automatically creates a DNS record (during deploy) pointing the specified domain name to the resource.
--   **Adds TLS certificates**
-    -   If you do not specify custom `listeners` or your listeners use HTTPS, Stacktape takes care of issuing and attaching correct (free, AWS-managed) certificate to the resource. This means, you do not have to deal with TLS termination as it is handled by the connected resource.
-    -   If you want to use your own certificates, you can configure `customCertificateArns` on the listener.
+- **Creates DNS records**:
+  - If you use your custom domain with a resource, Stacktape automatically creates a DNS record (during deploy) pointing the specified domain name to the resource.
+- **Adds TLS certificates**
+  - If you do not specify custom `listeners` or your listeners use HTTPS, Stacktape takes care of issuing and attaching correct (free, AWS-managed) certificate to the resource. This means, you do not have to deal with TLS termination as it is handled by the connected resource.
+  - If you want to use your own certificates, you can configure `customCertificateArns` on the listener.
 
 To manage a custom domain, it first needs to be added to your AWS account. This means that a [hosted zone](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/AboutHZWorkingWith.html) (collection of records managed together for a given domain) for your domain exists in your AWS account and your domain registrar's name servers are pointing to it. To learn more, refer to [Adding a domain guide](/other-resources/domains-and-certificates/#adding-domain).
 
@@ -273,10 +273,10 @@ resources:
 - Listeners are listening on specified ports and forward traffic to compute resources through
   [event integrations](#integrating-with-compute-resources)(functions, multi-container-workloads or batch-jobs).
 
--   Listeners are used to expose specific ports of the Load balancer.
--   If you do not specify any listeners, by default, two listeners are created:
-    -   HTTPS listener (port 443) - all traffic is routed to this listener
-    -   HTTP listener (port 80) - automatically redirects to HTTPS listener
+- Listeners are used to expose specific ports of the Load balancer.
+- If you do not specify any listeners, by default, two listeners are created:
+  - HTTPS listener (port 443) - all traffic is routed to this listener
+  - HTTP listener (port 80) - automatically redirects to HTTPS listener
 
 <PropertiesTable
   definitionName="ApplicationLoadBalancerListener"
@@ -390,24 +390,24 @@ resources:
 
 You can configure AWS Cloudfront CDN (Content Delivery Network) to be in front of your **application-load-balancer**.
 
-{/* CDN can **cache responses** from the application-load-balancer in **edge locations all around the world** and therefore:
+{/\* CDN can **cache responses** from the application-load-balancer in **edge locations all around the world** and therefore:
 
 - speed up response time to the client
 - offload your application infrastructure (multi-container-workloads, functions)
 - save you costs
-- increase security of your environment. */}
+- increase security of your environment. \*/}
 
--   CDN is a globally distributed network that can cache responses from your Application Load Balancer at the edge - close to your users.
--   AWS Cloudfront has 205 edge locations on 6 continents.
--   The CDN is used to:
-    -   reduce latency & improve load times
-    -   reduce bandwidth costs
-    -   reduce the amount of traffic coming to the origin
-    -   improve security
--   The "origin" is the resource (Application Load Balancer) to which CDN is attached. CDN caches responses from the origin at the edge for specified amount of time.
--   If the content requested by the client is in the CDN cache, the CDN immediately returns it to the client without making a request to the origin.
--   If the content is NOT in the cache, the CDN makes a request to the Origin. The response from the origin is then forwarded to the client, and cached at the edge.
--   The CDN has its own URL endpoint.
+- CDN is a globally distributed network that can cache responses from your Application Load Balancer at the edge - close to your users.
+- AWS Cloudfront has 205 edge locations on 6 continents.
+- The CDN is used to:
+  - reduce latency & improve load times
+  - reduce bandwidth costs
+  - reduce the amount of traffic coming to the origin
+  - improve security
+- The "origin" is the resource (Application Load Balancer) to which CDN is attached. CDN caches responses from the origin at the edge for specified amount of time.
+- If the content requested by the client is in the CDN cache, the CDN immediately returns it to the client without making a request to the origin.
+- If the content is NOT in the cache, the CDN makes a request to the Origin. The response from the origin is then forwarded to the client, and cached at the edge.
+- The CDN has its own URL endpoint.
 
 For information about using CDN refer to our [CDN docs](/resources/cdns).
 
@@ -415,8 +415,8 @@ For information about using CDN refer to our [CDN docs](/resources/cdns).
 
 # Using firewall
 
--   You can use `web-app-firewall` to protect your resources from common web exploits that could affect application availability, compromise security, or consume excessive resources.
--   Web app firewall protects your application by filtering dangerous requests coming to your app. You can read more about the firewall [in our docs](/security-resources/web-app-firewalls/).
+- You can use `web-app-firewall` to protect your resources from common web exploits that could affect application availability, compromise security, or consume excessive resources.
+- Web app firewall protects your application by filtering dangerous requests coming to your app. You can read more about the firewall [in our docs](/security-resources/web-app-firewalls/).
 
 To lean more, check [web-app-firewall](/resources/web-app-firewalls/) documentation.
 

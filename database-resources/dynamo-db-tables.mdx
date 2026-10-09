@@ -1,5 +1,5 @@
 ---
-title: "DynamoDb tables"
+title: 'DynamoDb tables'
 order: 160
 ---
 
@@ -90,14 +90,14 @@ export default async (event, context) => {
 
 # Primary key
 
--   Primary key uniquely identifies each item in the table
--   Two different kinds of primary keys are supported:
-    -   **simple primary key** - you only specify `partitionKey`
-    -   **composite primary key** - you specify both `partitionKey` and `sortKey`
--   Primary key specification cannot be modified during updates (after the table is created).
--   The attribute must be top-level (not nested) field.
--   Each document saved to the table must contain the primary key attribute(s).
--   To learn more about primary keys, refer to [AWS docs](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.CoreComponents.html#HowItWorks.CoreComponents.PrimaryKey)
+- Primary key uniquely identifies each item in the table
+- Two different kinds of primary keys are supported:
+  - **simple primary key** - you only specify `partitionKey`
+  - **composite primary key** - you specify both `partitionKey` and `sortKey`
+- Primary key specification cannot be modified during updates (after the table is created).
+- The attribute must be top-level (not nested) field.
+- Each document saved to the table must contain the primary key attribute(s).
+- To learn more about primary keys, refer to [AWS docs](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.CoreComponents.html#HowItWorks.CoreComponents.PrimaryKey)
 
 <PropertiesTable definitionName="DynamoDbTablePrimaryKey" searchForReferencesInDefinition="DynamoDbTableProps" />
 
@@ -123,10 +123,10 @@ resources:
 
 # Provisioned throughput
 
--   When you specify `provisionedThroughput`, the table will run in the **provisioned** mode and you need to specify read and write throughput for your table.
--   This can give you cost predictability and lower costs, but your table might not be able to handle an unpredictable load.
--   If `provisionedThroughput` is not configured, the table runs and is billed in an **on-demand** mode. This means you are only paying for what you use.
--   To learn more about differences between **provisioned** and **on-demand** modes, refer to [AWS docs](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadWriteCapacityMode.html)
+- When you specify `provisionedThroughput`, the table will run in the **provisioned** mode and you need to specify read and write throughput for your table.
+- This can give you cost predictability and lower costs, but your table might not be able to handle an unpredictable load.
+- If `provisionedThroughput` is not configured, the table runs and is billed in an **on-demand** mode. This means you are only paying for what you use.
+- To learn more about differences between **provisioned** and **on-demand** modes, refer to [AWS docs](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadWriteCapacityMode.html)
 
 <PropertiesTable definitionName="DynamoDbProvisionedThroughput" searchForReferencesInDefinition="DynamoDbTableProps" />
 
@@ -148,10 +148,10 @@ resources:
 
 ## Scaling
 
--   Even in provisioned mode, you can configure throughput scaling based on load.
--   The table throughput scales up or down once the specified thresholds are met.
--   Compared to **on-demand** mode (default, if you don't specify `provisionedThroughput`), you have more control of how your table will scale and can save costs. However, your table might not be able to scale enough for an unpredictable load.
--   To learn more, refer to [this detailed AWS article](https://aws.amazon.com/blogs/database/amazon-dynamodb-auto-scaling-performance-and-cost-optimization-at-any-scale/)
+- Even in provisioned mode, you can configure throughput scaling based on load.
+- The table throughput scales up or down once the specified thresholds are met.
+- Compared to **on-demand** mode (default, if you don't specify `provisionedThroughput`), you have more control of how your table will scale and can save costs. However, your table might not be able to scale enough for an unpredictable load.
+- To learn more, refer to [this detailed AWS article](https://aws.amazon.com/blogs/database/amazon-dynamodb-auto-scaling-performance-and-cost-optimization-at-any-scale/)
 
 ```yml
 resources:
@@ -182,9 +182,9 @@ resources:
 
 # Point-in-time recovery
 
--   Point-in-time recovery enables you to restore table to any point in time during the last 35 days
--   The point-in-time recovery process always restores the data to a new table. You can restore data to the same table.
--   Enabling point-in-time recovery can result in additional charges. To learn more, refer to [AWS DynamoDB pricing](https://aws.amazon.com/dynamodb/pricing/on-demand/#DynamoDB_detailed_feature_pricing)
+- Point-in-time recovery enables you to restore table to any point in time during the last 35 days
+- The point-in-time recovery process always restores the data to a new table. You can restore data to the same table.
+- Enabling point-in-time recovery can result in additional charges. To learn more, refer to [AWS DynamoDB pricing](https://aws.amazon.com/dynamodb/pricing/on-demand/#DynamoDB_detailed_feature_pricing)
 
 ```yml
 resources:

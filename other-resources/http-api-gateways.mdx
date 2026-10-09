@@ -1,5 +1,5 @@
 ---
-title: "HTTP API Gateways"
+title: 'HTTP API Gateways'
 order: 200
 ---
 
@@ -46,7 +46,7 @@ gateway can meet your needs.
 <PropertiesTable
   definitionName="HttpApiGateway"
   rewriteLinksForReferencedCompositeTypes={{
-    CdnConfiguration: "#cdn"
+    CdnConfiguration: '#cdn'
   }}
 />
 
@@ -205,9 +205,9 @@ You can additionally configure CORS headers by setting properties in cors config
 
 If you do not specify any additional properties, default CORS configuration is used:
 
--   `AllowedMethods`: Inferred from methods used by integrations associated with the api gateway
--   `AllowedOrigins`: `*`
--   `AllowedHeaders`: `Content-Type`, `X-Amz-Date`, `Authorization`, `X-Api-Key`, `X-Amz-Security-Token`, `X-Amz-User-Agent`
+- `AllowedMethods`: Inferred from methods used by integrations associated with the api gateway
+- `AllowedOrigins`: `*`
+- `AllowedHeaders`: `Content-Type`, `X-Amz-Date`, `Authorization`, `X-Api-Key`, `X-Amz-Security-Token`, `X-Amz-User-Agent`
 
 <PropertiesTable definitionName="HttpApiCorsConfig" searchForReferencesInDefinition="HttpApiGatewayProps" />
 
@@ -235,11 +235,11 @@ Stacktape allows you to connect your custom domain names to some of your resourc
 
 Connecting a custom domain to the resource does 2 things:
 
--   **Creates DNS records**:
-    -   If you use your custom domain with a resource, Stacktape automatically creates a DNS record (during deploy) pointing the specified domain name to the resource.
--   **Adds TLS certificates**
-    -   If the origin resource (HTTP API Gateway, Application Load Balancer or CDN) uses HTTPS protocol, Stacktape takes care of issuing and attaching correct (free, AWS-managed) certificate to the resource. This means, you do not have to deal with TLS termination as it is handled by the connected resource.
-    -   If you want to use your own certificates, you can configure `customCertificateArns`.
+- **Creates DNS records**:
+  - If you use your custom domain with a resource, Stacktape automatically creates a DNS record (during deploy) pointing the specified domain name to the resource.
+- **Adds TLS certificates**
+  - If the origin resource (HTTP API Gateway, Application Load Balancer or CDN) uses HTTPS protocol, Stacktape takes care of issuing and attaching correct (free, AWS-managed) certificate to the resource. This means, you do not have to deal with TLS termination as it is handled by the connected resource.
+  - If you want to use your own certificates, you can configure `customCertificateArns`.
 
 To manage a custom domain, it first needs to be added to your AWS account. This means that a [hosted zone](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/AboutHZWorkingWith.html) (collection of records managed together for a given domain) for your domain exists in your AWS account and your domain registrar's name servers are pointing to it. To learn more, refer to [Adding a domain guide](/other-resources/domains-and-certificates/#adding-domain).
 
@@ -247,7 +247,7 @@ To manage a custom domain, it first needs to be added to your AWS account. This 
   definitionName="DomainConfiguration"
   searchForReferencesInDefinition="HttpApiGateway"
   rewriteLinksForReferencedCompositeTypes={{
-    CdnConfiguration: "#cdn"
+    CdnConfiguration: '#cdn'
   }}
 />
 
@@ -303,11 +303,11 @@ resources:
 Access logs contain basic information about requests coming to your `http-api-gateway`. They can be useful in case of
 audit and are many times needed for compliance reasons.
 
--   Stored properties are: `requestId`, `ip`, `requestTime`, `httpMethod`, `routeKey`, `status`, `protocol` and `responseLength`.
--   You can configure log format. Supported values are `CLF`, `JSON`, `XML` and `CSV`.
--   You can browse your logs in 2 ways:
-    -   go to the log group page in the AWS CloudWatch console. You can use `stacktape stack-info` command to get a direct link.
-    -   use [stacktape logs command](/cli/commands/logs/) to print logs to the console
+- Stored properties are: `requestId`, `ip`, `requestTime`, `httpMethod`, `routeKey`, `status`, `protocol` and `responseLength`.
+- You can configure log format. Supported values are `CLF`, `JSON`, `XML` and `CSV`.
+- You can browse your logs in 2 ways:
+  - go to the log group page in the AWS CloudWatch console. You can use `stacktape stack-info` command to get a direct link.
+  - use [stacktape logs command](/cli/commands/logs/) to print logs to the console
 
 <br />
 
@@ -332,16 +332,16 @@ resources:
 
 You can configure AWS Cloudfront CDN (Content Delivery Network) to be in front of your **http-api-gateway**.
 
--   CDN is a globally distributed network that can cache responses from your HTTP API Gateway at the edge - close to your users.
--   AWS Cloudfront has 205 edge locations on 6 continents.
--   The CDN is used to:
-    -   reduce latency & improve load times
-    -   reduce bandwidth costs
-    -   reduce the amount of traffic coming to the origin
-    -   improve security
--   The "origin" is the resource (HTTP API Gateway) to which CDN is attached. CDN caches responses from the origin at the edge for specified amount of time.
--   If the content requested by the client is in the CDN cache, the CDN immediately returns it to the client without making a request to the origin.
--   If the content is NOT in the cache, the CDN makes a request to the Origin. The response from the origin is then forwarded to the client, and cached at the edge.
+- CDN is a globally distributed network that can cache responses from your HTTP API Gateway at the edge - close to your users.
+- AWS Cloudfront has 205 edge locations on 6 continents.
+- The CDN is used to:
+  - reduce latency & improve load times
+  - reduce bandwidth costs
+  - reduce the amount of traffic coming to the origin
+  - improve security
+- The "origin" is the resource (HTTP API Gateway) to which CDN is attached. CDN caches responses from the origin at the edge for specified amount of time.
+- If the content requested by the client is in the CDN cache, the CDN immediately returns it to the client without making a request to the origin.
+- If the content is NOT in the cache, the CDN makes a request to the Origin. The response from the origin is then forwarded to the client, and cached at the edge.
 
 For information about using CDN refer to our [CDN docs](/resources/cdns).
 

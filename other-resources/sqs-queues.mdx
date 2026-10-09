@@ -1,5 +1,5 @@
 ---
-title: "SQS Queues"
+title: 'SQS Queues'
 order: 276
 ---
 
@@ -157,12 +157,12 @@ const interval = setInterval(async () => {
 You can use [AWS SDK](https://aws.amazon.com/developer/tools/#SDKs) to send messages to the queue.
 
 ```typescript
-import { SendMessageCommand, SQSClient } from "@aws-sdk/client-sqs";
+import { SendMessageCommand, SQSClient } from '@aws-sdk/client-sqs';
 
 const sqsClient = new SQSClient({});
 
 sqsClient
-  .send(new SendMessageCommand({ MessageBody: "Hello from the other side", QueueUrl: process.env.STP_MY_QUEUE_URL }))
+  .send(new SendMessageCommand({ MessageBody: 'Hello from the other side', QueueUrl: process.env.STP_MY_QUEUE_URL }))
   .catch((err) => {
     console.info(`Sending message failed: ${err}`);
   });
@@ -172,10 +172,10 @@ sqsClient
 
 You can enable **FIFO**(First in First Out) for your SQS queue, ensuring ordering of events.
 
--   FIFO (First-In-First-Out) queues have all the capabilities of the standard queues, but are designed to enhance messaging between applications when the order of operations and events is critical, or where duplicates can't be tolerated.
--   For more information on FIFO queues refer to [AWS docs](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html)
-    
-    When using FIFO, each message should contain `MessageDeduplicationId` or **contentBasedDeduplication** must be enabled.
+- FIFO (First-In-First-Out) queues have all the capabilities of the standard queues, but are designed to enhance messaging between applications when the order of operations and events is critical, or where duplicates can't be tolerated.
+- For more information on FIFO queues refer to [AWS docs](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html)
+
+  When using FIFO, each message should contain `MessageDeduplicationId` or **contentBasedDeduplication** must be enabled.
 
 ```yml
 resources:
@@ -187,13 +187,13 @@ resources:
 
 ## Content based deduplication
 
--   Specifies whether to enable content-based deduplication. **Deduplication explained:**
--   During the deduplication interval, queue treats messages identifies duplicates and delivers only one copy of the message
--   Duplicate messages are recognized based on `MessageDeduplicationId`:
-    -   You may provide a `MessageDeduplicationId` explicitly.
-    -   If you do not provide `MessageDeduplicationId`, content-based deduplication is used(if enabled) - this means Amazon SQS uses a SHA-256 hash to generate the `MessageDeduplicationId` using the body of the message (but not the attributes of the message).
-        
-        FIFO must be enabled in order to use this feature
+- Specifies whether to enable content-based deduplication. **Deduplication explained:**
+- During the deduplication interval, queue treats messages identifies duplicates and delivers only one copy of the message
+- Duplicate messages are recognized based on `MessageDeduplicationId`:
+  - You may provide a `MessageDeduplicationId` explicitly.
+  - If you do not provide `MessageDeduplicationId`, content-based deduplication is used(if enabled) - this means Amazon SQS uses a SHA-256 hash to generate the `MessageDeduplicationId` using the body of the message (but not the attributes of the message).
+
+    FIFO must be enabled in order to use this feature
 
 # Visibility timeout
 

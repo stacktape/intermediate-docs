@@ -1,5 +1,5 @@
 ---
-title: "Installing and Versioning"
+title: 'Installing and Versioning'
 order: 4
 ---
 
@@ -10,13 +10,13 @@ order: 4
 <CodeBlock
   tabs={[
     {
-      lang: "bash",
-      code: "iwr https://installs.stacktape.com/windows.ps1 -useb | iex\n",
-      label: "Windows (PowerShell)"
+      lang: 'bash',
+      code: 'iwr https://installs.stacktape.com/windows.ps1 -useb | iex\n',
+      label: 'Windows (PowerShell)'
     },
-    { lang: "bash", code: "curl -L https://installs.stacktape.com/linux.sh | sh\n", label: "Linux" },
-    { lang: "bash", code: "curl -L https://installs.stacktape.com/macos.sh | sh\n", label: "Macos" },
-    { lang: "bash", code: "curl -L https://installs.stacktape.com/macos-arm.sh | sh\n", label: "Macos ARM" }
+    { lang: 'bash', code: 'curl -L https://installs.stacktape.com/linux.sh | sh\n', label: 'Linux' },
+    { lang: 'bash', code: 'curl -L https://installs.stacktape.com/macos.sh | sh\n', label: 'Macos' },
+    { lang: 'bash', code: 'curl -L https://installs.stacktape.com/macos-arm.sh | sh\n', label: 'Macos ARM' }
   ]}
 />
 
@@ -40,24 +40,24 @@ order: 4
 <CodeBlock
   tabs={[
     {
-      lang: "bash",
+      lang: 'bash',
       code: '$env:STACKTAPE_VERSION="2.0.0" && iwr https://installs.stacktape.com/windows.ps1 -useb | iex\n',
-      label: "Windows (PowerShell)"
+      label: 'Windows (PowerShell)'
     },
     {
-      lang: "bash",
+      lang: 'bash',
       code: 'export STACKTAPE_VERSION="2.0.0" && curl -L https://installs.stacktape.com/linux.sh | sh\n',
-      label: "Linux"
+      label: 'Linux'
     },
     {
-      lang: "bash",
+      lang: 'bash',
       code: 'export STACKTAPE_VERSION="2.0.0" && curl -L https://installs.stacktape.com/macos.sh | sh\n',
-      label: "Macos"
+      label: 'Macos'
     },
     {
-      lang: "bash",
+      lang: 'bash',
       code: 'export STACKTAPE_VERSION="2.0.0" && curl -L https://installs.stacktape.com/macos-arm.sh | sh\n',
-      label: "Macos ARM"
+      label: 'Macos ARM'
     }
   ]}
 />

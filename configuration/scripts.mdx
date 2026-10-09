@@ -1,5 +1,5 @@
 ---
-title: ""
+title: ''
 order: 1
 ---
 
@@ -32,9 +32,9 @@ hooks:
 
 ## Using executeCommand
 
--   Executes the specified command in a separate shell process. Uses `/bin/bash` on UNIX systems and default shell(usually `cmd.exe`) on Windows systems.
--   The command will be executed on the machine running the Stacktape command. If the command works on your machine, it doesn't mean it works for people or machines with different OSes or shells.
--   Only one of `executeScript`, `executeScripts`, `executeCommand` or `executeCommands` can be configured.
+- Executes the specified command in a separate shell process. Uses `/bin/bash` on UNIX systems and default shell(usually `cmd.exe`) on Windows systems.
+- The command will be executed on the machine running the Stacktape command. If the command works on your machine, it doesn't mean it works for people or machines with different OSes or shells.
+- Only one of `executeScript`, `executeScripts`, `executeCommand` or `executeCommands` can be configured.
 
 ```yml
 scripts:
@@ -48,12 +48,12 @@ scripts:
 
 ## Using executeScript
 
--   The script can be written in **Javascript**, **Typescript** or **Python**.
--   The script is executed in a separate process.
--   The script is executed using an executable configured using `defaults:configure` command or a default executable on your machine:
-    -   `node` for Javascript and Typescript
-    -   `python` for Python
--   Only one of `executeScript`, `executeScripts`, `executeCommand` or `executeCommands` can be configured.
+- The script can be written in **Javascript**, **Typescript** or **Python**.
+- The script is executed in a separate process.
+- The script is executed using an executable configured using `defaults:configure` command or a default executable on your machine:
+  - `node` for Javascript and Typescript
+  - `python` for Python
+- Only one of `executeScript`, `executeScripts`, `executeCommand` or `executeCommands` can be configured.
 
 ```yml
 scripts:
@@ -66,12 +66,12 @@ scripts:
 ```
 
 ```ts
-import { WebClient } from "@slack/web-api";
+import { WebClient } from '@slack/web-api';
 
 // An access token (from your Slack app or custom integration - xoxp, xoxb)
-const token = "my-access-token";
+const token = 'my-access-token';
 // This argument can be a channel ID, a DM ID, a MPDM ID, or a group ID
-const conversationId = "my-conversation-id";
+const conversationId = 'my-conversation-id';
 const slackClient = new WebClient(token);
 const errorData = JSON.parse(process.env.STP_ERROR);
 
@@ -85,10 +85,10 @@ const errorData = JSON.parse(process.env.STP_ERROR);
 
 ## Using executeCommands
 
--   Commands are executed in sequential order.
--   Each command is executed in a separate shell process. Uses `/bin/bash` on UNIX systems and default shell(usually `cmd.exe`) on Windows systems.
--   Commands will be executed on the machine running the Stacktape command. If a command works on your machine, it doesn't mean it works for people or machines with different OSes or shells.
--   Only one of `executeScript`, `executeScripts`, `executeCommand` or `executeCommands` can be configured.
+- Commands are executed in sequential order.
+- Each command is executed in a separate shell process. Uses `/bin/bash` on UNIX systems and default shell(usually `cmd.exe`) on Windows systems.
+- Commands will be executed on the machine running the Stacktape command. If a command works on your machine, it doesn't mean it works for people or machines with different OSes or shells.
+- Only one of `executeScript`, `executeScripts`, `executeCommand` or `executeCommands` can be configured.
 
 ```yml
 scripts:
@@ -104,13 +104,13 @@ scripts:
 
 ## Using executeScripts
 
--   Scripts are executed in sequential order.
--   Script can be written in **Javascript**, **Typescript** or **Python**.
--   Each script is executed in a separate process.
--   Each script is executed using an executable configured using `defaults:configure` command or a default executable on your machine:
-    -   `node` for Javascript and Typescript
-    -   `python` for Python
--   Only one of `executeScript`, `executeScripts`, `executeCommand` or `executeCommands` can be configured.
+- Scripts are executed in sequential order.
+- Script can be written in **Javascript**, **Typescript** or **Python**.
+- Each script is executed in a separate process.
+- Each script is executed using an executable configured using `defaults:configure` command or a default executable on your machine:
+  - `node` for Javascript and Typescript
+  - `python` for Python
+- Only one of `executeScript`, `executeScripts`, `executeCommand` or `executeCommands` can be configured.
 
 ```yml
 scripts:
@@ -271,28 +271,26 @@ resources:
 
 By referencing resources in `connectTo` list, Stacktape automatically injects environment variables (containing information about resources in the list) into the script:
 
--   names of environment variables use upper-snake-case and are in form **STP\_`[RESOURCE_NAME]`\_`[VARIABLE_NAME]`**,
--   examples: `STP_MY_DATABASE_CONNECTION_STRING` or `STP_MY_EVENT_BUS_ARN`,
-
-  
+- names of environment variables use upper-snake-case and are in form **STP\_`[RESOURCE_NAME]`\_`[VARIABLE_NAME]`**,
+- examples: `STP_MY_DATABASE_CONNECTION_STRING` or `STP_MY_EVENT_BUS_ARN`,
 
 List of the injected environment variables depends on the resource type:
 
--   **Bucket**: `NAME`, `ARN`
--   **DynamoDB table**: `NAME`, `ARN`, `STREAM_ARN`
--   **MongoDB Atlas cluster**: `CONNECTION_STRING`
--   **Relational(SQL) database**: `CONNECTION_STRING`, `JDBC_CONNECTION_STRING`, `HOST`, `PORT` (in case of aurora multi instance cluster additionally: `READER_CONNECTION_STRING`, `READER_JDBC_CONNECTION_STRING`, `READER_HOST`)
--   **Redis cluster**: `HOST`, `READER_HOST`, `PORT`
--   **Event bus**: `ARN`
--   **Function**: `ARN`
--   **Batch job**: `JOB_DEFINITION_ARN`, `STATE_MACHINE_ARN`
--   **User auth pool**: `ID`, `CLIENT_ID`, `ARN`
--   **SNS Topic**: `ARN`, `NAME`
--   **SQS Queue**: `ARN`, `NAME`, `URL`
--   **Upstash Kafka topic**: `TOPIC_NAME`, `TOPIC_ID`, `USERNAME`, `PASSWORD`, `TCP_ENDPOINT`, `REST_URL`
--   **Upstash Redis**: `HOST`, `PORT`, `PASSWORD`, `REST_TOKEN`, `REST_URL`, `REDIS_URL`
--   **Private service**: `ADDRESS`
--   **Web service**: `URL`
+- **Bucket**: `NAME`, `ARN`
+- **DynamoDB table**: `NAME`, `ARN`, `STREAM_ARN`
+- **MongoDB Atlas cluster**: `CONNECTION_STRING`
+- **Relational(SQL) database**: `CONNECTION_STRING`, `JDBC_CONNECTION_STRING`, `HOST`, `PORT` (in case of aurora multi instance cluster additionally: `READER_CONNECTION_STRING`, `READER_JDBC_CONNECTION_STRING`, `READER_HOST`)
+- **Redis cluster**: `HOST`, `READER_HOST`, `PORT`
+- **Event bus**: `ARN`
+- **Function**: `ARN`
+- **Batch job**: `JOB_DEFINITION_ARN`, `STATE_MACHINE_ARN`
+- **User auth pool**: `ID`, `CLIENT_ID`, `ARN`
+- **SNS Topic**: `ARN`, `NAME`
+- **SQS Queue**: `ARN`, `NAME`, `URL`
+- **Upstash Kafka topic**: `TOPIC_NAME`, `TOPIC_ID`, `USERNAME`, `PASSWORD`, `TCP_ENDPOINT`, `REST_URL`
+- **Upstash Redis**: `HOST`, `PORT`, `PASSWORD`, `REST_TOKEN`, `REST_URL`, `REDIS_URL`
+- **Private service**: `ADDRESS`
+- **Web service**: `URL`
 
 ```yml
 scripts:
@@ -346,10 +344,10 @@ The script can be executed in 2 ways:
 
 Most commonly used types of environment variables:
 
--   Static - string, number or boolean (will be stringified).
--   Result of a [custom directive](/configuration/directives/#custom-directives).
--   Referenced property of another resource (using **$ResourceParam** directive). To learn more, refer to [referencing parameters guide](/configuration/referencing-parameters/). If you are using environment variables to inject information about resources into your script, see also property [connectTo](/configuration/scripts/#connecting-to-resources) which simplifies this process.
--   Value of a [secret](/resources/secrets/) (using [$Secret directive](/configuration/directives/#secret)).
+- Static - string, number or boolean (will be stringified).
+- Result of a [custom directive](/configuration/directives/#custom-directives).
+- Referenced property of another resource (using **$ResourceParam** directive). To learn more, refer to [referencing parameters guide](/configuration/referencing-parameters/). If you are using environment variables to inject information about resources into your script, see also property [connectTo](/configuration/scripts/#connecting-to-resources) which simplifies this process.
+- Value of a [secret](/resources/secrets/) (using [$Secret directive](/configuration/directives/#secret)).
 
 ```yml
 scripts:
@@ -378,17 +376,17 @@ resources:
 
 You can use property `assumeRoleOfResource` to grant script AWS permissions.
 
--   If specified, the script will be executed with the permissions of the specified resource.
--   Resource must already be deployed when the script is executed.
--   On the background, the script is injected with AWS environment variables which are automatically picked up by most of the AWS SDKs and CLIs.
--   Supported resource types include:
-    -   `function`
-    -   `batch-job`
-    -   `worker-service`
-    -   `web-service`
-    -   `private-service`
-    -   `multi-container-workload`
-    -   `nextjs-web`
+- If specified, the script will be executed with the permissions of the specified resource.
+- Resource must already be deployed when the script is executed.
+- On the background, the script is injected with AWS environment variables which are automatically picked up by most of the AWS SDKs and CLIs.
+- Supported resource types include:
+  - `function`
+  - `batch-job`
+  - `worker-service`
+  - `web-service`
+  - `private-service`
+  - `multi-container-workload`
+  - `nextjs-web`
 
 ```yml
 scripts:

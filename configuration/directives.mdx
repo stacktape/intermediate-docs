@@ -1,5 +1,5 @@
 ---
-title: "Directives"
+title: 'Directives'
 order: 0
 ---
 
@@ -402,12 +402,9 @@ stackConfig:
   - **output name** - name of the output to return.
 
 <Warning>
+  <p>`$StackOutput()` directive returns the output value of another stack when the current stack is being deployed.</p>
   <p>
-    `$StackOutput()` directive returns the output value of another stack when the current stack
-    is being deployed.
-  </p>
-  <p>
-    To ensure the value won't change, or that the other stack won't get deleted, use the{" "}
+    To ensure the value won't change, or that the other stack won't get deleted, use the{' '}
     <a href="#cf-stack-output">$CfStackOutput() directive</a>
   </p>
 </Warning>
@@ -716,10 +713,10 @@ directives:
 
 ```ts
 export const getDbInstanceSize = (stage: string) => {
-  if (stage === "production") {
-    return "db.m5.xlarge";
+  if (stage === 'production') {
+    return 'db.m5.xlarge';
   }
-  return "db.t2.micro";
+  return 'db.t2.micro';
 };
 ```
 

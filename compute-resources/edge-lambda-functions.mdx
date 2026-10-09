@@ -1,5 +1,5 @@
 ---
-title: "Edge lambda functions"
+title: 'Edge lambda functions'
 order: 250
 ---
 
@@ -46,16 +46,17 @@ associated with CDNs and are triggered when request/response is sent to/from the
 
 # Basic usage
 
--   You can associate `edge-lambda-function` with CDN to be executed:
+- You can associate `edge-lambda-function` with CDN to be executed:
 
-    -   `onRequest` - function is executed when CDN receives a request from a client(viewer) before checking CDN cache
-    -   `onResponse` - function is executed before returning the response to the client(viewer)
--   Potential use-cases for using edge functions:
+  - `onRequest` - function is executed when CDN receives a request from a client(viewer) before checking CDN cache
+  - `onResponse` - function is executed before returning the response to the client(viewer)
 
-    -   generating immediate HTTP response without the need to check CDN cache or forward to the origin
-    -   modifying request (i.e rewrite url, headers etc) before forwarding to the origin
-    -   inspection of cookies
-    -   inspection/validation of authorization headers and tokens
+- Potential use-cases for using edge functions:
+
+  - generating immediate HTTP response without the need to check CDN cache or forward to the origin
+  - modifying request (i.e rewrite url, headers etc) before forwarding to the origin
+  - inspection of cookies
+  - inspection/validation of authorization headers and tokens
 
 <br />
 
@@ -131,8 +132,8 @@ export default async (event) => {
 <PropertiesTable
   definitionName="EdgeLambdaFunction"
   rewriteLinksForReferencedCompositeTypes={{
-    StpBuildpackLambdaPackaging: "#packaging",
-    CustomArtifactLambdaPackaging: "#packaging"
+    StpBuildpackLambdaPackaging: '#packaging',
+    CustomArtifactLambdaPackaging: '#packaging'
   }}
 />
 
@@ -285,9 +286,9 @@ When using cdn-lambda function with `onRequest` or `onResponse` trigger the zipp
 
 # Logging
 
--   Information about the function invocation and function logs (stdout and stderr) are automatically sent to a pre-created CloudWatch log group.
--   By default, logs are retained for 180 days..
--   You can see the logs in the log group page in the AWS CloudWatch console. You can use `stacktape stack-info` command to get a direct link.
+- Information about the function invocation and function logs (stdout and stderr) are automatically sent to a pre-created CloudWatch log group.
+- By default, logs are retained for 180 days..
+- You can see the logs in the log group page in the AWS CloudWatch console. You can use `stacktape stack-info` command to get a direct link.
 
 Edge lambda functions are executed in multiple locations (regions) across the world depending on the cdn edge location which serves the client request (usually the location closest to the client).
 
@@ -347,121 +348,95 @@ resources:
 
 By referencing resources (or services) in `connectTo` list, Stacktape automatically:
 
--   configures correct compute resource's **IAM role permissions** if needed
--   sets up correct **security group rules** to allow access if needed
--   **injects relevant environment variables** containing information about resource you are connecting to into the compute resource's runtime
-    -   names of environment variables use upper-snake-case and are in form `STP_[RESOURCE_NAME]_[VARIABLE_NAME]`,
-    -   examples: `STP_MY_DATABASE_CONNECTION_STRING` or `STP_MY_EVENT_BUS_ARN`,
-    -   list of injected variables for each resource type can be seen below.
+- configures correct compute resource's **IAM role permissions** if needed
+- sets up correct **security group rules** to allow access if needed
+- **injects relevant environment variables** containing information about resource you are connecting to into the compute resource's runtime
+  - names of environment variables use upper-snake-case and are in form `STP_[RESOURCE_NAME]_[VARIABLE_NAME]`,
+  - examples: `STP_MY_DATABASE_CONNECTION_STRING` or `STP_MY_EVENT_BUS_ARN`,
+  - list of injected variables for each resource type can be seen below.
 
 Injecting of environment variables does not work for edge lambda functions.
 
 Using connectTo with resources which are protected within VPC does not work, as edge lambda functions are distributed across globe and are not part of VPC.
 
-
-
 Granted permissions and injected environment variables are different depending on resource type:
-
-
 
 `Bucket`
 
--   **Permissions:**
-    -   list objects in a bucket
-    -   create / get / delete / tag object in a bucket
--   **Injected env variables**: `NAME`, `ARN`
-
-
+- **Permissions:**
+  - list objects in a bucket
+  - create / get / delete / tag object in a bucket
+- **Injected env variables**: `NAME`, `ARN`
 
 `DynamoDB table`
 
--   **Permissions:**
-    -   get / put / update / delete item in a table
-    -   scan / query a table
-    -   describe table stream
--   **Injected env variables**: `NAME`, `ARN`, `STREAM_ARN`
-
-
+- **Permissions:**
+  - get / put / update / delete item in a table
+  - scan / query a table
+  - describe table stream
+- **Injected env variables**: `NAME`, `ARN`, `STREAM_ARN`
 
 `MongoDB Atlas cluster`
 
--   **Permissions:**
-    -   Allows connection to a cluster with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about MongoDB Atlas clusters accessibility modes, refer to [MongoDB Atlas cluster docs](/3rd-party-resources/mongo-db-atlas-clusters/#accessibility).
-    -   Creates access "user" associated with compute resource's role to allow for secure credential-less access to the the cluster
--   **Injected env variables**: `CONNECTION_STRING`
-
-
+- **Permissions:**
+  - Allows connection to a cluster with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about MongoDB Atlas clusters accessibility modes, refer to [MongoDB Atlas cluster docs](/3rd-party-resources/mongo-db-atlas-clusters/#accessibility).
+  - Creates access "user" associated with compute resource's role to allow for secure credential-less access to the the cluster
+- **Injected env variables**: `CONNECTION_STRING`
 
 `Relational(SQL) database`
 
--   **Permissions:**
-    -   Allows connection to a relational database with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about relational database accessibility modes, refer to [Relational databases docs](/resources/relational-databases/#accessibility).
--   **Injected env variables**: `CONNECTION_STRING`, `JDBC_CONNECTION_STRING`, `HOST`, `PORT` (in case of aurora multi instance cluster additionally: `READER_CONNECTION_STRING`, `READER_JDBC_CONNECTION_STRING`, `READER_HOST`)
-
-
+- **Permissions:**
+  - Allows connection to a relational database with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about relational database accessibility modes, refer to [Relational databases docs](/resources/relational-databases/#accessibility).
+- **Injected env variables**: `CONNECTION_STRING`, `JDBC_CONNECTION_STRING`, `HOST`, `PORT` (in case of aurora multi instance cluster additionally: `READER_CONNECTION_STRING`, `READER_JDBC_CONNECTION_STRING`, `READER_HOST`)
 
 `Redis cluster`
 
--   **Permissions:**
-    -   Allows connection to a redis cluster with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about redis cluster accessibility modes, refer to [Redis clusters docs](/resources/redis-clusters/#accessibility).
--   **Injected env variables**: `HOST`, `READER_HOST`, `PORT`
-
-
+- **Permissions:**
+  - Allows connection to a redis cluster with `accessibilityMode` set to `scoping-workloads-in-vpc`. To learn more about redis cluster accessibility modes, refer to [Redis clusters docs](/resources/redis-clusters/#accessibility).
+- **Injected env variables**: `HOST`, `READER_HOST`, `PORT`
 
 `Event bus`
 
--   **Permissions:**
-    -   publish events to the specified Event bus
--   **Injected env variables**: `ARN`
-
-
+- **Permissions:**
+  - publish events to the specified Event bus
+- **Injected env variables**: `ARN`
 
 `Function`
 
--   **Permissions:**
-    -   invoke the specified function
--   **Injected env variables**: `ARN`
-
-
+- **Permissions:**
+  - invoke the specified function
+- **Injected env variables**: `ARN`
 
 `Batch job`
 
--   **Permissions:**
-    -   submit batch-job instance into batch-job queue
-    -   list submitted job instances in a batch-job queue
-    -   describe / terminate a batch-job instance
-    -   list executions of state machine which executes the batch-job according to its strategy
-    -   start / terminate execution of a state machine which executes the batch-job according to its strategy
--   **Injected env variables**: `JOB_DEFINITION_ARN`, `STATE_MACHINE_ARN`
-
-
+- **Permissions:**
+  - submit batch-job instance into batch-job queue
+  - list submitted job instances in a batch-job queue
+  - describe / terminate a batch-job instance
+  - list executions of state machine which executes the batch-job according to its strategy
+  - start / terminate execution of a state machine which executes the batch-job according to its strategy
+- **Injected env variables**: `JOB_DEFINITION_ARN`, `STATE_MACHINE_ARN`
 
 `User auth pool`
 
--   **Permissions:**
-    -   full control over the user pool (`cognito-idp:*`)
-    -   for more information about allowed methods refer to [AWS docs](https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazoncognitouserpools.html)
--   **Injected env variables**: `ID`, `CLIENT_ID`, `ARN`
-
-
+- **Permissions:**
+  - full control over the user pool (`cognito-idp:*`)
+  - for more information about allowed methods refer to [AWS docs](https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazoncognitouserpools.html)
+- **Injected env variables**: `ID`, `CLIENT_ID`, `ARN`
 
 `Upstash Kafka topic`
 
--   **Injected env variables**: `TOPIC_NAME`, `TOPIC_ID`, `USERNAME`, `PASSWORD`, `TCP_ENDPOINT`, `REST_URL`
-
-
+- **Injected env variables**: `TOPIC_NAME`, `TOPIC_ID`, `USERNAME`, `PASSWORD`, `TCP_ENDPOINT`, `REST_URL`
 
 `Upstash Redis`
 
--   **Injected env variables**: `HOST`, `PORT`, `PASSWORD`, `REST_TOKEN`, `REST_URL`, `REDIS_URL`
-
-
+- **Injected env variables**: `HOST`, `PORT`, `PASSWORD`, `REST_TOKEN`, `REST_URL`, `REDIS_URL`
 
 `aws:ses`(Macro)
 
--   **Permissions:**
-    -   gives full permissions to aws ses (`ses:*`).
-    -   for more information about allowed methods refer to [AWS docs](https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonses.html)
+- **Permissions:**
+  - gives full permissions to aws ses (`ses:*`).
+  - for more information about allowed methods refer to [AWS docs](https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonses.html)
 
 ## Using iamRoleStatements
 

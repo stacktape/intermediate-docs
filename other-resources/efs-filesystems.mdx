@@ -1,5 +1,5 @@
 ---
-title: "EFS Filesystems"
+title: 'EFS Filesystems'
 order: 225
 ---
 
@@ -105,17 +105,17 @@ filesystem.
 
 ```typescript
 // Simplest example: Writing and reading from the mounted volume
-import * as fs from "fs";
-import * as path from "path";
+import * as fs from 'fs';
+import * as path from 'path';
 
-const mountPath: string = "/mnt/my-mounted-system";
-const testFile: string = path.join(mountPath, "test.txt");
+const mountPath: string = '/mnt/my-mounted-system';
+const testFile: string = path.join(mountPath, 'test.txt');
 
 // Write a file
-fs.writeFileSync(testFile, "Hello from EFS!");
+fs.writeFileSync(testFile, 'Hello from EFS!');
 
 // Read the file
-const data: string = fs.readFileSync(testFile, "utf8");
+const data: string = fs.readFileSync(testFile, 'utf8');
 // Variable 'data' now holds the content "Hello from EFS!"
 ```
 
@@ -126,22 +126,24 @@ const data: string = fs.readFileSync(testFile, "utf8");
 Optionally, depending on your needs, you can set a throughput mode. Various throughput modes have various use cases, but
 in general, we recommend `elastic` mode (default).
 
--   **elastic** (Recommended): Best for unpredictable or spiky workloads
-    
-    -   Ideal for workloads using high throughput ≤5% of the time
-    -   Perfect for web apps, CI/CD pipelines, or occasional data analytics
-    -   Automatically scales up/down based on demand
--   **provisioned**: Best for steady, predictable workloads
-    
-    -   Ideal when using high throughput >5% of the time
-    -   Suitable for media streaming, production databases
-    -   Requires setting `provisionedThroughputInMibps`
--   **bursting**: Scales with storage size
-    
-    -   Provides baseline of 50 KiB/s per GiB of storage
-    -   Good for small dev environments and team file shares
-    -   Can hit limits if burst credits are depleted
-    -   Consider switching if consistently using >80% throughput
+- **elastic** (Recommended): Best for unpredictable or spiky workloads
+
+  - Ideal for workloads using high throughput ≤5% of the time
+  - Perfect for web apps, CI/CD pipelines, or occasional data analytics
+  - Automatically scales up/down based on demand
+
+- **provisioned**: Best for steady, predictable workloads
+
+  - Ideal when using high throughput >5% of the time
+  - Suitable for media streaming, production databases
+  - Requires setting `provisionedThroughputInMibps`
+
+- **bursting**: Scales with storage size
+
+  - Provides baseline of 50 KiB/s per GiB of storage
+  - Good for small dev environments and team file shares
+  - Can hit limits if burst credits are depleted
+  - Consider switching if consistently using >80% throughput
 
 ```yml
 resources:
@@ -158,11 +160,11 @@ resources:
 
 You can optionally enable daily backup to be able to restore files in case of accidental deletion etc.
 
--   Uses AWS Backup with default settings of daily backups and 35-day retention period
--   Performs incremental backups - only changed, added, or removed files are copied after initial backup
--   Backs up data from all storage classes (Standard, IA, Archive) without data access charges
--   Restored data is always placed in the Standard storage class
--   Default backup plan and vault are automatically created and managed by AWS
+- Uses AWS Backup with default settings of daily backups and 35-day retention period
+- Performs incremental backups - only changed, added, or removed files are copied after initial backup
+- Backs up data from all storage classes (Standard, IA, Archive) without data access charges
+- Restored data is always placed in the Standard storage class
+- Default backup plan and vault are automatically created and managed by AWS
 
 ```yml
 resources:
@@ -178,9 +180,9 @@ resources:
 
 You can specify root directory during mounting to limit access of the resource to the filesystem.
 
--   Specifies which directory in the EFS filesystem should be used as the root for this mount
--   Only this directory and its subdirectories will be accessible to the function
--   If not specified, the entire filesystem will be accessible
+- Specifies which directory in the EFS filesystem should be used as the root for this mount
+- Only this directory and its subdirectories will be accessible to the function
+- If not specified, the entire filesystem will be accessible
 
 ```yml
 resources:

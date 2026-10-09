@@ -1,5 +1,5 @@
 ---
-title: "Deploy Next.js T3App "
+title: 'Deploy Next.js T3App '
 order: 315
 ---
 
@@ -480,15 +480,15 @@ using [CognitoProvider](https://next-auth.js.org/providers/cognito)**. Therefore
 `src/server/auth.ts`.
 
 ```ts
-import { PrismaAdapter } from "@auth/prisma-adapter";
-import { getServerSession, type DefaultSession, type NextAuthOptions } from "next-auth";
-import { type Adapter } from "next-auth/adapters";
+import { PrismaAdapter } from '@auth/prisma-adapter';
+import { getServerSession, type DefaultSession, type NextAuthOptions } from 'next-auth';
+import { type Adapter } from 'next-auth/adapters';
 // {start-highlight}
-import CognitoProvider from "next-auth/providers/cognito";
+import CognitoProvider from 'next-auth/providers/cognito';
 // import DiscordProvider from "next-auth/providers/discord";
 // {stop-highlight}
-import { env } from "~/env";
-import { db } from "~/server/db";
+import { env } from '~/env';
+import { db } from '~/server/db';
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -496,13 +496,13 @@ import { db } from "~/server/db";
  *
  * @see https://next-auth.js.org/getting-started/typescript#module-augmentation
  */
-declare module "next-auth" {
+declare module 'next-auth' {
   interface Session extends DefaultSession {
     user: {
       id: string;
       // ...other properties
       // role: UserRole;
-    } & DefaultSession["user"];
+    } & DefaultSession['user'];
   }
 
   // interface User {
@@ -574,23 +574,23 @@ streaming is still considered **experimental** with both [OpenNEXT](https://open
 Therefore, we **switch from the HTTP streaming to the proven HTTP request/response**.
 
 ```tsx
-"use client";
+'use client';
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 // {start-highlight}
-import { loggerLink, httpBatchLink } from "@trpc/client";
+import { loggerLink, httpBatchLink } from '@trpc/client';
 // {stop-highlight}
-import { createTRPCReact } from "@trpc/react-query";
-import { useState } from "react";
+import { createTRPCReact } from '@trpc/react-query';
+import { useState } from 'react';
 
-import { type AppRouter } from "~/server/api/root";
-import { getUrl, transformer } from "./shared";
+import { type AppRouter } from '~/server/api/root';
+import { getUrl, transformer } from './shared';
 
 const createQueryClient = () => new QueryClient();
 
 let clientQueryClientSingleton: QueryClient | undefined = undefined;
 const getQueryClient = () => {
-  if (typeof window === "undefined") {
+  if (typeof window === 'undefined') {
     // Server: always make a new query client
     return createQueryClient();
   }
@@ -609,7 +609,7 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
       links: [
         loggerLink({
           enabled: (op) =>
-            process.env.NODE_ENV === "development" || (op.direction === "down" && op.result instanceof Error)
+            process.env.NODE_ENV === 'development' || (op.direction === 'down' && op.result instanceof Error)
         }),
         // {start-highlight}
         httpBatchLink({
@@ -692,9 +692,9 @@ using [Next.js middleware](https://nextjs.org/docs/app/building-your-application
 `src/middleware.ts` file with the following content:
 
 ```ts
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { env } from "~/env";
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { env } from '~/env';
 
 // This function can be marked `async` if using `await` inside
 export const middleware = (_request: NextRequest) => {
@@ -704,12 +704,12 @@ export const middleware = (_request: NextRequest) => {
       `logout_uri=${encodeURIComponent(`${env.NEXTAUTH_URL}/api/auth/signout`)}`,
       `redirect_uri=${encodeURIComponent(`${env.NEXTAUTH_URL}/api/auth/signout`)}`,
       `response_type=code`
-    ].join("&")
+    ].join('&')
   );
 };
 
 export const config = {
-  matcher: "/api/signout"
+  matcher: '/api/signout'
 };
 ```
 
@@ -719,16 +719,16 @@ Now that we have added the redirect, we need to make use of it inside our Next.j
 the `app/page.tsx` file:
 
 ```tsx
-import { unstable_noStore as noStore } from "next/cache";
-import Link from "next/link";
+import { unstable_noStore as noStore } from 'next/cache';
+import Link from 'next/link';
 
-import { CreatePost } from "~/app/_components/create-post";
-import { getServerAuthSession } from "~/server/auth";
-import { api } from "~/trpc/server";
+import { CreatePost } from '~/app/_components/create-post';
+import { getServerAuthSession } from '~/server/auth';
+import { api } from '~/trpc/server';
 
 export default async function Home() {
   noStore();
-  const hello = await api.post.hello.query({ text: "from tRPC" });
+  const hello = await api.post.hello.query({ text: 'from tRPC' });
   const session = await getServerAuthSession();
 
   return (
@@ -758,7 +758,7 @@ export default async function Home() {
           </Link>
         </div>
         <div className="flex flex-col items-center gap-2">
-          <p className="text-2xl text-white">{hello ? hello.greeting : "Loading tRPC query..."}</p>
+          <p className="text-2xl text-white">{hello ? hello.greeting : 'Loading tRPC query...'}</p>
 
           <div className="flex flex-col items-center justify-center gap-4">
             <p className="text-center text-2xl text-white">
@@ -766,11 +766,11 @@ export default async function Home() {
             </p>
             <Link
               // {start-highlight}
-              href={session ? "/api/signout" : "/api/auth/signin"}
+              href={session ? '/api/signout' : '/api/auth/signin'}
               // {stop-highlight}
               className="rounded-full bg-white/10 px-10 py-3 font-semibold no-underline transition hover:bg-white/20"
             >
-              {session ? "Sign out" : "Sign in"}
+              {session ? 'Sign out' : 'Sign in'}
             </Link>
           </div>
         </div>
